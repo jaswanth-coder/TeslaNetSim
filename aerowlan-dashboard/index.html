@@ -274,45 +274,62 @@
       <section id="terminal-tab" class="tab-content">
         <div class="content-card">
           <div class="card-header">
-            <h3>Essential ns-3 & Linux Commands</h3>
+            <h3>💻 Step-by-Step ns-3 & Linux Simulation Workflow Guide</h3>
           </div>
-          <div class="command-table-wrapper">
-            <table class="premium-table">
-              <thead>
-                <tr>
-                  <th>Command</th>
-                  <th>Action</th>
-                  <th>Purpose</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code>./ns3 configure --enable-examples --enable-tests</code></td>
-                  <td>Configuration</td>
-                  <td>Prepares the CMake build directory with examples/tests enabled.</td>
-                </tr>
-                <tr>
-                  <td><code>./ns3 build</code></td>
-                  <td>Compilation</td>
-                  <td>Compiles any new changes in scratch or src directories.</td>
-                </tr>
-                <tr>
-                  <td><code>./ns3 run &lt;script-name&gt;</code></td>
-                  <td>Execution</td>
-                  <td>Runs a compiled executable from the scratch folder.</td>
-                </tr>
-                <tr>
-                  <td><code>NS_LOG="WifiPhy:WifiMac" ./ns3 run &lt;script&gt;</code></td>
-                  <td>Debugging logs</td>
-                  <td>Enables detailed console logging for WifiPhy and WifiMac components.</td>
-                </tr>
-                <tr>
-                  <td><code>./ns3 run &lt;script&gt; -- --pcap=1</code></td>
-                  <td>Packet capture</td>
-                  <td>Triggers packet capture file generation (.pcap) on active netdevices.</td>
-                </tr>
-              </tbody>
-            </table>
+          
+          <div class="workflow-guide-body">
+            <h4 class="mt-4">Step 1: Configuration & CMake Initialization</h4>
+            <p>Before compiling any scripts, you must configure the build environment. This sets compilation flags, enables optional modules, and turns on examples/tests:</p>
+            <div class="terminal-command-row">
+              <code>./ns3 configure --enable-examples --enable-tests --build-profile=debug</code>
+              <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('./ns3 configure --enable-examples --enable-tests --build-profile=debug')">Copy</button>
+            </div>
+            <ul class="mt-2 text-muted" style="font-size: 13px; padding-left: 20px;">
+              <li><code>--build-profile=debug</code>: Enables compiler debugging assertions and symbols (essential for troubleshooting segmentation faults).</li>
+              <li><code>--build-profile=optimized</code>: Removes debug features to enable 5x-10x faster execution for massive trace collection.</li>
+            </ul>
+
+            <h4 class="mt-4">Step 2: Compiling Your Simulation</h4>
+            <p>Compile the whole codebase or register new files placed in the <code>scratch/</code> directory:</p>
+            <div class="terminal-command-row">
+              <code>./ns3 build</code>
+              <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('./ns3 build')">Copy</button>
+            </div>
+            <p class="mt-2 text-muted" style="font-size: 13px;">If you modify a header file in a core module (like <code>src/wifi/model/wifi-phy.h</code>), this command will automatically compile only the affected modules and update dependencies.</p>
+
+            <h4 class="mt-4">Step 3: Running a Script with Custom Arguments</h4>
+            <p>Execute your compiled simulation. To pass command-line arguments to the script, append them after the double-dash (<code>--</code>):</p>
+            <div class="terminal-command-row">
+              <code>./ns3 run "scratch/aerowlan_exercises/hello-ns3 --argName=val"</code>
+              <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('./ns3 run \&quot;scratch/aerowlan_exercises/hello-ns3 --argName=val\&quot;')">Copy</button>
+            </div>
+
+            <h4 class="mt-4">Step 4: Debugging with ns-3 Logging System</h4>
+            <p>Enable verbose execution logs from specific components dynamically using the <code>NS_LOG</code> environment variable. You can target specific layers:</p>
+            <div class="terminal-command-row">
+              <code>export NS_LOG="UdpEchoClientApplication=level_all:WifiPhy=level_info"</code>
+              <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('export NS_LOG=\&quot;UdpEchoClientApplication=level_all:WifiPhy=level_info\&quot;')">Copy</button>
+            </div>
+            <p class="mt-2 text-muted" style="font-size: 13px;">Common logging levels: <code>error</code>, <code>warn</code>, <code>info</code>, <code>debug</code>, <code>logic</code>, <code>all</code>. To clear logging rules, run: <code>unset NS_LOG</code>.</p>
+
+            <h4 class="mt-4">Step 5: Collecting & Analyzing Network Traces (PCAPs)</h4>
+            <p>Many simulation scripts support trace file generation (enabled via code configurations or run-time flags). To capture standard PCAP packets:</p>
+            <div class="terminal-command-row">
+              <code>./ns3 run scratch/aerowlan_exercises/simple-wifi -- --pcap=1</code>
+              <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('./ns3 run scratch/aerowlan_exercises/simple-wifi -- --pcap=1')">Copy</button>
+            </div>
+            <p class="mt-2">To read the generated packet capture files on your Linux console, use <code>tcpdump</code>:</p>
+            <div class="terminal-command-row">
+              <code>tcpdump -nn -tt -r simple-wifi-0-0.pcap</code>
+              <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('tcpdump -nn -tt -r simple-wifi-0-0.pcap')">Copy</button>
+            </div>
+
+            <h4 class="mt-4">Step 6: Cleaning the Build Directory</h4>
+            <p>If you encounter linking conflicts or CMake cache corruption, clean the build directory before re-configuring:</p>
+            <div class="terminal-command-row">
+              <code>./ns3 clean</code>
+              <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('./ns3 clean')">Copy</button>
+            </div>
           </div>
         </div>
       </section>
