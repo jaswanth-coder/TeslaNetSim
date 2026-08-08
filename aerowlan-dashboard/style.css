@@ -848,3 +848,27 @@ body {
   background-color: var(--bg-secondary);
   color: var(--text-main);
 }
+
+.premium-textarea {
+  width: 100%;
+  height: 150px;
+  background-color: #05070c;
+  color: #34d399;
+  border: 1px solid var(--border-glow);
+  border-radius: 8px;
+  padding: 14px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.premium-textarea:focus {
+  border-color: var(--ns3-blue);
+}
+
+.premium-textarea::placeholder {
+  color: #4b5563;
+}

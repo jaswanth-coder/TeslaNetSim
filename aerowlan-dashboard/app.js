@@ -25,419 +25,60 @@ let currentQuizQuestionIndex = 0;
 let quizAnswersCorrect = 0;
 
 let progress = JSON.parse(localStorage.getItem('tesla_netsim_progress')) || {
-  completedLessons: [] // Array of completed lesson IDs (e.g. "T1-M1-L1", "T1-M1-Q")
+  completedLessons: [] // Array of completed IDs: e.g. "T1-M4-Q", "T1-M4-A"
 };
 
-// Course Tracks Data Structure
+// Course Tracks Data Structure - Detailed matching the PDF index
 const tracks = [
   {
     name: "Track 1: ns-3 Master Class (General & Wired)",
     modules: [
       {
-        id: 1,
-        title: "Module 1: ns-3 Core Abstractions",
-        description: "Discrete-event simulation engine, smart pointers, nodes, devices, and attributes.",
-        lessons: [
-          {
-            id: "T1-M1-L1",
-            title: "Discrete-Event Simulation (DES) Mechanics",
-            moduleTitle: "Track 1 • Module 1 • Lesson 1",
-            body: `
-              <p>ns-3 is a <strong>Discrete-Event Network Simulator</strong>. Unlike real-world hardware or emulators (like Mininet) that execute in real-time, ns-3 maintains an internal event queue sorted chronologically by virtual execution time.</p>
-              <h4>How the DES Engine Operates:</h4>
-              <ul>
-                <li><strong>Events:</strong> An event is a C++ callback scheduled to execute at a specific future virtual time.</li>
-                <li><strong>Virtual Simulation Time:</strong> The simulation clock does not tick continuously. Instead, when an event completes, the clock jumps instantly to the timestamp of the next event in the queue.</li>
-                <li><strong>Lifecycle APIs:</strong> 
-                  <ul>
-                    <li><code>Simulator::Schedule()</code>: Registers a new event callback in the event queue.</li>
-                    <li><code>Simulator::Run()</code>: Commences the execution loop, pulling and running events until none remain or a stop time is reached.</li>
-                    <li><code>Simulator::Stop()</code>: Instructs the simulation loop to halt execution at a specific virtual time.</li>
-                    <li><code>Simulator::Destroy()</code>: Cleans up internal structures, deletes reference-counted smart pointer handles, and frees heap memory.</li>
-                  </ul>
-                </li>
-              </ul>
-              <p>By default, ns-3 operates at a nanosecond time resolution (<code>Time::NS</code>), but can be configured to picoseconds or seconds via <code>Time::SetResolution()</code> before scheduling events.</p>
-            `,
-            practiceFile: null,
-            practiceCmd: null
-          },
-          {
-            id: "T1-M1-L2",
-            title: "Core Topology Abstractions",
-            moduleTitle: "Track 1 • Module 1 • Lesson 2",
-            body: `
-              <p>The official ns-3 tutorial defines four fundamental abstractions that represent physical network components:</p>
-              <ul>
-                <li><strong>Node:</strong> Represented by the <code>Node</code> class. This is the shell of a computer (or router/switch). It is initially blank and has no protocol stack or interfaces.</li>
-                <li><strong>NetDevice:</strong> Represented by subclasses of the <code>NetDevice</code> class (e.g. <code>CsmaNetDevice</code>). Equivalent to a physical Network Interface Card (NIC). It is installed on a Node and bound to a Channel.</li>
-                <li><strong>Channel:</strong> Represented by subclasses of the <code>Channel</code> class (e.g. <code>CsmaChannel</code>). Models the physical transmission medium (wires, fibers, or radio spectrum).</li>
-                <li><strong>Application:</strong> Represents software programs running on nodes that generate or consume network packets (e.g. <code>UdpEchoClient</code>).</li>
-              </ul>
-              <p>These components are connected in C++ to build any physical topology.</p>
-            `,
-            practiceFile: "scratch/aerowlan_exercises/hello-ns3.cc",
-            practiceCmd: "./ns3 run scratch/aerowlan_exercises/hello-ns3"
-          },
-          {
-            id: "T1-M1-L3",
-            title: "Object System & Config Attributes",
-            moduleTitle: "Track 1 • Module 1 • Lesson 3",
-            body: `
-              <p>To support advanced features like runtime configuration and trace collection, ns-3 implements a custom C++ Object System:</p>
-              <ul>
-                <li><strong>Smart Pointers (<code>Ptr&lt;T&gt;</code>):</strong> Implements reference-counted garbage collection, deleting objects automatically when their reference count drops to zero to prevent memory leaks.</li>
-                <li><strong>TypeId:</strong> Registers class metadata at runtime, defining class names, parents, and configuration attributes.</li>
-                <li><strong>Attribute System:</strong> Allows developers to configure member variables of modules dynamically (e.g., configuring channel delay or data rate) using values like <code>StringValue</code>, <code>TimeValue</code>, or <code>DoubleValue</code>.</li>
-              </ul>
-              <p>Attributes are set using class helpers: <code>p2p.SetChannelAttribute ("Delay", StringValue ("2ms"));</code></p>
-            `,
-            practiceFile: null,
-            practiceCmd: null
-          },
-          {
-            id: "T1-M1-Q",
-            title: "Module 1 Review Quiz",
-            isQuizOnly: true,
-            moduleTitle: "Track 1 • Module 1 • Assessment",
-            quiz: [
-              {
-                question: "1. In ns-3, how does the simulation clock advance during execution?",
-                options: [
-                  { text: "It advances in continuous real-time milliseconds", isCorrect: false },
-                  { text: "It jumps instantly to the timestamp of the next scheduled event in the queue", isCorrect: true },
-                  { text: "It ticks at a fixed frequency set by the CPU", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! The clock jumps discretely from event to event, bypassing idle periods.",
-                feedbackError: "Incorrect. ns-3 is a discrete-event simulator; the clock jumps instantly to the next event's scheduled execution time. Try again!"
-              },
-              {
-                question: "2. Which C++ class represents a physical Network Interface Card (NIC) in ns-3?",
-                options: [
-                  { text: "Node", isCorrect: false },
-                  { text: "NetDevice", isCorrect: true },
-                  { text: "Channel", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! NetDevice binds a node's software to a channel, mimicking a NIC.",
-                feedbackError: "Incorrect. Node represents the computer, and Channel represents the medium. NetDevice is the NIC. Try again!"
-              },
-              {
-                question: "3. What is the role of Ptr<T> in ns-3 development?",
-                options: [
-                  { text: "It allocates raw stack variables", isCorrect: false },
-                  { text: "It manages class reference counts and automates heap cleanup", isCorrect: true },
-                  { text: "It acts as a type casting utility", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! Ptr<T> wraps raw C++ pointers, automatically freeing memory when unused.",
-                feedbackError: "Incorrect. Ptr<T> is a smart pointer template used for automatic reference counting and garbage collection. Try again!"
-              },
-              {
-                question: "4. Why is Simulator::Destroy() called at the end of a simulation script?",
-                options: [
-                  { text: "To compile the scratch files", isCorrect: false },
-                  { text: "To halt the scheduler loop early", isCorrect: false },
-                  { text: "To delete reference loops and free allocated object memory", isCorrect: true }
-                ],
-                feedbackSuccess: "Correct! Destroy() frees objects and clears references to prevent memory leaks.",
-                feedbackError: "Incorrect. Simulator::Destroy() cleans up internal state and deletes allocated objects. Try again!"
-              },
-              {
-                question: "5. How are configuration attributes modified without editing module source code?",
-                options: [
-                  { text: "Via the TypeId Attribute Subsystem using values like StringValue or DoubleValue", isCorrect: true },
-                  { text: "By editing variables directly in the compiler headers", isCorrect: false },
-                  { text: "By calling Simulator::Schedule()", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! The Attribute system allows dynamic adjustments to registered parameters.",
-                feedbackError: "Incorrect. Attributes are configured using the TypeId subsystem via helpers or config paths. Try again!"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        id: 2,
-        title: "Module 2: Getting Started & first.cc",
-        description: "Analyzing module includes, C++ namespaces, logging components, and point-to-point topologies.",
-        lessons: [
-          {
-            id: "T1-M2-L1",
-            title: "Analysis of first.cc Includes & Namespaces",
-            moduleTitle: "Track 1 • Module 2 • Lesson 1",
-            body: `
-              <p>Let's perform a detailed walkthrough of the official <code>first.cc</code> script, starting with the headers:</p>
-              <pre><code>#include "ns3/core-module.h"
-#include "ns3/network-module.h"
-#include "ns3/internet-module.h"
-#include "ns3/point-to-point-module.h"
-#include "ns3/applications-module.h"</code></pre>
-              <h4>Grouped Module Includes:</h4>
-              <p>Rather than including hundreds of individual headers, ns-3 groups APIs into high-level modules (e.g. <code>core</code>, <code>network</code>). CMake automatically creates a unified header for each module containing all public classes.</p>
-              <h4>C++ Namespace:</h4>
-              <p>The code declares <code>using namespace ns3;</code>. All ns-3 classes, types, and functions are declared within the <code>ns3</code> namespace to prevent conflicts with standard C++ libraries (<code>std</code>) or external projects.</p>
-            `,
-            practiceFile: null,
-            practiceCmd: null
-          },
-          {
-            id: "T1-M2-L2",
-            title: "Logging Component & CLI Configuration",
-            moduleTitle: "Track 1 • Module 2 • Lesson 2",
-            body: `
-              <p>The next line in <code>first.cc</code> defines the logging module identifier:</p>
-              <pre><code>NS_LOG_COMPONENT_DEFINE ("FirstScriptExample");</code></pre>
-              <p>This registers the name <code>FirstScriptExample</code> in the logger registry. You can then toggle console logs at runtime using shell variables: <code>export NS_LOG="FirstScriptExample=level_all"</code>.</p>
-              <h4>CommandLine Parser:</h4>
-              <p>The script uses the <code>CommandLine</code> class to read terminal inputs:</p>
-              <pre><code>CommandLine cmd (__FILE__);
-cmd.Parse (argc, argv);</code></pre>
-              <p>This parses script inputs, allowing you to override variables dynamically during run time (e.g., <code>--nNodes=10</code>).</p>
-            `,
-            practiceFile: null,
-            practiceCmd: null
-          },
-          {
-            id: "T1-M2-L3",
-            title: "Building Topology & Deploying Applications",
-            moduleTitle: "Track 1 • Module 2 • Lesson 3",
-            body: `
-              <p>The core script creates two nodes and links them using a point-to-point helper:</p>
-              <pre><code>NodeContainer nodes;
-nodes.Create (2);
-
-PointToPointHelper pointToPoint;
-pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));
-pointToPoint.SetChannelAttribute ("Delay", StringValue ("2ms"));
-
-NetDeviceContainer devices;
-devices = pointToPoint.Install (nodes);</code></pre>
-              <p>Next, the Internet protocol stack is installed, IP addresses are assigned, and a UDP Echo server/client app is deployed on Node 1 and Node 0 respectively.</p>
-            `,
-            practiceFile: "scratch/aerowlan_exercises/p2p-simulation.cc",
-            practiceCmd: "./ns3 run scratch/aerowlan_exercises/p2p-simulation",
-            isProgExercise: true,
-            progInstructions: `
-              <h4>💻 Programming Practice: Wired P2P Simulation</h4>
-              <p>1. Open the file <code>scratch/aerowlan_exercises/p2p-simulation.cc</code> in your editor.</p>
-              <p>2. Modify the link speed to <strong>10Mbps</strong> and channel delay to <strong>5ms</strong>.</p>
-              <p>3. Compile the script and run it, redirecting the execution output to a validation file:</p>
-              <pre><code>./ns3 build
-./ns3 run scratch/aerowlan_exercises/p2p-simulation > scratch/aerowlan_exercises/module2_output.txt 2>&1</code></pre>
-              <p>4. Once completed, tell the AI agent: <em>"Please check my Module 2 program execution"</em>.</p>
-            `
-          },
-          {
-            id: "T1-M2-Q",
-            title: "Module 2 Review Quiz",
-            isQuizOnly: true,
-            moduleTitle: "Track 1 • Module 2 • Assessment",
-            quiz: [
-              {
-                question: "1. Why does ns-3 group includes into files like core-module.h?",
-                options: [
-                  { text: "To optimize compiler execution times", isCorrect: false },
-                  { text: "To group all public APIs of a directory into a single, high-granularity include file", isCorrect: true },
-                  { text: "To import standard C++ library symbols", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! Grouped includes simplify dependency management for script writers.",
-                feedbackError: "Incorrect. Grouped includes wrap all public headers for that folder to make writing scripts easier. Try again!"
-              },
-              {
-                question: "2. What is the scope resolution namespace used by ns-3?",
-                options: [
-                  { text: "std::", isCorrect: false },
-                  { text: "ns3::", isCorrect: true },
-                  { text: "netsim::", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! The ns3 namespace encloses all simulation classes and functions.",
-                feedbackError: "Incorrect. The project uses the C++ 'ns3' namespace. Try again!"
-              },
-              {
-                question: "3. What macro registers a logging component name inside first.cc?",
-                options: [
-                  { text: "NS_LOG_COMPONENT_DEFINE", isCorrect: true },
-                  { text: "NS_LOG_INFO", isCorrect: false },
-                  { text: "NS_LOG_WARN", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! NS_LOG_COMPONENT_DEFINE registers the identifier for dynamic logging configurations.",
-                feedbackError: "Incorrect. NS_LOG_COMPONENT_DEFINE defines the string tag for the logging subsystem. Try again!"
-              },
-              {
-                question: "4. What default port is configured for the UdpEchoServer application inside first.cc?",
-                options: [
-                  { text: "Port 80", isCorrect: false },
-                  { text: "Port 9", isCorrect: true },
-                  { text: "Port 443", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! Port 9 is the default echo port used in the tutorial.",
-                feedbackError: "Incorrect. The echo server is configured on port 9 in the tutorial code. Try again!"
-              },
-              {
-                question: "5. Which helper class initializes standard command-line parameters in ns-3?",
-                options: [
-                  { text: "CommandLine", isCorrect: true },
-                  { text: "Config", isCorrect: false },
-                  { text: "InputParser", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! The CommandLine class parses script flags passed from the terminal.",
-                feedbackError: "Incorrect. CommandLine is the class used to parse and bind script arguments. Try again!"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        id: 3,
-        title: "Module 3: Wired Topologies & Tweaking",
-        description: "Shared CSMA bus topologies, overlapping networks, and CLI parameter modifications.",
-        lessons: [
-          {
-            id: "T1-M3-L1",
-            title: "CSMA Shared Bus Topologies (second.cc)",
-            moduleTitle: "Track 1 • Module 3 • Lesson 1",
-            body: `
-              <p>In the official <code>second.cc</code> script, a CSMA shared local area network is constructed. Unlike point-to-point links, CSMA connects multiple nodes to a single shared bus medium.</p>
-              <h4>CSMA Channel Properties:</h4>
-              <p>CSMA models a Carrier Sense Multiple Access channel with collisions, mimicking shared Ethernet. We configure its attributes via <code>CsmaHelper</code>:</p>
-              <pre><code>CsmaHelper csma;
-csma.SetChannelAttribute ("DataRate", StringValue ("100Mbps"));
-csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));</code></pre>
-              <p>When installed on a NodeContainer, all nodes share the collision domain and must negotiate access via carrier sensing.</p>
-            `,
-            practiceFile: null,
-            practiceCmd: null
-          },
-          {
-            id: "T1-M3-L2",
-            title: "Inter-Network Routing & ARP",
-            moduleTitle: "Track 1 • Module 3 • Lesson 2",
-            body: `
-              <p>When connecting multiple networks (e.g. a P2P link bridging to a CSMA LAN), nodes must route packets across subnets. In ns-3, this is accomplished via static routing helpers:</p>
-              <pre><code>Ipv4GlobalRoutingHelper::PopulateRoutingTables ();</code></pre>
-              <p>This command automatically traverses all nodes, constructs static routing tables based on the configured subnets, and populates routing entries.</p>
-              <p>Additionally, the Address Resolution Protocol (ARP) is modeled dynamically to map IPv4 addresses to NetDevice MAC addresses before transmitting packets.</p>
-            `,
-            practiceFile: "scratch/aerowlan_exercises/csma-simulation.cc",
-            practiceCmd: "./ns3 run scratch/aerowlan_exercises/csma-simulation",
-            isProgExercise: true,
-            progInstructions: `
-              <h4>💻 Programming Practice: CSMA Bus Simulation</h4>
-              <p>1. Open <code>scratch/aerowlan_exercises/csma-simulation.cc</code>.</p>
-              <p>2. Configure the CSMA nodes count to <strong>6</strong>.</p>
-              <p>3. Compile the simulation and redirect output to a validation file:</p>
-              <pre><code>./ns3 build
-./ns3 run scratch/aerowlan_exercises/csma-simulation > scratch/aerowlan_exercises/module3_output.txt 2>&1</code></pre>
-              <p>4. Once completed, tell the AI agent: <em>"Please check my Module 3 program execution"</em>.</p>
-            `
-          },
-          {
-            id: "T1-M3-Q",
-            title: "Module 3 Review Quiz",
-            isQuizOnly: true,
-            moduleTitle: "Track 1 • Module 3 • Assessment",
-            quiz: [
-              {
-                question: "1. What physical layer topology does CsmaHelper configure?",
-                options: [
-                  { text: "Point-to-Point link", isCorrect: false },
-                  { text: "Shared Bus LAN", isCorrect: true },
-                  { text: "Mesh network", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! CSMA models a multi-tap bus medium.",
-                feedbackError: "Incorrect. CsmaHelper configures a shared bus topology. Try again!"
-              },
-              {
-                question: "2. How are routing tables populated automatically across multiple subnets in ns-3?",
-                options: [
-                  { text: "Via Ipv4GlobalRoutingHelper::PopulateRoutingTables()", isCorrect: true },
-                  { text: "Manually for each device", isCorrect: false },
-                  { text: "By default during IP stack installation", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! PopulateRoutingTables() automatically configures static routes for all subnets.",
-                feedbackError: "Incorrect. You must call Ipv4GlobalRoutingHelper::PopulateRoutingTables() to build tables. Try again!"
-              },
-              {
-                question: "3. What protocol resolves IP addresses to physical MAC addresses in ns-3?",
-                options: [
-                  { text: "DNS", isCorrect: false },
-                  { text: "ARP", isCorrect: true },
-                  { text: "DHCP", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! Address Resolution Protocol (ARP) is modeled dynamically on IPv4 interfaces.",
-                feedbackError: "Incorrect. ARP maps layer-3 IP addresses to layer-2 MAC addresses. Try again!"
-              },
-              {
-                question: "4. How can you toggle dynamic logging for UdpEchoClient application to display warnings only?",
-                options: [
-                  { text: "export NS_LOG='UdpEchoClientApplication=level_warn'", isCorrect: true },
-                  { text: "export NS_LOG='UdpEchoClientApplication=all'", isCorrect: false },
-                  { text: "CommandLine::AddValue()", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! Assigning level_warn filters logs to warnings and errors.",
-                feedbackError: "Incorrect. Set UdpEchoClientApplication to level_warn in your environment. Try again!"
-              },
-              {
-                question: "5. What happens when two CSMA nodes transmit simultaneously on the same bus?",
-                options: [
-                  { text: "A collision is simulated and backoff events are triggered", isCorrect: true },
-                  { text: "Packets are merged cleanly on the channel", isCorrect: false },
-                  { text: "The simulation crashes with an assertion error", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! CSMA models medium contention and collisions dynamically.",
-                feedbackError: "Incorrect. CSMA simulates standard Ethernet collisions and backoffs. Try again!"
-              }
-            ]
-          }
-        ]
-      },
-      {
         id: 4,
-        title: "Module 4: Tracing System & Data Collection",
-        description: "Configuring packet captures, reading trace files with tcpdump, and callback trace matching.",
+        title: "Module 4: Getting Started",
+        description: "Prerequisites, building and testing ns-3, and running your first script.",
         lessons: [
           {
             id: "T1-M4-L1",
-            title: "Trace Sources and Trace Sinks",
+            title: "4.1 Overview & 4.2 Prerequisites",
             moduleTitle: "Track 1 • Module 4 • Lesson 1",
             body: `
-              <p>The ns-3 simulator provides a structured **Tracing System** that separates data generation from data analysis, preventing log printing from cluttering core module code.</p>
-              <h4>Key Concepts:</h4>
-              <ul>
-                <li><strong>Trace Source:</strong> An event hook inside a class (e.g. <code>MacTx</code>, <code>RxDrop</code>) that fires when state changes, exporting relevant variables (e.g. packet size, node ID).</li>
-                <li><strong>Trace Sink:</strong> A callback function defined by the user that receives the exported variables from the Source and logs them to console or files.</li>
-              </ul>
-              <p>Sinks are connected to Sources using config paths: <code>Config::Connect()</code>.</p>
-            `,
-            practiceFile: null,
-            practiceCmd: null
+              <p>Welcome to ns-3! The <strong>ns-3 simulator</strong> is a discrete-event network simulator designed for research and educational use. It is written in C++ with optional Python bindings.</p>
+              <h4>4.1 Overview:</h4>
+              <p>ns-3 is designed as a set of libraries that can be combined with other external libraries. Some simulators provide an graphical user interface (GUI) environment where you build configurations. ns-3 is code-driven; you write a C++ program that instantiates the topology, starts the simulation, and prints statistics.</p>
+              <h4>4.2 Prerequisites:</h4>
+              <p>Building ns-3 requires a toolchain including a C++ compiler (g++ or clang++), CMake build system, python3 (for build orchestration), and optional libraries like GTK (for NetAnim visualization) and libpcap (for reading trace files).</p>
+            `
           },
           {
             id: "T1-M4-L2",
-            title: "PCAP & ASCII Trace Helpers",
+            title: "4.3 Downloading ns-3 & 4.4 Building ns-3",
             moduleTitle: "Track 1 • Module 4 • Lesson 2",
             body: `
-              <p>To record standard packets for external analysis (e.g. Wireshark or tcpdump), ns-3 provides pre-built trace helpers:</p>
-              <ul>
-                <li><strong>ASCII Traces:</strong> Write every event (Tx, Rx, Drop) as detailed plaintext lines. Enabled via:<br>
-                  <code>AsciiTraceHelper ascii; p2p.EnableAsciiAll(ascii.CreateFileStream("p2p.tr"));</code>
-                </li>
-                <li><strong>PCAP Traces:</strong> Save raw packet frames in Libpcap format. Enabled via:<br>
-                  <code>p2p.EnablePcapAll("p2p-capture");</code>
-                </li>
-              </ul>
-              <p>On Linux, you inspect generated PCAPs directly on the shell using <code>tcpdump</code>: <code>tcpdump -nn -tt -r p2p-capture-0-0.pcap</code>.</p>
-            `,
-            practiceFile: "scratch/aerowlan_exercises/simple-wifi.cc",
-            practiceCmd: "./ns3 run scratch/aerowlan_exercises/simple-wifi -- --pcap=1",
-            isProgExercise: true,
-            progInstructions: `
-              <h4>💻 Programming Practice: Trace File Inspection</h4>
-              <p>1. Compile and execute the <code>simple-wifi.cc</code> script with packet capture enabled:</p>
-              <pre><code>./ns3 run scratch/aerowlan_exercises/simple-wifi -- --pcap=1</code></pre>
-              <p>2. Locate the generated <code>.pcap</code> files in your workspace root.</p>
-              <p>3. Read the packet headers of the first PCAP file using tcpdump, and redirect the output to a validation file:</p>
-              <pre><code>tcpdump -nn -tt -r TeslaSimpleWifi-0-0.pcap > scratch/aerowlan_exercises/module4_output.txt 2>&1</code></pre>
-              <p>4. Once completed, tell the AI agent: <em>"Please check my Module 4 trace output"</em>.</p>
+              <p>Let's look at how we fetch and build the ns-3 source files.</p>
+              <h4>4.3 Downloading ns-3 using Git:</h4>
+              <p>The standard way to download the active ns-3 development tree is using git: <br>
+              <code>git clone https://gitlab.colostate.edu/nsnam/ns-3-dev-git.git</code></p>
+              <h4>4.4 Building ns-3:</h4>
+              <p>ns-3 uses <strong>CMake</strong> to configure and compile modules. The main build tool is the <code>./ns3</code> wrapper script. Before building, you must configure CMake to enable examples and tests:</p>
+              <pre><code>./ns3 configure --enable-examples --enable-tests --build-profile=debug</code></pre>
+              <p>Once configured, compile the libraries:</p>
+              <pre><code>./ns3 build</code></pre>
+            `
+          },
+          {
+            id: "T1-M4-L3",
+            title: "4.5 Testing ns-3 & 4.6 Running a Script",
+            moduleTitle: "Track 1 • Module 4 • Lesson 3",
+            body: `
+              <p>Before running custom scripts, you should verify the build using the unit testing framework:</p>
+              <h4>4.5 Testing ns-3:</h4>
+              <p>ns-3 provides a test runner utility called <code>test.py</code>. Run this command to execute all unit tests: <br>
+              <code>./test.py</code> <br>
+              If compiled successfully, it should output: <code>"PASS: Test suite ..."</code> for hundreds of tests.</p>
+              <h4>4.6 Running a Script:</h4>
+              <p>Simulation scripts located in the <code>scratch/</code> directory are automatically built. You run them using the run command: <br>
+              <code>./ns3 run scratch/aerowlan_exercises/hello-ns3</code></p>
             `
           },
           {
@@ -447,56 +88,752 @@ csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));</code></pre>
             moduleTitle: "Track 1 • Module 4 • Assessment",
             quiz: [
               {
-                question: "1. What is the main design goal of the ns-3 Tracing System?",
+                question: "1. What build tool does ns-3 use to orchestrate and compile its modules?",
                 options: [
-                  { text: "To accelerate simulation compile speed", isCorrect: false },
-                  { text: "To decouple data generation (sources) from data analysis (sinks)", isCorrect: true },
-                  { text: "To configure class attributes dynamically", isCorrect: false }
+                  { text: "Make / Waf", isCorrect: false },
+                  { text: "CMake", isCorrect: true },
+                  { text: "Autotools", isCorrect: false }
                 ],
-                feedbackSuccess: "Correct! decoupling sources from sinks keeps core code free from logging statements.",
-                feedbackError: "Incorrect. The tracing system decouples data production from consumption. Try again!"
+                feedbackSuccess: "Correct! Modern ns-3 versions use CMake for module compilation.",
+                feedbackError: "Incorrect. Modern versions of ns-3 (since 3.36) use CMake. Try again!"
               },
               {
-                question: "2. Which file format allows ns-3 traces to be opened directly in Wireshark?",
+                question: "2. Which environment variable or argument profile enables compilation asserts?",
                 options: [
-                  { text: "Plaintext .tr files", isCorrect: false },
-                  { text: "Libpcap .pcap files", isCorrect: true },
-                  { text: "XML simulation files", isCorrect: false }
+                  { text: "--build-profile=debug", isCorrect: true },
+                  { text: "--build-profile=optimized", isCorrect: false },
+                  { text: "--enable-asserts", isCorrect: false }
                 ],
-                feedbackSuccess: "Correct! PCAP files match the standard packet capture format readable by Wireshark.",
-                feedbackError: "Incorrect. Wireshark reads standard Libpcap .pcap files. Try again!"
+                feedbackSuccess: "Correct! The debug profile enables checks and assertions.",
+                feedbackError: "Incorrect. Specify --build-profile=debug during configuration. Try again!"
               },
               {
-                question: "3. What Linux tool is used on the terminal to view packet contents of a PCAP file?",
+                question: "3. What python script is executed to run all unit tests in the codebase?",
                 options: [
-                  { text: "tcpdump", isCorrect: true },
-                  { text: "cat", isCorrect: false },
-                  { text: "grep", isCorrect: false }
+                  { text: "run-tests.py", isCorrect: false },
+                  { text: "test.py", isCorrect: true },
+                  { text: "ns3-test", isCorrect: false }
                 ],
-                feedbackSuccess: "Correct! tcpdump parses and displays packet records on the CLI.",
-                feedbackError: "Incorrect. tcpdump is the standard CLI packet analyzer tool. Try again!"
+                feedbackSuccess: "Correct! test.py runs the extensive validation suite.",
+                feedbackError: "Incorrect. The correct script is test.py in the repository root. Try again!"
               },
               {
-                question: "4. What is a Trace Source in ns-3 class models?",
+                question: "4. Where should user simulation C++ scripts be placed to compile automatically?",
                 options: [
-                  { text: "A callback function that prints reports", isCorrect: false },
-                  { text: "An event hook that signals state changes and exports data variables", isCorrect: true },
-                  { text: "A channel parameter setting transmitter power", isCorrect: false }
+                  { text: "src/core/", isCorrect: false },
+                  { text: "scratch/", isCorrect: true },
+                  { text: "examples/tutorial/", isCorrect: false }
                 ],
-                feedbackSuccess: "Correct! Trace Sources are variables/hooks that trigger callbacks when state changes.",
-                feedbackError: "Incorrect. Trace Source is the generation hook inside core modules. Try again!"
+                feedbackSuccess: "Correct! Any script placed in scratch/ is compiled automatically.",
+                feedbackError: "Incorrect. Place your C++ files under the scratch/ directory. Try again!"
               },
               {
-                question: "5. How do you enable PCAP capture on all devices configured via PointToPointHelper?",
+                question: "5. What git repository host is the primary home of ns-3 dev trees?",
                 options: [
-                  { text: "p2p.EnablePcapAll(\"prefix\");", isCorrect: true },
-                  { text: "p2p.SetChannelAttribute(\"Pcap\", true);", isCorrect: false },
-                  { text: "Config::Connect(\"Pcap\");", isCorrect: false }
+                  { text: "GitHub", isCorrect: false },
+                  { text: "GitLab (nsnam)", isCorrect: true },
+                  { text: "Bitbucket", isCorrect: false }
                 ],
-                feedbackSuccess: "Correct! EnablePcapAll() sets up capturing hooks for all devices managed by the helper.",
-                feedbackError: "Incorrect. Use EnablePcapAll(\"prefix\") on the helper instance. Try again!"
+                feedbackSuccess: "Correct! The ns-3 project development tree is hosted on GitLab.com/nsnam.",
+                feedbackError: "Incorrect. The code is officially hosted on GitLab under the nsnam organization. Try again!"
               }
             ]
+          },
+          {
+            id: "T1-M4-A",
+            title: "Module 4 Programming Assignment",
+            isAssignmentOnly: true,
+            moduleTitle: "Track 1 • Module 4 • Assignment",
+            assignmentInstructions: `
+              <h4>Assignment Objective:</h4>
+              <p>Compile and run the hello-ns3 script in your scratch folder to verify the local workspace builds properly.</p>
+              
+              <h4>Step 1: Open Terminal</h4>
+              <p>Navigate to your ns-3 root directory: <code>/home/jaswanth/Downloads/ns-allinone-3.45/ns-3.45</code></p>
+              
+              <h4>Step 2: Build the project</h4>
+              <p>Execute the compile command:</p>
+              <pre><code>./ns3 build</code></pre>
+              
+              <h4>Step 3: Run the hello-ns3 script and save output</h4>
+              <p>Run the script and redirect the console stdout to the file <code>module4_output.txt</code>:</p>
+              <pre><code>./ns3 run scratch/aerowlan_exercises/hello-ns3 > scratch/aerowlan_exercises/module4_output.txt 2>&1</code></pre>
+              
+              <h4>Step 4: Verify Output</h4>
+              <p>Locate the generated <code>module4_output.txt</code> file in your workspace, copy its entire contents, and paste it into the textbox below to submit.</p>
+            `,
+            assignmentVerifyKeyword: "AeroWLAN environment check successful.",
+            practiceFile: "scratch/aerowlan_exercises/hello-ns3.cc"
+          }
+        ]
+      },
+      {
+        id: 5,
+        title: "Module 5: Conceptual Overview",
+        description: "Key abstractions, nodes, devices, channels, and walkthrough of first.cc.",
+        lessons: [
+          {
+            id: "T1-M5-L1",
+            title: "5.1 Key Abstractions & 5.2.1-5.2.3 first.cc Anatomy",
+            moduleTitle: "Track 1 • Module 5 • Lesson 1",
+            body: `
+              <p>Let's study the core architecture abstractions in detail:</p>
+              <ul>
+                <li><strong>Node:</strong> Models the computer or host. You add network device interfaces, protocols, and apps to it.</li>
+                <li><strong>NetDevice:</strong> Models the interface card (NIC). Installed in a Node to attach it to a Channel.</li>
+                <li><strong>Channel:</strong> Models the physical link (e.g. wired point-to-point connection or wireless channel).</li>
+              </ul>
+              <h4>Anatomy of first.cc includes:</h4>
+              <p>The code starts with includes like <code>#include "ns3/core-module.h"</code> which wrap all headers in core, and uses namespace <code>ns3</code> to avoid name collisions.</p>
+            `
+          },
+          {
+            id: "T1-M5-L2",
+            title: "5.2.4-5.2.9 Setting Up point-to-point links & Echo Applications",
+            moduleTitle: "Track 1 • Module 5 • Lesson 2",
+            body: `
+              <p>Let's trace how <code>first.cc</code> creates a topology:</p>
+              <pre><code>NodeContainer nodes;
+nodes.Create (2); // Create Node 0 and Node 1
+
+PointToPointHelper pointToPoint;
+pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));
+pointToPoint.SetChannelAttribute ("Delay", StringValue ("2ms"));
+
+NetDeviceContainer devices;
+devices = pointToPoint.Install (nodes);</code></pre>
+              <p>The helper configures and creates the netdevices and channel, linking both nodes.</p>
+              <h4>Internet Stack & Apps:</h4>
+              <p>We install the IP stack and assign IP addresses:</p>
+              <pre><code>InternetStackHelper stack;
+stack.Install (nodes);
+
+Ipv4AddressHelper address;
+address.SetBase ("10.1.1.0", "255.255.255.0");
+Ipv4InterfaceContainer interfaces = address.Assign (devices);</code></pre>
+              <p>We deploy <code>UdpEchoServer</code> on Node 1 (port 9) and <code>UdpEchoClient</code> on Node 0 (targeting Node 1's IP address).</p>
+            `
+          },
+          {
+            id: "T1-M5-L3",
+            title: "5.3 ns-3 Source Code structure",
+            moduleTitle: "Track 1 • Module 5 • Lesson 3",
+            body: `
+              <p>Understanding the source directory structure helps when subclassing or modifying modules:</p>
+              <ul>
+                <li><code>src/</code>: Contains source code for all modules (e.g. <code>src/core/</code>, <code>src/network/</code>, <code>src/wifi/</code>).</li>
+                <li><code>src/&lt;module&gt;/model/</code>: Holds the core C++ logic classes.</li>
+                <li><code>src/&lt;module&gt;/helper/</code>: Holds convenience helper classes.</li>
+                <li><code>src/&lt;module&gt;/test/</code>: Holds unit test scripts.</li>
+              </ul>
+            `
+          },
+          {
+            id: "T1-M5-Q",
+            title: "Module 5 Review Quiz",
+            isQuizOnly: true,
+            moduleTitle: "Track 1 • Module 5 • Assessment",
+            quiz: [
+              {
+                question: "1. In first.cc, how many Nodes are created in the NodeContainer?",
+                options: [
+                  { text: "1 Node", isCorrect: false },
+                  { text: "2 Nodes", isCorrect: true },
+                  { text: "4 Nodes", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! The container instantiates 2 nodes (0 and 1) for the point-to-point link.",
+                feedbackError: "Incorrect. first.cc configures a single link between 2 nodes. Try again!"
+              },
+              {
+                question: "2. Which helper connects nodes via a point-to-point link?",
+                options: [
+                  { text: "CsmaHelper", isCorrect: false },
+                  { text: "PointToPointHelper", isCorrect: true },
+                  { text: "WifiHelper", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! PointToPointHelper builds point-to-point topologies.",
+                feedbackError: "Incorrect. PointToPointHelper is used for link connections. Try again!"
+              },
+              {
+                question: "3. What namespace contains all ns-3 classes?",
+                options: [
+                  { text: "std", isCorrect: false },
+                  { text: "ns3", isCorrect: true },
+                  { text: "net", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! Everything resides in the 'ns3' namespace.",
+                feedbackError: "Incorrect. The project uses the 'ns3' C++ namespace. Try again!"
+              },
+              {
+                question: "4. What class manages Node IP configurations and base subnets?",
+                options: [
+                  { text: "Ipv4AddressHelper", isCorrect: true },
+                  { text: "InternetStackHelper", isCorrect: false },
+                  { text: "Ipv4InterfaceContainer", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! Ipv4AddressHelper sets up subnets and assigns IPs.",
+                feedbackError: "Incorrect. Ipv4AddressHelper assigns subnets to NetDeviceContainers. Try again!"
+              },
+              {
+                question: "5. In the ns-3 source tree, where is core class logic placed?",
+                options: [
+                  { text: "src/<module>/helper/", isCorrect: false },
+                  { text: "src/<module>/model/", isCorrect: true },
+                  { text: "src/<module>/bindings/", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! Core class headers and source files are in the model/ subfolder.",
+                feedbackError: "Incorrect. Core logic is under src/<module>/model/. Try again!"
+              }
+            ]
+          },
+          {
+            id: "T1-M5-A",
+            title: "Module 5 Programming Assignment",
+            isAssignmentOnly: true,
+            moduleTitle: "Track 1 • Module 5 • Assignment",
+            assignmentInstructions: `
+              <h4>Assignment Objective:</h4>
+              <p>Compile and run the Point-to-Point simulation to verify that the client connects to the server and exchanges packets.</p>
+              
+              <h4>Step 1: Open Terminal</h4>
+              <p>Navigate to your ns-3 root directory: <code>/home/jaswanth/Downloads/ns-allinone-3.45/ns-3.45</code></p>
+              
+              <h4>Step 2: Build the project</h4>
+              <pre><code>./ns3 build</code></pre>
+              
+              <h4>Step 3: Run the simulation and save output</h4>
+              <p>Run the script and redirect console stdout to <code>module5_output.txt</code>:</p>
+              <pre><code>./ns3 run scratch/aerowlan_exercises/p2p-simulation > scratch/aerowlan_exercises/module5_output.txt 2>&1</code></pre>
+              
+              <h4>Step 4: Submit output</h4>
+              <p>Copy all contents of <code>module5_output.txt</code> and paste it in the box below to verify.</p>
+            `,
+            assignmentVerifyKeyword: "TeslaP2PSimulation",
+            practiceFile: "scratch/aerowlan_exercises/p2p-simulation.cc"
+          }
+        ]
+      },
+      {
+        id: 6,
+        title: "Module 6: Tweaking",
+        description: "Enabling console log modules, command-line parsing, and custom inputs.",
+        lessons: [
+          {
+            id: "T1-M6-L1",
+            title: "6.1 Using the Logging Module",
+            moduleTitle: "Track 1 • Module 6 • Lesson 1",
+            body: `
+              <p>ns-3 provides a robust logging subsystem that can be toggled without recompiling. Logging levels specify the detail of printed messages:</p>
+              <ul>
+                <li><code>LOG_LEVEL_ERROR</code>: Only print error logs.</li>
+                <li><code>LOG_LEVEL_WARN</code>: Print warnings and errors.</li>
+                <li><code>LOG_LEVEL_INFO</code>: Print informational logs (e.g. packet transmissions).</li>
+                <li><code>LOG_LEVEL_ALL</code>: Print all logging details, including logical paths.</li>
+              </ul>
+              <p>Configure this via shell variables before running: <code>export NS_LOG="UdpEchoClientApplication=level_all"</code>.</p>
+            `
+          },
+          {
+            id: "T1-M6-L2",
+            title: "6.2 Using Command Line Arguments",
+            moduleTitle: "Track 1 • Module 6 • Lesson 2",
+            body: `
+              <p>You can configure variables dynamically during run time using the <code>CommandLine</code> class:</p>
+              <pre><code>int main (int argc, char *argv[])
+{
+  uint32_t nPackets = 3;
+  CommandLine cmd (__FILE__);
+  cmd.AddValue ("nPackets", "Number of packets", nPackets);
+  cmd.Parse (argc, argv);
+  ...
+}</code></pre>
+              <p>Run this script passing the parameters after the double-dash: <br>
+              <code>./ns3 run "scratch/my-script --nPackets=10"</code></p>
+            `
+          },
+          {
+            id: "T1-M6-L3",
+            title: "6.3 Overview of the Tracing System",
+            moduleTitle: "Track 1 • Module 6 • Lesson 3",
+            body: `
+              <p>The ns-3 tracing system separates data production from data consumption. It uses two concepts:</p>
+              <ul>
+                <li><strong>Trace Source:</strong> An event hook inside core code (e.g. <code>CourseChange</code> in mobility models). When triggered, it calls any connected callback function, passing variables.</li>
+                <li><strong>Trace Sink:</strong> A user callback function connected to a Source to record or process the variables.</li>
+              </ul>
+            `
+          },
+          {
+            id: "T1-M6-Q",
+            title: "Module 6 Review Quiz",
+            isQuizOnly: true,
+            moduleTitle: "Track 1 • Module 6 • Assessment",
+            quiz: [
+              {
+                question: "1. Which environment variable triggers ns-3 debug log filtering on the console?",
+                options: [
+                  { text: "NS_DEBUG", isCorrect: false },
+                  { text: "NS_LOG", isCorrect: true },
+                  { text: "LOG_LEVEL", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! The NS_LOG environment variable specifies logging components and levels.",
+                feedbackError: "Incorrect. The variable is NS_LOG. Try again!"
+              },
+              {
+                question: "2. Which logging level output includes logical function trace tracking?",
+                options: [
+                  { text: "level_info", isCorrect: false },
+                  { text: "level_logic", isCorrect: true },
+                  { text: "level_error", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! level_logic traces function entry/exit execution paths.",
+                feedbackError: "Incorrect. Logic-level tracing is enabled with level_logic or level_all. Try again!"
+              },
+              {
+                question: "3. How are script parameters separated from simulator parameters in the command line?",
+                options: [
+                  { text: "Using a double-dash ( -- )", isCorrect: true },
+                  { text: "Using a colon ( : )", isCorrect: false },
+                  { text: "Using export commands", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! -- separates build runner arguments from script arguments.",
+                feedbackError: "Incorrect. Use a double-dash ( -- ) to separate arguments. Try again!"
+              },
+              {
+                question: "4. What class binds command-line variables to script attributes?",
+                options: [
+                  { text: "CommandLine", isCorrect: true },
+                  { text: "Config", isCorrect: false },
+                  { text: "Parser", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! CommandLine manages parameter bindings.",
+                feedbackError: "Incorrect. The class is CommandLine. Try again!"
+              },
+              {
+                question: "5. What is a Trace Sink in ns-3?",
+                options: [
+                  { text: "A user callback function that receives data from a Trace Source", isCorrect: true },
+                  { text: "A physical cable modeled in simulation", isCorrect: false },
+                  { text: "A method to delete nodes", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! Trace Sinks consume values exported by Trace Sources.",
+                feedbackError: "Incorrect. A Trace Sink is a callback function that registers to capture source data. Try again!"
+              }
+            ]
+          },
+          {
+            id: "T1-M6-A",
+            title: "Module 6 Programming Assignment",
+            isAssignmentOnly: true,
+            moduleTitle: "Track 1 • Module 6 • Assignment",
+            assignmentInstructions: `
+              <h4>Assignment Objective:</h4>
+              <p>Configure dynamic console logs using the <code>NS_LOG</code> environment variable and run the CSMA simulation.</p>
+              
+              <h4>Step 1: Open Terminal</h4>
+              <p>Navigate to your ns-3 directory.</p>
+              
+              <h4>Step 2: Enable logs for UdpEchoClientApplication</h4>
+              <p>Export the logging variable in your shell:</p>
+              <pre><code>export NS_LOG="UdpEchoClientApplication=level_info"</code></pre>
+              
+              <h4>Step 3: Run the CSMA simulation and save output</h4>
+              <p>Run the simulation and redirect output to <code>module6_output.txt</code>:</p>
+              <pre><code>./ns3 run scratch/aerowlan_exercises/csma-simulation > scratch/aerowlan_exercises/module6_output.txt 2>&1</code></pre>
+              
+              <h4>Step 4: Submit output</h4>
+              <p>Copy and paste the contents of <code>module6_output.txt</code> here to verify you successfully captured UdpEchoClient console output.</p>
+            `,
+            assignmentVerifyKeyword: "Sent 1024 bytes",
+            practiceFile: "scratch/aerowlan_exercises/csma-simulation.cc"
+          }
+        ]
+      },
+      {
+        id: 7,
+        title: "Module 7: Building Topologies",
+        description: "Shared CSMA bus networks, channel attributes, and wireless topologies (second.cc and third.cc).",
+        lessons: [
+          {
+            id: "T1-M7-L1",
+            title: "7.1 Bus Network Topology & 7.2 Attributes",
+            moduleTitle: "Track 1 • Module 7 • Lesson 1",
+            body: `
+              <p>Let's look at how <code>second.cc</code> constructs a shared bus LAN connected to a point-to-point link:</p>
+              <pre><code>NodeContainer p2pNodes;
+p2pNodes.Create (2);
+
+NodeContainer csmaNodes;
+csmaNodes.Add (p2pNodes.Get (1)); // Node 1 is shared between networks
+csmaNodes.Create (3); // Total 4 nodes on CSMA LAN</code></pre>
+              <p>This links both networks, allowing packets to hop from a P2P node, through Node 1, onto the CSMA network.</p>
+            `
+          },
+          {
+            id: "T1-M7-L2",
+            title: "7.3 Wireless Network Topology (third.cc)",
+            moduleTitle: "Track 1 • Module 7 • Lesson 2",
+            body: `
+              <p>The <code>third.cc</code> simulation introduces a wireless network alongside the CSMA and Point-to-Point networks. We use <code>WifiHelper</code> and MAC helpers to establish the wireless link:</p>
+              <pre><code>WifiHelper wifi;
+wifi.SetStandard (WIFI_STANDARD_80211ac);
+
+WifiMacHelper mac;
+Ssid ssid = Ssid ("ns-3-ssid");
+mac.SetType ("ns3::StaWifiMac", "Ssid", SsidValue (ssid));</code></pre>
+              <p>This installs WiFi antennas and configures stations to associate with the Access Point.</p>
+            `
+          },
+          {
+            id: "T1-M7-L3",
+            title: "7.4 Queues in ns-3",
+            moduleTitle: "Track 1 • Module 7 • Lesson 3",
+            body: `
+              <p>Packets traversing network devices are stored in queues. ns-3 NetDevices implement queuing models (e.g. DropTailQueue) to manage congestion. If a queue fills up, incoming packets are dropped, simulating packet drops.</p>
+            `
+          },
+          {
+            id: "T1-M7-Q",
+            title: "Module 7 Review Quiz",
+            isQuizOnly: true,
+            moduleTitle: "Track 1 • Module 7 • Assessment",
+            quiz: [
+              {
+                question: "1. In second.cc, how is the point-to-point link bridged to the CSMA network?",
+                options: [
+                  { text: "Using a dedicated gateway node shared between containers", isCorrect: true },
+                  { text: "By using wireless routing", isCorrect: false },
+                  { text: "They share the same physical cable", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! Node 1 is shared by both NodeContainers, bridging the links.",
+                feedbackError: "Incorrect. The networks are bridged by sharing a node between containers. Try again!"
+              },
+              {
+                question: "2. Which helper connects nodes to a wireless channel?",
+                options: [
+                  { text: "CsmaHelper", isCorrect: false },
+                  { text: "WifiHelper", isCorrect: true },
+                  { text: "PointToPointHelper", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! WifiHelper installs the physical wireless stack.",
+                feedbackError: "Incorrect. Use WifiHelper to deploy wireless components. Try again!"
+              },
+              {
+                question: "3. What is Ssid used for in WiFi configurations?",
+                options: [
+                  { text: "To encrypt packet content", isCorrect: false },
+                  { text: "To specify the wireless network name identifier for association", isCorrect: true },
+                  { text: "To set channel frequency", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! Ssid defines the service set identification matching STAs to APs.",
+                feedbackError: "Incorrect. Ssid specifies the network name. Try again!"
+              },
+              {
+                question: "4. What happens when a NetDevice queue fills up in ns-3?",
+                options: [
+                  { text: "Incoming packets are dropped (e.g., DropTail)", isCorrect: true },
+                  { text: "The simulation stops", isCorrect: false },
+                  { text: "Nodes are automatically moved closer", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! Congestion causes tail-drops in the NetDevice queue.",
+                feedbackError: "Incorrect. Packets are dropped when the queue overflows. Try again!"
+              },
+              {
+                question: "5. What routing helper constructs static routing tables dynamically in third.cc?",
+                options: [
+                  { text: "Ipv4GlobalRoutingHelper", isCorrect: true },
+                  { text: "RipHelper", isCorrect: false },
+                  { text: "OspfHelper", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! Global routing helper automatically builds static routing tables.",
+                feedbackError: "Incorrect. GlobalRoutingHelper builds static routing paths. Try again!"
+              }
+            ]
+          },
+          {
+            id: "T1-M7-A",
+            title: "Module 7 Programming Assignment",
+            isAssignmentOnly: true,
+            moduleTitle: "Track 1 • Module 7 • Assignment",
+            assignmentInstructions: `
+              <h4>Assignment Objective:</h4>
+              <p>Compile and run the Yans WiFi simulation to verify that wireless stations associate and transmit data packets to the AP.</p>
+              
+              <h4>Step 1: Open Terminal</h4>
+              
+              <h4>Step 2: Build the project</h4>
+              <pre><code>./ns3 build</code></pre>
+              
+              <h4>Step 3: Run the simulation and save output</h4>
+              <p>Run the script and redirect stdout to <code>module7_output.txt</code>:</p>
+              <pre><code>./ns3 run scratch/aerowlan_exercises/simple-wifi > scratch/aerowlan_exercises/module7_output.txt 2>&1</code></pre>
+              
+              <h4>Step 4: Submit output</h4>
+              <p>Copy all contents of <code>module7_output.txt</code> and paste it in the box below to verify.</p>
+            `,
+            assignmentVerifyKeyword: "Starting Yans Wifi simulation...",
+            practiceFile: "scratch/aerowlan_exercises/simple-wifi.cc"
+          }
+        ]
+      },
+      {
+        id: 8,
+        title: "Module 8: Tracing",
+        description: "Deep dive into the tracing system: background, callback signatures, and trace helpers.",
+        lessons: [
+          {
+            id: "T1-M8-L1",
+            title: "8.1 Background & 8.2 Overview",
+            moduleTitle: "Track 1 • Module 8 • Lesson 1",
+            body: `
+              <p>The ns-3 tracing system allows users to hook into internal class events without editing module source files.</p>
+              <h4>Key Elements:</h4>
+              <ul>
+                <li><strong>Trace Sources:</strong> Event generators inside class implementations. When triggered, they execute any registered callbacks.</li>
+                <li><strong>Trace Sinks:</strong> User-defined callbacks that process data variables exported by Trace Sources.</li>
+                <li><strong>Config Paths:</strong> String paths (e.g. <code>"/NodeList/0/DeviceList/*/$ns3::WifiNetDevice/Rx"</code>) used to bind Sinks to Sources.</li>
+              </ul>
+            `
+          },
+          {
+            id: "T1-M8-L2",
+            title: "8.3 Real Example & 8.4 Trace Helpers",
+            moduleTitle: "Track 1 • Module 8 • Lesson 2",
+            body: `
+              <p>Let's look at how to trace state changes in code. For example, to track changes in a node's position:</p>
+              <pre><code>void CourseChange (std::string context, Ptr&lt;const MobilityModel&gt; model)
+{
+  Vector position = model-&gt;GetPosition ();
+  std::cout &lt;&lt; "Node moved to position: " &lt;&lt; position &lt;&lt; std::endl;
+}</code></pre>
+              <p>We bind this callback using <code>Config::Connect()</code>:</p>
+              <pre><code>Config::Connect ("/NodeList/*/$ns3::MobilityModel/CourseChange", MakeCallback (&amp;CourseChange));</code></pre>
+            `
+          },
+          {
+            id: "T1-M8-L3",
+            title: "8.5 Tracing Summary",
+            moduleTitle: "Track 1 • Module 8 • Lesson 3",
+            body: `
+              <p>Helpers like <code>PointToPointHelper::EnablePcapAll()</code> handle trace bindings behind the scenes, creating standard <code>.pcap</code> output files automatically. Sinks can be connected globally or to specific instances.</p>
+            `
+          },
+          {
+            id: "T1-M8-Q",
+            title: "Module 8 Review Quiz",
+            isQuizOnly: true,
+            moduleTitle: "Track 1 • Module 8 • Assessment",
+            quiz: [
+              {
+                question: "1. Which method binds a Trace Sink callback function to a Trace Source path?",
+                options: [
+                  { text: "Config::Connect", isCorrect: true },
+                  { text: "Simulator::Schedule", isCorrect: false },
+                  { text: "Node::Install", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! Config::Connect resolves string paths and binds callbacks to sources.",
+                feedbackError: "Incorrect. Use Config::Connect to associate trace paths with sinks. Try again!"
+              },
+              {
+                question: "2. What is the syntax wrapper used to register a callback function in ns-3?",
+                options: [
+                  { text: "MakeCallback", isCorrect: true },
+                  { text: "CreateObject", isCorrect: false },
+                  { text: "Bind", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! MakeCallback converts a function pointer into a type-safe callback wrapper.",
+                feedbackError: "Incorrect. MakeCallback wraps C++ function pointers for trace bindings. Try again!"
+              },
+              {
+                question: "3. In a trace path like /NodeList/*, what does the asterisk (*) stand for?",
+                options: [
+                  { text: "Wildcard matching all Node indices", isCorrect: true },
+                  { text: "A multiplication operator", isCorrect: false },
+                  { text: "Only Node 0", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! Asterisks serve as wildcards to connect all nodes.",
+                feedbackError: "Incorrect. The asterisk acts as a wildcard, connecting to all nodes in the container. Try again!"
+              },
+              {
+                question: "4. What metadata parameter does a trace path use to identify class types dynamically?",
+                options: [
+                  { text: "ClassName", isCorrect: false },
+                  { text: "TypeId name preceded by a dollar sign (e.g. $ns3::MobilityModel)", isCorrect: true },
+                  { text: "Object identifier", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! The dollar sign prefix casts objects dynamically using TypeId.",
+                feedbackError: "Incorrect. Specify the class type using the TypeId name with a dollar sign prefix. Try again!"
+              },
+              {
+                question: "5. What file contains the binary packet captures generated by trace helpers?",
+                options: [
+                  { text: ".tr file", isCorrect: false },
+                  { text: ".pcap file", isCorrect: true },
+                  { text: ".log file", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! Libpcap format traces end in .pcap.",
+                feedbackError: "Incorrect. PCAP outputs use the .pcap extension. Try again!"
+              }
+            ]
+          },
+          {
+            id: "T1-M8-A",
+            title: "Module 8 Programming Assignment",
+            isAssignmentOnly: true,
+            moduleTitle: "Track 1 • Module 8 • Assignment",
+            assignmentInstructions: `
+              <h4>Assignment Objective:</h4>
+              <p>Configure PCAP capturing, run the simulation, and verify that the generated PCAP traces can be parsed on the Linux shell.</p>
+              
+              <h4>Step 1: Open Terminal</h4>
+              
+              <h4>Step 2: Run the simple-wifi simulation with PCAP flag enabled</h4>
+              <pre><code>./ns3 run scratch/aerowlan_exercises/simple-wifi -- --pcap=1</code></pre>
+              
+              <h4>Step 3: Read the generated PCAP file using tcpdump and save output</h4>
+              <p>Convert the binary PCAP file to a text output in <code>module8_output.txt</code>:</p>
+              <pre><code>tcpdump -nn -tt -r TeslaSimpleWifi-0-0.pcap > scratch/aerowlan_exercises/module8_output.txt 2>&1</code></pre>
+              
+              <h4>Step 4: Submit output</h4>
+              <p>Paste the contents of <code>module8_output.txt</code> below to verify your trace parsing.</p>
+            `,
+            assignmentVerifyKeyword: "reading from file TeslaSimpleWifi-0-0.pcap",
+            practiceFile: "scratch/aerowlan_exercises/simple-wifi.cc"
+          }
+        ]
+      },
+      {
+        id: 9,
+        title: "Module 9: Data Collection",
+        description: "Parsing simulation values, exporting statistical logs, and utilizing GnuplotHelper.",
+        lessons: [
+          {
+            id: "T1-M9-L1",
+            title: "9.1 Motivation & 9.2 Example Code",
+            moduleTitle: "Track 1 • Module 9 • Lesson 1",
+            body: `
+              <p>Simulators must collect statistical metrics (throughput, delay, jitter) to evaluate network performance.</p>
+              <h4>Data Collection Framework (DCF):</h4>
+              <p>The DCF allows developers to construct automated collection loops using Probe, Collector, and Aggregator classes. This enables exporting metrics directly to CSV files or database tables.</p>
+            `
+          },
+          {
+            id: "T1-M9-L2",
+            title: "9.3 GnuplotHelper & 9.5 FileHelper",
+            moduleTitle: "Track 1 • Module 9 • Lesson 2",
+            body: `
+              <p>To visualize results quickly, ns-3 provides pre-built helpers:</p>
+              <ul>
+                <li><strong>GnuplotHelper:</strong> Automatically generates script files to plot graphs (throughput vs distance) using gnuplot.</li>
+                <li><strong>FileHelper:</strong> Writes raw data streams directly to plaintext formatting columns, suitable for importing into tools like MATLAB or Python's Pandas.</li>
+              </ul>
+            `
+          },
+          {
+            id: "T1-M9-L3",
+            title: "9.4 Supported Trace Types & 9.6 Summary",
+            moduleTitle: "Track 1 • Module 9 • Lesson 3",
+            body: `
+              <p>The DCF framework supports common types: integers, doubles, and string values. Using helper classes keeps reporting separate from core protocol logic.</p>
+            `
+          },
+          {
+            id: "T1-M9-Q",
+            title: "Module 9 Review Quiz",
+            isQuizOnly: true,
+            moduleTitle: "Track 1 • Module 9 • Assessment",
+            quiz: [
+              {
+                question: "1. What does DCF stand for in ns-3's statistical tracking framework?",
+                options: [
+                  { text: "Data Collection Framework", isCorrect: true },
+                  { text: "Dynamic Channel Frequency", isCorrect: false },
+                  { text: "Distributed Coordination Function", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! The Data Collection Framework manages statistics.",
+                feedbackError: "Incorrect. The correct expansion is Data Collection Framework. Try again!"
+              },
+              {
+                question: "2. Which helper generates control scripts to plot charts using Gnuplot?",
+                options: [
+                  { text: "PlotHelper", isCorrect: false },
+                  { text: "GnuplotHelper", isCorrect: true },
+                  { text: "ChartHelper", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! GnuplotHelper builds config files for Gnuplot.",
+                feedbackError: "Incorrect. The helper class is GnuplotHelper. Try again!"
+              },
+              {
+                question: "3. What object acts as the aggregator to format output data streams to plaintext files?",
+                options: [
+                  { text: "FileHelper", isCorrect: true },
+                  { text: "Collector", isCorrect: false },
+                  { text: "Probe", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! FileHelper writes values to structured column text files.",
+                feedbackError: "Incorrect. Use FileHelper to format output streams. Try again!"
+              },
+              {
+                question: "4. What class serves as the probe to tap into target variables in the DCF?",
+                options: [
+                  { text: "Probe", isCorrect: true },
+                  { text: "Sink", isCorrect: false },
+                  { text: "Device", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! Probes connect directly to Trace Sources to sample metrics.",
+                feedbackError: "Incorrect. Probe classes are used to tap variables. Try again!"
+              },
+              {
+                question: "5. What tool is commonly used to process raw data columns exported by FileHelper?",
+                options: [
+                  { text: "Wireshark", isCorrect: false },
+                  { text: "Python / Pandas / MATLAB", isCorrect: true },
+                  { text: "NetAnim", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! Exported CSV/text files are processed using data analysis tools.",
+                feedbackError: "Incorrect. Use statistical suites like Python (Pandas) or MATLAB. Try again!"
+              }
+            ]
+          },
+          {
+            id: "T1-M9-A",
+            title: "Module 9 Programming Assignment",
+            isAssignmentOnly: true,
+            moduleTitle: "Track 1 • Module 9 • Assignment",
+            assignmentInstructions: `
+              <h4>Assignment Objective:</h4>
+              <p>Validate the simulation directory outputs and record file sizes of the generated PCAP files.</p>
+              
+              <h4>Step 1: Open Terminal</h4>
+              
+              <h4>Step 2: List the generated PCAP file details</h4>
+              <p>Run a directory list command filtering by PCAP extension and redirect to <code>module9_output.txt</code>:</p>
+              <pre><code>ls -lh TeslaSimpleWifi-0-0.pcap > scratch/aerowlan_exercises/module9_output.txt 2>&1</code></pre>
+              
+              <h4>Step 3: Submit output</h4>
+              <p>Paste the contents of <code>module9_output.txt</code> below to verify.</p>
+            `,
+            assignmentVerifyKeyword: "TeslaSimpleWifi-0-0.pcap",
+            practiceFile: "scratch/aerowlan_exercises/simple-wifi.cc"
+          }
+        ]
+      },
+      {
+        id: 10,
+        title: "Module 10: Conclusion",
+        description: "Future roadmap of ns-3, closing steps, and next stages.",
+        lessons: [
+          {
+            id: "T1-M10-L1",
+            title: "10.1 Futures & 10.2 Closing",
+            moduleTitle: "Track 1 • Module 10 • Lesson 1",
+            body: `
+              <p>Congratulations! You have completed the ns-3 Master Class track.</p>
+              <h4>10.1 Futures:</h4>
+              <p>The ns-3 simulator is constantly evolving. Future releases plan to expand 5G/6G cellular models, integrate machine learning framework connections (such as ns3-gym), and enhance emulation modules.</p>
+              <h4>10.2 Closing:</h4>
+              <p>You are now ready to tackle complex wireless simulations in the next track: **Track 2: WiFi 7/8 Research Pro**!</p>
+            `
           }
         ]
       }
@@ -520,9 +857,7 @@ csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));</code></pre>
                 <li><strong>YansWifiPhyHelper:</strong> Packet-based model. Simulates transmissions as single-channel blocks. It is fast and simple but cannot simulate frequency-selective fading or subcarrier allocation.</li>
                 <li><strong>SpectrumWifiPhyHelper:</strong> Frequency-selective model. Simulates signal Power Spectral Density (PSD) across distinct subcarriers. This is required for modern multi-subcarrier standards (802.11ax/be) employing OFDMA and Multi-Link Operation.</li>
               </ul>
-            `,
-            practiceFile: null,
-            practiceCmd: null
+            `
           },
           {
             id: "T2-M1-L2",
@@ -533,25 +868,12 @@ csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));</code></pre>
               <ul>
                 <li><strong>FriisPropagationLossModel:</strong> Models signal decay in clean, line-of-sight free space.</li>
                 <li><strong>LogDistancePropagationLossModel:</strong> Computes path loss using a path loss exponent (n) to model various environments (e.g. indoor vs outdoor).</li>
-                <li><strong>ThreeGppChannelModel:</strong> Advanced 3GPP-standard channel modeling path loss, spatial fading, and shadowing dynamically.</li>
               </ul>
-              <p>Propagation delay models (e.g. <code>ConstantSpeedPropagationDelayModel</code>) calculate signal travel time based on the speed of light.</p>
-            `,
-            practiceFile: "scratch/aerowlan_exercises/simple-wifi.cc",
-            practiceCmd: "./ns3 run scratch/aerowlan_exercises/simple-wifi",
-            isProgExercise: true,
-            progInstructions: `
-              <h4>💻 Programming Practice: Propagation Loss Test</h4>
-              <p>1. Open <code>scratch/aerowlan_exercises/simple-wifi.cc</code>.</p>
-              <p>2. Locate the mobility section and change STA 2's position from <strong>(20.0, 0.0, 0.0)</strong> to <strong>(100.0, 0.0, 0.0)</strong>.</p>
-              <p>3. Execute the simulation and save the stdout log to verify if packets still reach STA 2 at 100 meters under Friis loss:</p>
-              <pre><code>./ns3 run scratch/aerowlan_exercises/simple-wifi > scratch/aerowlan_exercises/module5_output.txt 2>&1</code></pre>
-              <p>4. Once completed, tell the AI agent: <em>"Please check my Module 5 (Track 2 Mod 1) output"</em>.</p>
             `
           },
           {
             id: "T2-M1-Q",
-            title: "Module 1 Review Quiz",
+            title: "Track 2 Module 1 Review Quiz",
             isQuizOnly: true,
             moduleTitle: "Track 2 • Module 1 • Assessment",
             quiz: [
@@ -575,7 +897,7 @@ csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));</code></pre>
                 feedbackError: "Incorrect. Friis models free-space propagation attenuation. Try again!"
               },
               {
-                question: "3. What three frequency bands are supported in modern WiFi 7 (802.11be) models in ns-3?",
+                question: "3. What three frequency bands are supported in WiFi 7 (802.11be)?",
                 options: [
                   { text: "900 MHz, 2.4 GHz, and 5 GHz", isCorrect: false },
                   { text: "2.4 GHz, 5 GHz, and 6 GHz", isCorrect: true },
@@ -605,6 +927,26 @@ csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));</code></pre>
                 feedbackError: "Incorrect. Spectrum simulations utilize MultiModelSpectrumChannel as the medium. Try again!"
               }
             ]
+          },
+          {
+            id: "T2-M1-A",
+            title: "Track 2 Module 1 Assignment",
+            isAssignmentOnly: true,
+            moduleTitle: "Track 2 • Module 1 • Assignment",
+            assignmentInstructions: `
+              <h4>Assignment Objective:</h4>
+              <p>Configure node positioning and execute the Yans WiFi simulation.</p>
+              
+              <h4>Step 1: Open Terminal</h4>
+              
+              <h4>Step 2: Run the simple-wifi simulation</h4>
+              <pre><code>./ns3 run scratch/aerowlan_exercises/simple-wifi > scratch/aerowlan_exercises/t2_m1_output.txt 2>&1</code></pre>
+              
+              <h4>Step 3: Submit output</h4>
+              <p>Paste the contents of <code>t2_m1_output.txt</code> below to verify your run.</p>
+            `,
+            assignmentVerifyKeyword: "Wifi Simulation completed.",
+            practiceFile: "scratch/aerowlan_exercises/simple-wifi.cc"
           }
         ]
       },
@@ -625,10 +967,7 @@ csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));</code></pre>
                 <li><strong>AC_BE (Best Effort):</strong> Default medium access.</li>
                 <li><strong>AC_BK (Background):</strong> Longest backoff values. Lowest priority.</li>
               </ul>
-              <p>When a station has multiple traffic types, it queues them in separate EDCA buffers, competing internally before contending for the physical channel.</p>
-            `,
-            practiceFile: null,
-            practiceCmd: null
+            `
           },
           {
             id: "T2-M2-L2",
@@ -640,25 +979,11 @@ csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));</code></pre>
                 <li><strong>A-MSDU (Aggregate MAC Service Data Unit):</strong> Combines multiple logical payloads under a single MAC header.</li>
                 <li><strong>A-MPDU (Aggregate MAC Protocol Data Unit):</strong> Combines multiple MAC frames (each with header and CRC) inside a single physical packet.</li>
               </ul>
-              <p>In ns-3, aggregation thresholds are attributes on the MAC object (e.g. <code>MaxAmpduSize</code>) and can be set to optimize spectral efficiency.</p>
-            `,
-            practiceFile: "scratch/aerowlan_exercises/simple-wifi.cc",
-            practiceCmd: "./ns3 run scratch/aerowlan_exercises/simple-wifi",
-            isProgExercise: true,
-            progInstructions: `
-              <h4>💻 Programming Practice: QoS Packet Mapping</h4>
-              <p>1. Open <code>scratch/aerowlan_exercises/simple-wifi.cc</code>.</p>
-              <p>2. Locate the echo client application setup.</p>
-              <p>3. Configure the socket TOS (Type of Service) attribute to map client packets to <strong>AC_VO (TOS = 0xc0)</strong>:</p>
-              <pre><code>echoClient.SetAttribute ("Tos", UintegerValue (0xc0));</code></pre>
-              <p>4. Execute the simulation and save stdout to verify if the server logs reflect priority traffic:</p>
-              <pre><code>./ns3 run scratch/aerowlan_exercises/simple-wifi > scratch/aerowlan_exercises/module6_output.txt 2>&1</code></pre>
-              <p>5. Tell the AI agent: <em>"Please check my Module 6 (Track 2 Mod 2) output"</em>.</p>
             `
           },
           {
             id: "T2-M2-Q",
-            title: "Module 2 Review Quiz",
+            title: "Track 2 Module 2 Review Quiz",
             isQuizOnly: true,
             moduleTitle: "Track 2 • Module 2 • Assessment",
             quiz: [
@@ -713,56 +1038,48 @@ csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));</code></pre>
                 feedbackError: "Incorrect. Block Ack acknowledges multiple MPDUs inside an A-MPDU to save channel overhead. Try again!"
               }
             ]
+          },
+          {
+            id: "T2-M2-A",
+            title: "Track 2 Module 2 Assignment",
+            isAssignmentOnly: true,
+            moduleTitle: "Track 2 • Module 2 • Assignment",
+            assignmentInstructions: `
+              <h4>Assignment Objective:</h4>
+              <p>Map application packets to priority queues using the TOS socket parameter.</p>
+              
+              <h4>Step 1: Open Terminal</h4>
+              
+              <h4>Step 2: Run the simple-wifi simulation with TOS logging enabled</h4>
+              <pre><code>./ns3 run scratch/aerowlan_exercises/simple-wifi > scratch/aerowlan_exercises/t2_m2_output.txt 2>&1</code></pre>
+              
+              <h4>Step 3: Submit output</h4>
+              <p>Paste the contents of <code>t2_m2_output.txt</code> below to verify your run.</p>
+            `,
+            assignmentVerifyKeyword: "Wifi Simulation completed.",
+            practiceFile: "scratch/aerowlan_exercises/simple-wifi.cc"
           }
         ]
       },
       {
         id: 3,
-        title: "Module 3: WiFi 7 (802.11be / EHT) & MLO",
-        description: "Multi-Link Devices, 320 MHz channel allocation, 4096-QAM, and frame structures.",
+        title: "Module 3: WiFi 7 & MLO",
+        description: "Multi-Link Operation (MLO) configurations, 320 MHz channel allocation, and 4096-QAM.",
         lessons: [
           {
             id: "T2-M3-L1",
-            title: "Multi-Link Operation (MLO) Architecture",
+            title: "WiFi 7 Multi-Link Operation (MLO)",
             moduleTitle: "Track 2 • Module 3 • Lesson 1",
             body: `
-              <p><strong>Multi-Link Operation (MLO)</strong> is a signature feature of IEEE 802.11be (WiFi 7). It allows a single Multi-Link Device (MLD) to utilize multiple physical channels (links) simultaneously across the 2.4 GHz, 5 GHz, and 6 GHz bands.</p>
-              <h4>MLD Structure:</h4>
-              <p>An MLD node has a single MAC interface exposed to the IP stack, but controls multiple independent MAC/PHY link instances. In ns-3, this is configured using <code>EhtFrameExchangeManager</code> and setting MLD properties on the <code>WifiHelper</code>:</p>
+              <p><strong>Multi-Link Operation (MLO)</strong> allows a single Multi-Link Device (MLD) to utilize multiple physical links (e.g. 5 GHz and 6 GHz links) simultaneously.</p>
+              <p>In ns-3.45, MLO is enabled by configuring multi-link devices using the <code>EhtFrameExchangeManager</code> and defining links on the <code>WifiHelper</code>:</p>
               <pre><code>wifi.SetStandard (WIFI_STANDARD_80211be);
 wifi.SetMultiLinkType (WifiHelper::DEFAULT_MLD);</code></pre>
-            `,
-            practiceFile: null,
-            practiceCmd: null
-          },
-          {
-            id: "T2-M3-L2",
-            title: "EHT PHY Layer Configurations",
-            moduleTitle: "Track 2 • Module 3 • Lesson 2",
-            body: `
-              <p>WiFi 7 (Extremely High Throughput - EHT) expands physical layer capabilities:</p>
-              <ul>
-                <li><strong>320 MHz Channel Width:</strong> Doubles the 160 MHz limit of WiFi 6. Enabled using the 6 GHz band.</li>
-                <li><strong>4096-QAM Modulation:</strong> Models 12 bits per symbol, yielding 20% higher peak rates. In ns-3, this corresponds to MCS indices 14 and 15 (e.g. <code>EhtMcs15</code>).</li>
-                <li><strong>Multi-RU:</strong> Allows allocating multiple resource units to a single station to bypass channel interference.</li>
-              </ul>
-            `,
-            practiceFile: "scratch/aerowlan_exercises/wifi7-mlo.cc",
-            practiceCmd: "./ns3 run scratch/aerowlan_exercises/wifi7-mlo",
-            isProgExercise: true,
-            progInstructions: `
-              <h4>💻 Programming Practice: WiFi 7 MLO Throughput Test</h4>
-              <p>1. Open <code>scratch/aerowlan_exercises/wifi7-mlo.cc</code>.</p>
-              <p>2. Locate the link configuration. Enable a 2-link setup and run the simulation.</p>
-              <p>3. Redirect execution logs to a validation file:</p>
-              <pre><code>./ns3 build
-./ns3 run scratch/aerowlan_exercises/wifi7-mlo > scratch/aerowlan_exercises/module7_output.txt 2>&1</code></pre>
-              <p>4. Tell the AI agent: <em>"Please check my Module 7 (Track 2 Mod 3) output"</em>.</p>
             `
           },
           {
             id: "T2-M3-Q",
-            title: "Module 3 Review Quiz",
+            title: "Track 2 Module 3 Review Quiz",
             isQuizOnly: true,
             moduleTitle: "Track 2 • Module 3 • Assessment",
             quiz: [
@@ -817,53 +1134,46 @@ wifi.SetMultiLinkType (WifiHelper::DEFAULT_MLD);</code></pre>
                 feedbackError: "Incorrect. WiFi 7 (EHT) utilizes EhtFrameExchangeManager. Try again!"
               }
             ]
+          },
+          {
+            id: "T2-M3-A",
+            title: "Track 2 Module 3 Assignment",
+            isAssignmentOnly: true,
+            moduleTitle: "Track 2 • Module 3 • Assignment",
+            assignmentInstructions: `
+              <h4>Assignment Objective:</h4>
+              <p>Verify that multi-link operation negotiates multiple links and routes traffic.</p>
+              
+              <h4>Step 1: Open Terminal</h4>
+              
+              <h4>Step 2: Run the wifi7-mlo simulation</h4>
+              <pre><code>./ns3 run scratch/aerowlan_exercises/wifi7-mlo > scratch/aerowlan_exercises/t2_m3_output.txt 2>&1</code></pre>
+              
+              <h4>Step 3: Submit output</h4>
+              <p>Paste the contents of <code>t2_m3_output.txt</code> below to verify your MLO run.</p>
+            `,
+            assignmentVerifyKeyword: "Starting WiFi 7 Multi-Link Operation (MLO) simulation...",
+            practiceFile: "scratch/aerowlan_exercises/wifi7-mlo.cc"
           }
         ]
       },
       {
         id: 4,
-        title: "Module 4: WiFi 8 (802.11bn) & Advanced Research",
-        description: "Coordinated Spatial Reuse (CoSR), Coordinated Beamforming (CoBF), and UHR scheduling models.",
+        title: "Module 4: WiFi 8 & Advanced Research",
+        description: "Multi-AP Coordinated Spatial Reuse (CoSR), Coordinated Beamforming (CoBF), and UHR models.",
         lessons: [
           {
             id: "T2-M4-L1",
-            title: "Multi-AP Coordinated Spatial Reuse (CoSR)",
+            title: "Multi-AP Spatial Reuse (CoSR)",
             moduleTitle: "Track 2 • Module 4 • Lesson 1",
             body: `
-              <p>IEEE 802.11bn (WiFi 8), named **Ultra High Reliability (UHR)**, addresses cell edge performance in high-density environments. The primary solution is multi-AP coordination.</p>
-              <h4>Coordinated Spatial Reuse (CoSR):</h4>
-              <p>Under standard CSMA, overlapping cells (OBSS) must wait when a neighbor transmits. In CoSR, neighboring APs coordinate transmit power dynamically. By backing off Tx power slightly, both APs can transmit simultaneously to nearby stations on the same channel without causing packet collisions.</p>
-            `,
-            practiceFile: null,
-            practiceCmd: null
-          },
-          {
-            id: "T2-M4-L2",
-            title: "Coordinated Beamforming & OFDMA",
-            moduleTitle: "Track 2 • Module 4 • Lesson 2",
-            body: `
-              <p>In addition to CoSR, WiFi 8 researchers model physical-layer antenna coordination:</p>
-              <ul>
-                <li><strong>Coordinated Beamforming (CoBF):</strong> APs coordinate multi-antenna beamforming vectors to place a spatial "null" at the coordinates of neighboring stations, avoiding cross-talk.</li>
-                <li><strong>Coordinated OFDMA (Co-OFDMA):</strong> APs partition the subcarrier spectrum orthogonally, allocating distinct subcarriers to OBSS stations.</li>
-              </ul>
-            `,
-            practiceFile: "scratch/aerowlan_exercises/wifi8-cosr.cc",
-            practiceCmd: "./ns3 run scratch/aerowlan_exercises/wifi8-cosr",
-            isProgExercise: true,
-            progInstructions: `
-              <h4>💻 Programming Practice: WiFi 8 CoSR Simulation</h4>
-              <p>1. Open <code>scratch/aerowlan_exercises/wifi8-cosr.cc</code>.</p>
-              <p>2. Locate the OBSS configuration. Edit AP nodes placement to simulate cell overlaps.</p>
-              <p>3. Execute the simulation and save stdout log to evaluate packet deliveries:</p>
-              <pre><code>./ns3 build
-./ns3 run scratch/aerowlan_exercises/wifi8-cosr > scratch/aerowlan_exercises/module8_output.txt 2>&1</code></pre>
-              <p>4. Tell the AI agent: <em>"Please check my Module 8 (Track 2 Mod 4) output"</em>.</p>
+              <p>IEEE 802.11bn (WiFi 8) is named **Ultra High Reliability (UHR)**. The primary research direction focuses on coordination between Access Points (APs) to resolve cell-edge interference.</p>
+              <p>Adjacent APs coordinate transmit power dynamically. By backing off Tx power slightly, both APs can transmit simultaneously to nearby stations on the same channel, bypassing standard CCA threshold backoffs.</p>
             `
           },
           {
             id: "T2-M4-Q",
-            title: "Module 4 Review Quiz",
+            title: "Track 2 Module 4 Review Quiz",
             isQuizOnly: true,
             moduleTitle: "Track 2 • Module 4 • Assessment",
             quiz: [
@@ -918,6 +1228,26 @@ wifi.SetMultiLinkType (WifiHelper::DEFAULT_MLD);</code></pre>
                 feedbackError: "Incorrect. Custom models are placed under src/wifi or in the contrib/ directory. Try again!"
               }
             ]
+          },
+          {
+            id: "T2-M4-A",
+            title: "Track 2 Module 4 Assignment",
+            isAssignmentOnly: true,
+            moduleTitle: "Track 2 • Module 4 • Assignment",
+            assignmentInstructions: `
+              <h4>Assignment Objective:</h4>
+              <p>Simulate Coordinated Spatial Reuse overlapping cells and verify packet transmission.</p>
+              
+              <h4>Step 1: Open Terminal</h4>
+              
+              <h4>Step 2: Run the wifi8-cosr simulation</h4>
+              <pre><code>./ns3 run scratch/aerowlan_exercises/wifi8-cosr > scratch/aerowlan_exercises/t2_m4_output.txt 2>&1</code></pre>
+              
+              <h4>Step 3: Submit output</h4>
+              <p>Paste the contents of <code>t2_m4_output.txt</code> below to verify your WiFi 8 run.</p>
+            `,
+            assignmentVerifyKeyword: "Starting WiFi 8 Coordinated Spatial Reuse (CoSR) simulation...",
+            practiceFile: "scratch/aerowlan_exercises/wifi8-cosr.cc"
           }
         ]
       }
@@ -934,7 +1264,21 @@ function init() {
   lucide.createIcons();
 }
 
-// Render Milestones on Dashboard based on current Track
+// Check if a lesson is locked (cannot skip modules)
+function isLessonLocked(mIdx, lIdx) {
+  const activeTrack = tracks[currentTrackIndex];
+  for (let m = 0; m < mIdx; m++) {
+    const prevMod = activeTrack.modules[m];
+    // Must complete the very last element (usually the final quiz or assignment)
+    const lastLesson = prevMod.lessons[prevMod.lessons.length - 1];
+    if (!progress.completedLessons.includes(lastLesson.id)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Render Milestones based on current Track
 function renderMilestones() {
   const container = document.getElementById('dashboard-milestones');
   if (!container) return;
@@ -947,14 +1291,14 @@ function renderMilestones() {
     let statusClass = '';
     let statusLabel = 'Locked';
 
-    const isModuleActive = (mIdx === currentModuleIndex);
     const completedCount = mod.lessons.filter(l => progress.completedLessons.includes(l.id)).length;
     const isModuleCompleted = (completedCount === mod.lessons.length);
+    const isLocked = isLessonLocked(mIdx, 0);
 
     if (isModuleCompleted) {
       statusClass = 'completed';
       statusLabel = 'Completed';
-    } else if (isModuleActive) {
+    } else if (!isLocked) {
       statusClass = 'active';
       statusLabel = 'In Progress';
     }
@@ -964,7 +1308,7 @@ function renderMilestones() {
     item.innerHTML = `
       <div class="milestone-info">
         <div class="milestone-num ${statusClass === 'completed' ? 'completed' : (statusClass === 'active' ? 'active' : '')}">
-          ${mIdx + 1}
+          ${mod.id}
         </div>
         <div class="milestone-desc">
           <h4>${mod.title}</h4>
@@ -992,20 +1336,32 @@ function renderSyllabus() {
     modHeader.style.color = '#e5e7eb';
     modHeader.style.marginTop = mIdx > 0 ? '12px' : '0';
     modHeader.style.marginBottom = '6px';
-    modHeader.innerText = `Module ${mod.id}: ${mod.title.split(":")[0]}`;
+    modHeader.innerText = `${mod.title}`;
     container.appendChild(modHeader);
 
     mod.lessons.forEach((les, lIdx) => {
       const item = document.createElement('div');
       const isActive = (mIdx === currentModuleIndex && lIdx === currentLessonIndex);
       const isCompleted = progress.completedLessons.includes(les.id);
+      const isLocked = isLessonLocked(mIdx, lIdx);
 
-      item.className = `syllabus-item ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`;
+      item.className = `syllabus-item ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''} ${isLocked ? 'locked' : ''}`;
+      
+      let prefix = `L${les.id.split('-L')[1] || lIdx + 1}: `;
+      if (les.isQuizOnly) prefix = '📝 ';
+      if (les.isAssignmentOnly) prefix = '💻 ';
+      
       item.innerHTML = `
-        <span>${les.isQuizOnly ? '📝 Quiz' : 'L' + (lIdx + 1) + ': ' + les.title}</span>
+        <span>${isLocked ? '🔒 ' : ''}${prefix}${les.title}</span>
         ${isCompleted ? '<span>✓</span>' : ''}
       `;
-      item.onclick = () => selectLesson(mIdx, lIdx);
+      
+      if (!isLocked) {
+        item.onclick = () => selectLesson(mIdx, lIdx);
+      } else {
+        item.style.opacity = '0.5';
+        item.style.cursor = 'not-allowed';
+      }
       container.appendChild(item);
     });
   });
@@ -1025,41 +1381,49 @@ function loadLesson(mIdx, lIdx) {
   const bodyElement = document.getElementById('lesson-body');
   const practiceBox = document.getElementById('practice-box');
   const quizBlock = document.getElementById('quiz-block');
+  const assignmentBlock = document.getElementById('assignment-block');
+
+  // Reset inputs
+  document.getElementById('assignment-output-paste').value = '';
+  document.getElementById('assignment-feedback').style.display = 'none';
 
   if (lesson.isQuizOnly) {
-    bodyElement.innerHTML = `<p>This is the final assessment for this module. You must answer all 5 questions correctly to verify your understanding and unlock the next module.</p>
+    bodyElement.innerHTML = `<p>This is the final assessment for this module. You must answer all 5 questions correctly to verify your understanding and proceed to the programming assignment.</p>
                              <div id="quiz-summary-state" style="margin-top: 10px; font-weight: 600; color: #fdba74;">
                                Question ${currentQuizQuestionIndex + 1} of ${lesson.quiz.length}
                              </div>`;
     practiceBox.style.display = 'none';
+    assignmentBlock.style.display = 'none';
     quizBlock.style.display = 'block';
     
-    // Load current quiz question
     loadQuizQuestion(lesson.quiz[currentQuizQuestionIndex]);
+  } else if (lesson.isAssignmentOnly) {
+    bodyElement.innerHTML = `<p>Complete the practical programming challenge below. Execute the simulation in your terminal and submit the stdout logs to verify your code correctness and unlock the next module.</p>`;
+    quizBlock.style.display = 'none';
+    practiceBox.style.display = 'none';
+    assignmentBlock.style.display = 'block';
+    
+    document.getElementById('assignment-instructions').innerHTML = lesson.assignmentInstructions;
   } else {
     bodyElement.innerHTML = lesson.body;
     quizBlock.style.display = 'none';
+    assignmentBlock.style.display = 'none';
+    
     if (lesson.practiceFile) {
       practiceBox.style.display = 'block';
-      
-      // Inject programming instructions if exists
-      if (lesson.isProgExercise) {
-        practiceBox.innerHTML = lesson.progInstructions;
-      } else {
-        practiceBox.innerHTML = `
-          <h4>💻 Practice Exercise</h4>
-          <p>Open the practice C++ file in your workspace:</p>
-          <div class="file-path-row">
-            <code id="practice-file-path">${lesson.practiceFile}</code>
-            <button class="btn btn-secondary btn-sm" onclick="copyFilePath()">Copy Path</button>
-          </div>
-          <p class="mt-3">Compile and run this file using your terminal:</p>
-          <div class="terminal-command-row">
-            <code id="practice-command">${lesson.practiceCmd}</code>
-            <button class="btn btn-secondary btn-sm" onclick="copyCommand()">Copy Command</button>
-          </div>
-        `;
-      }
+      practiceBox.innerHTML = `
+        <h4>💻 Practice Exercise</h4>
+        <p>Open the practice C++ file in your workspace:</p>
+        <div class="file-path-row">
+          <code id="practice-file-path">${lesson.practiceFile}</code>
+          <button class="btn btn-secondary btn-sm" onclick="copyFilePath()">Copy Path</button>
+        </div>
+        <p class="mt-3">Compile and run this file using your terminal:</p>
+        <div class="terminal-command-row">
+          <code id="practice-command">${lesson.practiceCmd}</code>
+          <button class="btn btn-secondary btn-sm" onclick="copyCommand()">Copy Command</button>
+        </div>
+      `;
     } else {
       practiceBox.style.display = 'none';
     }
@@ -1071,7 +1435,7 @@ function loadLesson(mIdx, lIdx) {
   document.getElementById('btn-next-lesson').disabled = isLastLesson;
 }
 
-// Load a specific question from 5-question array
+// Load a specific question from quiz
 function loadQuizQuestion(qObj) {
   document.getElementById('quiz-question').innerText = qObj.question;
   const optionsContainer = document.getElementById('quiz-options');
@@ -1096,7 +1460,7 @@ function selectLesson(mIdx, lIdx) {
   renderSyllabus();
 }
 
-// Track changer logic
+// Track changer
 function changeTrack() {
   const select = document.getElementById('track-selector');
   currentTrackIndex = parseInt(select.value);
@@ -1108,7 +1472,7 @@ function changeTrack() {
   init();
 }
 
-// Copy to clipboard helpers
+// Copy helpers
 function copyFilePath() {
   const text = document.getElementById('practice-file-path').innerText;
   navigator.clipboard.writeText(text);
@@ -1137,7 +1501,7 @@ function submitAnswer(option, element, qObj) {
 
     quizAnswersCorrect++;
 
-    // Add Next Question button after correct answer
+    // Next Question flow
     const nextBtn = document.createElement('button');
     nextBtn.className = 'btn btn-primary mt-3';
     
@@ -1146,7 +1510,6 @@ function submitAnswer(option, element, qObj) {
     
     nextBtn.onclick = () => {
       if (isLastQuestion) {
-        // Assessment completed
         if (!progress.completedLessons.includes(lesson.id)) {
           progress.completedLessons.push(lesson.id);
           localStorage.setItem('tesla_netsim_progress', JSON.stringify(progress));
@@ -1155,11 +1518,13 @@ function submitAnswer(option, element, qObj) {
           renderSyllabus();
         }
         
-        // Show success screen
+        // Show success screen and advance to programming test automatically
         document.getElementById('lesson-body').innerHTML = `
           <div style="text-align: center; padding: 20px;">
-            <h2 style="color: #10b981;">🎉 Module Complete!</h2>
-            <p style="margin-top: 10px;">You have successfully passed the final assessment with a score of ${quizAnswersCorrect}/${lesson.quiz.length}.</p>
+            <h2 style="color: #10b981;">🎉 Quiz Passed!</h2>
+            <p style="margin-top: 10px;">You solved all ${quizAnswersCorrect}/${lesson.quiz.length} questions correctly.</p>
+            <p style="margin-top: 10px;"><strong>Next up:</strong> Programming Practical Assignment.</p>
+            <button class="btn btn-primary mt-4" onclick="nextLesson()">Go to Programming Assignment</button>
           </div>
         `;
         document.getElementById('quiz-block').style.display = 'none';
@@ -1175,6 +1540,50 @@ function submitAnswer(option, element, qObj) {
     element.classList.add('wrong');
     feedbackContainer.className = 'quiz-feedback error';
     feedbackContainer.innerHTML = `<span>✗</span> ${qObj.feedbackError}`;
+    feedbackContainer.style.display = 'flex';
+  }
+}
+
+// Verify Programming Assignment
+function verifyAssignment() {
+  const pasteVal = document.getElementById('assignment-output-paste').value.trim();
+  const feedbackContainer = document.getElementById('assignment-feedback');
+  const activeTrack = tracks[currentTrackIndex];
+  const lesson = activeTrack.modules[currentModuleIndex].lessons[currentLessonIndex];
+  
+  if (!pasteVal) {
+    feedbackContainer.className = "quiz-feedback error";
+    feedbackContainer.innerHTML = `<span>✗</span> Output is empty! Please run the commands in your terminal and paste the logs.`;
+    feedbackContainer.style.display = 'flex';
+    return;
+  }
+
+  // Check if target keyword is present in output
+  const keyword = lesson.assignmentVerifyKeyword;
+  if (pasteVal.toLowerCase().includes(keyword.toLowerCase())) {
+    feedbackContainer.className = "quiz-feedback success";
+    feedbackContainer.innerHTML = `<span>✓</span> <strong>Verification Successful!</strong> Target output trace found. The programming assignment is completed.`;
+    feedbackContainer.style.display = 'flex';
+
+    if (!progress.completedLessons.includes(lesson.id)) {
+      progress.completedLessons.push(lesson.id);
+      localStorage.setItem('tesla_netsim_progress', JSON.stringify(progress));
+      updateProgressBar();
+      renderMilestones();
+      renderSyllabus();
+    }
+
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'btn btn-primary mt-3';
+    nextBtn.innerText = "Unlock Next Module";
+    nextBtn.onclick = () => {
+      nextLesson();
+    };
+    feedbackContainer.appendChild(document.createElement('br'));
+    feedbackContainer.appendChild(nextBtn);
+  } else {
+    feedbackContainer.className = "quiz-feedback error";
+    feedbackContainer.innerHTML = `<span>✗</span> <strong>Verification Failed!</strong> The pasted output does not contain the expected verification trace: <code>"${keyword}"</code>. Please check your modifications and try again.`;
     feedbackContainer.style.display = 'flex';
   }
 }

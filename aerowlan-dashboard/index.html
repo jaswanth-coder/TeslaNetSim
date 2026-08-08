@@ -196,6 +196,24 @@
               </div>
             </div>
 
+            <!-- Assignment Block -->
+            <div class="quiz-block" id="assignment-block" style="display: none;">
+              <h3>💻 Practical Programming Assignment</h3>
+              <div id="assignment-instructions" style="margin-top: 12px; line-height: 1.6; font-size: 13.5px; color: #d1d5db;">
+                <!-- Instantly populated dynamically -->
+              </div>
+              <div style="margin-top: 20px;">
+                <label for="assignment-output-paste" style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 8px; color: #9ca3af;">Paste Console Output to Verify:</label>
+                <textarea id="assignment-output-paste" class="premium-textarea" placeholder="Paste the stdout console output here to submit..."></textarea>
+              </div>
+              <div style="margin-top: 16px;">
+                <button class="btn btn-primary" onclick="verifyAssignment()">Verify & Unlock Next Module</button>
+              </div>
+              <div class="quiz-feedback" id="assignment-feedback" style="display: none;">
+                <!-- Feedback alert -->
+              </div>
+            </div>
+
             <!-- Navigation Buttons -->
             <div class="lesson-navigation">
               <button class="btn btn-secondary" id="btn-prev-lesson" onclick="prevLesson()">
