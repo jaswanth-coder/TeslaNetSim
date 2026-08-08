@@ -1,4 +1,4 @@
-// AeroWLAN App Logic
+// Tesla.netsim App Logic
 
 // Navigation Tab Management
 document.querySelectorAll('.nav-item').forEach(item => {
@@ -243,7 +243,7 @@ devices = pointToPoint.Install (nodes);</code></pre>
 // Current State
 let currentModuleIndex = 0;
 let currentLessonIndex = 0;
-let progress = JSON.parse(localStorage.getItem('aerowlan_progress')) || {
+let progress = JSON.parse(localStorage.getItem('tesla_netsim_progress')) || {
   completedLessons: []
 };
 
@@ -414,7 +414,7 @@ function submitAnswer(option, element, quiz) {
     const lesson = modules[currentModuleIndex].lessons[currentLessonIndex];
     if (!progress.completedLessons.includes(lesson.id)) {
       progress.completedLessons.push(lesson.id);
-      localStorage.setItem('aerowlan_progress', JSON.stringify(progress));
+      localStorage.setItem('tesla_netsim_progress', JSON.stringify(progress));
       updateProgressBar();
       renderMilestones();
       renderSyllabus();
