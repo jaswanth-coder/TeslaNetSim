@@ -1,0 +1,26 @@
+# ns-3 Build Artifacts
+build/
+cmake-cache/
+.lock-ns3_*
+cmake-cache/
+bindings/python/ns3/
+
+# Python Cache
+__pycache__/
+*.pyc
+
+# Simulation Traces & Outputs
+*.pcap
+*.tr
+*.xml
+pcap/
+
+# IDE files
+.vscode/
+.idea/
+.clangd/
+
+# Antigravity Brain Logs (local workspace logs)
+.gemini/
+.agents/logs/
+*.log
