@@ -825,3 +825,26 @@ body {
   color: #34d399;
   font-family: 'Courier New', Courier, monospace;
 }
+
+.premium-select {
+  width: 100%;
+  padding: 10px 14px;
+  background-color: #0d121f;
+  color: var(--text-main);
+  border: 1px solid var(--border-glow);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.premium-select:focus {
+  border-color: var(--ns3-blue);
+}
+
+.premium-select option {
+  background-color: var(--bg-secondary);
+  color: var(--text-main);
+}

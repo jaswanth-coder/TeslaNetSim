@@ -147,7 +147,12 @@
         <div class="learning-grid">
           <!-- Syllabus Sidebar -->
           <div class="syllabus-sidebar">
-            <h3>Course Directory</h3>
+            <h3 style="margin-bottom: 8px;">Select Learning Track</h3>
+            <select id="track-selector" class="premium-select" onchange="changeTrack()">
+              <option value="0">Track 1: ns-3 Master Class</option>
+              <option value="1">Track 2: WiFi 7/8 Research Pro</option>
+            </select>
+            <h3 style="margin-top: 20px; margin-bottom: 10px;">Course Directory</h3>
             <div class="syllabus-menu" id="syllabus-menu">
               <!-- Populated dynamically -->
             </div>
