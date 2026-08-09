@@ -43,5 +43,5 @@ All submissions written in the dashboard Coding Lab are saved in:
 
 ## 🧑‍🏫 Tutoring Status
 - **Current Module:** Track 1 • Module 2: Conceptual Overview.
-- **Active Task:** Bypassed lesson locks in `app.js` (`isLessonLocked` always returns `false`) to allow full evaluation. Expanded Module 1 explanations. Refactored Module 2 with key abstractions (Node/NetDevice/Channel), internet stacks, IP assignments, global routing tables, and UDP echo client/server scheduling. Created a multi-segment router simulation template under `scratch/aerowlan_exercises/module2_assignment.cc`.
+- **Active Task:** Refactored Module 2 with key abstractions, internet stacks, IP assignments, global routing tables, and UDP client/server scheduling. Created Lesson 2.4 showing complete multi-link segment code walkthrough. Resolved NetDevice and Channel popup bindings in `glossaryDb`. Created multi-segment router simulation template under `scratch/aerowlan_exercises/module2_assignment.cc`.
 - **Git Push Status:** All updates (Lock bypass, Module 2 lessons, C++ templates, and state tracker) committed and pushed.
