@@ -30,6 +30,22 @@ This package runs locally inside your ns-3 workspace using the **Antigravity Age
 
 ---
 
+## 🛠️ Recent Refactorings (August 9, 2026)
+
+* **Obsidian-Style Interface Refactor**:
+  * Integrated an Obsidian-themed dual matte dark / GitHub Pages light mode toggle.
+  * Formatted wiki-links (`[[Term]]`) showing interactive popup definitions for core abstractions. Fixed `[[NetDevice]]` and `[[Channel]]` bindings.
+* **Track 1 Educational Upgrades**:
+  * Deepened explanation depth for Modules 1, 2, and 3.
+  * Added C++ walk-through lessons with fully annotated code blocks (including `first.cc` analysis, multi-link segmentation, and custom log components with trace function calls).
+  * Isolated terminal commands and paths inside structured, click-to-copy containers.
+* **10-Problem Coding Lab Sandbox**:
+  * Excluded advanced WiFi 7/8 coding templates from the sandbox to focus on basic-to-intermediate mastery.
+  * Clarified editor role with a CMake syntax validation sandbox banner.
+  * Expanded sandbox problems to a 10-problem sequence covering: node container parameters, P2P/CSMA topologies, internet stacks and subnets allocation, UDP echo apps scheduling, position allocation, multi-segment routing, hybrid bus networks, and receiver rate error model injection.
+
+---
+
 ## 🏗️ Project Architecture
 
 All customizations reside in the `.agents/` folder, making it fully portable and git-ready:
