@@ -34,136 +34,151 @@ const tracks = [
     name: "Track 1: ns-3 Master Class (General & Wired)",
     modules: [
       {
-        id: 4,
-        title: "Module 4: Getting Started",
-        description: "Prerequisites, building and testing ns-3, and running your first script.",
+        id: 1,
+        title: "Module 1: Getting Started",
+        description: "Core architectures, compilation flags, memory tracking, and C++ script layouts.",
         lessons: [
           {
-            id: "T1-M4-L1",
-            title: "4.1 Overview & 4.2 Prerequisites",
-            moduleTitle: "Track 1 • Module 4 • Lesson 1",
+            id: "T1-M1-L1",
+            title: "1.1 ns-3 Architecture & Memory Management",
+            moduleTitle: "Track 1 • Module 1 • Lesson 1",
             body: `
-              <p>Welcome to ns-3! The <strong>ns-3 simulator</strong> is a discrete-event network simulator designed for research and educational use. It is written in C++ with optional Python bindings.</p>
-              <h4>4.1 Overview:</h4>
-              <p>ns-3 is designed as a set of libraries that can be combined with other external libraries. Some simulators provide an graphical user interface (GUI) environment where you build configurations. ns-3 is code-driven; you write a C++ program that instantiates the topology, starts the simulation, and prints statistics.</p>
-              <h4>4.2 Prerequisites:</h4>
-              <p>Building ns-3 requires a toolchain including a C++ compiler (g++ or clang++), CMake build system, python3 (for build orchestration), and optional libraries like GTK (for NetAnim visualization) and libpcap (for reading trace files).</p>
+              <p>Welcome to ns-3! The <strong>ns-3 simulator</strong> is a discrete-event network simulator written in C++ and optimized for academic and industrial research.</p>
+              <h4>1.1 Directory Structure & Core Modules</h4>
+              <p>When you look inside the root directory <code>/home/jaswanth/Downloads/ns-allinone-3.45/ns-3.45</code>, you will find:</p>
+              <ul>
+                <li><code>src/</code>: Contains the source code for all core simulator modules. Each folder inside (like <code>core</code>, <code>network</code>, <code>internet</code>, <code>wifi</code>) is compiled as a separate shared library.</li>
+                <li><code>examples/</code>: Contains standard pre-written simulations demonstrating various protocols.</li>
+                <li><code>scratch/</code>: The user playground. Any C++ script placed here with a <code>main()</code> function is dynamically compiled as an executable target by the build system.</li>
+              </ul>
+              <h4>1.2 Memory Management & smart pointers ([[NodeContainer]])</h4>
+              <p>C++ is notorious for memory leaks. To prevent leaks, ns-3 employs a custom reference-counting system. Rather than raw pointers, objects are managed using the smart pointer template <code>Ptr&lt;T&gt;</code>.</p>
+              <p>When you create a node in ns-3, you do not write <code>Node* node = new Node()</code>. Instead, you write:</p>
+              <pre><code>Ptr<Node> node = CreateObject<Node> ();</code></pre>
+              <p>The class [[NodeContainer]] is a helper that wraps an array of <code>Ptr&lt;Node&gt;</code> pointers, making it easy to create and manage multiple hosts simultaneously.</p>
             `
           },
           {
-            id: "T1-M4-L2",
-            title: "4.3 Downloading ns-3 & 4.4 Building ns-3",
-            moduleTitle: "Track 1 • Module 4 • Lesson 2",
+            id: "T1-M1-L2",
+            title: "1.2 Build Systems & Compilation Configuration",
+            moduleTitle: "Track 1 • Module 1 • Lesson 2",
             body: `
-              <p>Let's look at how we fetch and build the ns-3 source files.</p>
-              <h4>4.3 Downloading ns-3 using Git:</h4>
-              <p>The standard way to download the active ns-3 development tree is using git: <br>
-              <code>git clone https://gitlab.colostate.edu/nsnam/ns-3-dev-git.git</code></p>
-              <h4>4.4 Building ns-3:</h4>
-              <p>ns-3 uses <strong>CMake</strong> to configure and compile modules. The main build tool is the <code>./ns3</code> wrapper script. Before building, you must configure CMake to enable examples and tests:</p>
+              <p>ns-3 uses **CMake** to configure and build. To compile targets, we use the custom python orchestration script <code>./ns3</code> in the root directory.</p>
+              <h4>1.2.1 Configuration Profiles</h4>
+              <p>Before compiling, you must configure the project. There are two primary profiles:</p>
+              <ol>
+                <li><strong>Debug Profile</strong>: Configured using <code>--build-profile=debug</code>. It enables debugging symbols and, crucially, **runtime assertions** (tests that crash the simulator early if configuration parameters are illegal).</li>
+                <li><strong>Optimized Profile</strong>: Configured using <code>--build-profile=optimized</code>. It strips debug info and enables compiler optimization flags (<code>-O3</code>). Crucial for running massive simulation sweeps which execute 5x to 10x faster.</li>
+              </ol>
+              <p>Example configuration command:</p>
               <pre><code>./ns3 configure --enable-examples --enable-tests --build-profile=debug</code></pre>
-              <p>Once configured, compile the libraries:</p>
+              <h4>1.2.2 Building the Project</h4>
+              <p>Once configured, compile the targets using:</p>
               <pre><code>./ns3 build</code></pre>
+              <p>Incremental compilation means if you modify a file in <code>scratch/</code>, only your script is compiled, taking ~2 seconds. However, if you modify a core header in <code>src/wifi/</code>, CMake must recompile the entire `wifi` module and all dependent modules, which can take several minutes.</p>
             `
           },
           {
-            id: "T1-M4-L3",
-            title: "4.5 Testing ns-3 & 4.6 Running a Script",
-            moduleTitle: "Track 1 • Module 4 • Lesson 3",
+            id: "T1-M1-L3",
+            title: "1.3 Anatomy of an Event-Driven Simulation Script",
+            moduleTitle: "Track 1 • Module 1 • Lesson 3",
             body: `
-              <p>Before running custom scripts, you should verify the build using the unit testing framework:</p>
-              <h4>4.5 Testing ns-3:</h4>
-              <p>ns-3 provides a test runner utility called <code>test.py</code>. Run this command to execute all unit tests: <br>
-              <code>./test.py</code> <br>
-              If compiled successfully, it should output: <code>"PASS: Test suite ..."</code> for hundreds of tests.</p>
-              <h4>4.6 Running a Script:</h4>
-              <p>Simulation scripts located in the <code>scratch/</code> directory are automatically built. You run them using the run command: <br>
-              <code>./ns3 run scratch/aerowlan_exercises/hello-ns3</code></p>
+              <p>ns-3 is a <strong>discrete-event simulator</strong>. The virtual simulation clock only advances when an event is executed. Events are scheduled to run at specific timestamps in a chronological queue.</p>
+              <h4>1.3.1 Core Script Boilerplate</h4>
+              <p>Every ns-3 simulation follows a standard layout:</p>
+              <ol>
+                <li><strong>Headers</strong>: Include the module headers (e.g. <code>#include "ns3/core-module.h"</code>).</li>
+                <li><strong>CommandLine Parsing</strong>: Enables passing arguments at runtime without recompiling.
+                  <pre><code>CommandLine cmd (__FILE__);\ncmd.Parse (argc, argv);</code></pre>
+                </li>
+                <li><strong>Timeline Management</strong>: Set time resolution.
+                  <pre><code>Time::SetResolution (Time::NS);</code></pre>
+                </li>
+                <li><strong>Node & Link Setup</strong>: Instantiate containers, helpers, and install channels.</li>
+                <li><strong>Simulation Run</strong>: Advance the clock and execute events.
+                  <pre><code>Simulator::Run ();\nSimulator::Destroy ();</code></pre>
+                  <p>The call to <code>Simulator::Destroy()</code> is critical; it releases all reference-counted objects and prevents memory leaks.</p>
+                </li>
+              </ol>
             `
           },
           {
-            id: "T1-M4-Q",
-            title: "Module 4 Review Quiz",
+            id: "T1-M1-Q",
+            title: "Module 1 Review Quiz",
             isQuizOnly: true,
-            moduleTitle: "Track 1 • Module 4 • Assessment",
+            moduleTitle: "Track 1 • Module 1 • Assessment",
             quiz: [
               {
-                question: "1. What build tool does ns-3 use to orchestrate and compile its modules?",
+                question: "1. Why does ns-3 use the Ptr<T> smart pointer template instead of raw pointers?",
                 options: [
-                  { text: "Make / Waf", isCorrect: false },
-                  { text: "CMake", isCorrect: true },
-                  { text: "Autotools", isCorrect: false }
+                  { text: "It is required by C++ compiler standards", isCorrect: false },
+                  { text: "To implement reference counting and automatically manage memory cleanup", isCorrect: true },
+                  { text: "To speed up compilation times in CMake", isCorrect: false }
                 ],
-                feedbackSuccess: "Correct! Modern ns-3 versions use CMake for module compilation.",
-                feedbackError: "Incorrect. Modern versions of ns-3 (since 3.36) use CMake. Try again!"
+                feedbackSuccess: "Correct! Ptr<T> manages reference counting, ensuring memory is automatically freed when no references remain.",
+                feedbackError: "Incorrect. Ptr<T> is for reference counting and automatic memory cleanup. Try again!"
               },
               {
-                question: "2. Which environment variable or argument profile enables compilation asserts?",
+                question: "2. When running a massive, heavy simulation sweep, which build configuration profile should be used?",
                 options: [
-                  { text: "--build-profile=debug", isCorrect: true },
-                  { text: "--build-profile=optimized", isCorrect: false },
-                  { text: "--enable-asserts", isCorrect: false }
+                  { text: "Debug profile (--build-profile=debug)", isCorrect: false },
+                  { text: "Optimized profile (--build-profile=optimized)", isCorrect: true },
+                  { text: "Static profile (--enable-static)", isCorrect: false }
                 ],
-                feedbackSuccess: "Correct! The debug profile enables checks and assertions.",
-                feedbackError: "Incorrect. Specify --build-profile=debug during configuration. Try again!"
+                feedbackSuccess: "Correct! The optimized profile removes debug symbols and enables compiler optimizations, running up to 10x faster.",
+                feedbackError: "Incorrect. The optimized profile is designed for high-performance execution. Try again!"
               },
               {
-                question: "3. What python script is executed to run all unit tests in the codebase?",
+                question: "3. What is the purpose of calling Simulator::Destroy() at the end of a C++ script?",
                 options: [
-                  { text: "run-tests.py", isCorrect: false },
-                  { text: "test.py", isCorrect: true },
-                  { text: "ns3-test", isCorrect: false }
+                  { text: "To delete the executable from the scratch directory", isCorrect: false },
+                  { text: "To clean up and deallocate all scheduled events and reference-counted objects", isCorrect: true },
+                  { text: "To print the final simulation results to the console", isCorrect: false }
                 ],
-                feedbackSuccess: "Correct! test.py runs the extensive validation suite.",
-                feedbackError: "Incorrect. The correct script is test.py in the repository root. Try again!"
-              },
-              {
-                question: "4. Where should user simulation C++ scripts be placed to compile automatically?",
-                options: [
-                  { text: "src/core/", isCorrect: false },
-                  { text: "scratch/", isCorrect: true },
-                  { text: "examples/tutorial/", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! Any script placed in scratch/ is compiled automatically.",
-                feedbackError: "Incorrect. Place your C++ files under the scratch/ directory. Try again!"
-              },
-              {
-                question: "5. What git repository host is the primary home of ns-3 dev trees?",
-                options: [
-                  { text: "GitHub", isCorrect: false },
-                  { text: "GitLab (nsnam)", isCorrect: true },
-                  { text: "Bitbucket", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! The ns-3 project development tree is hosted on GitLab.com/nsnam.",
-                feedbackError: "Incorrect. The code is officially hosted on GitLab under the nsnam organization. Try again!"
+                feedbackSuccess: "Correct! Simulator::Destroy() triggers cleanup to prevent memory leaks at execution end.",
+                feedbackError: "Incorrect. Simulator::Destroy() clears the events queue and deallocates memory. Try again!"
               }
             ]
           },
           {
-            id: "T1-M4-A",
-            title: "Module 4 Programming Assignment",
+            id: "T1-M1-A",
+            title: "Module 1 Programming Assignment",
             isAssignmentOnly: true,
-            moduleTitle: "Track 1 • Module 4 • Assignment",
+            moduleTitle: "Track 1 • Module 1 • Assignment",
             assignmentInstructions: `
               <h4>Assignment Objective:</h4>
-              <p>Compile and run the hello-ns3 script in your scratch folder to verify the local workspace builds properly.</p>
+              <p>Write and build a custom ns-3 script that dynamically parses command-line arguments to instantiate a variable number of nodes.</p>
               
-              <h4>Step 1: Open Terminal</h4>
-              <p>Navigate to your ns-3 root directory: <code>/home/jaswanth/Downloads/ns-allinone-3.45/ns-3.45</code></p>
+              <h4>Instructions:</h4>
+              <ol>
+                <li>Create a new C++ source file in your scratch directory: <code>scratch/aerowlan_exercises/module1_assignment.cc</code></li>
+                <li>Write a standard ns-3 program that:
+                  <ul>
+                    <li>Includes <code>"ns3/core-module.h"</code> and <code>"ns3/network-module.h"</code>.</li>
+                    <li>Declares a logging component name: <code>NS_LOG_COMPONENT_DEFINE ("AeroWlanModule1");</code></li>
+                    <li>Initializes a variable: <code>uint32_t nodeCount = 3;</code></li>
+                    <li>Uses the <code>CommandLine</code> helper to add a value parameter named <code>"nodeCount"</code> to override that variable at runtime.</li>
+                    <li>Parses the command-line arguments.</li>
+                    <li>Instantiates a [[NodeContainer]] and creates the specified <code>nodeCount</code> nodes.</li>
+                    <li>Prints exactly: <code>Successfully created X nodes.</code> to the standard console output (where X is the number of nodes).</li>
+                    <li>Safely runs and calls <code>Simulator::Destroy();</code> before exiting.</li>
+                  </ul>
+                </li>
+              </ol>
               
-              <h4>Step 2: Build the project</h4>
-              <p>Execute the compile command:</p>
+              <h4>Step 1: Build the assignment target</h4>
+              <p>Verify that your C++ file compiles correctly in your terminal:</p>
               <pre><code>./ns3 build</code></pre>
               
-              <h4>Step 3: Run the hello-ns3 script and save output</h4>
-              <p>Run the script and redirect the console stdout to the file <code>module4_output.txt</code>:</p>
-              <pre><code>./ns3 run scratch/aerowlan_exercises/hello-ns3 > scratch/aerowlan_exercises/module4_output.txt 2>&1</code></pre>
+              <h4>Step 2: Run the simulation with custom arguments</h4>
+              <p>Execute the program and pass <code>--nodeCount=6</code> to verify command line parsing works. Redirect the output to <code>module1_output.txt</code>:</p>
+              <pre><code>./ns3 run "scratch/aerowlan_exercises/module1_assignment --nodeCount=6" > scratch/aerowlan_exercises/module1_output.txt 2>&1</code></pre>
               
-              <h4>Step 4: Verify Output</h4>
-              <p>Locate the generated <code>module4_output.txt</code> file in your workspace, copy its entire contents, and paste it into the textbox below to submit.</p>
+              <h4>Step 3: Submit logs for verification</h4>
+              <p>Open <code>scratch/aerowlan_exercises/module1_output.txt</code>, copy its content, and paste it into the submission paste area below to submit.</p>
             `,
-            assignmentVerifyKeyword: "AeroWLAN environment check successful.",
-            practiceFile: "scratch/aerowlan_exercises/hello-ns3.cc"
+            assignmentVerifyKeyword: "Successfully created 6 nodes.",
+            practiceFile: "scratch/aerowlan_exercises/module1_assignment.cc"
           }
         ]
       },
@@ -1259,7 +1274,7 @@ wifi.SetMultiLinkType (WifiHelper::DEFAULT_MLD);</code></pre>
 function preprocessTracks() {
   const track1 = tracks[0];
   track1.modules.forEach(mod => {
-    if (mod.id >= 4 && mod.id <= 10) {
+    if (mod.id >= 5 && mod.id <= 10) {
       const oldId = mod.id;
       const newId = oldId - 3;
       mod.id = newId;
