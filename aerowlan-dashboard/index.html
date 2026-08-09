@@ -38,6 +38,10 @@
           <i data-lucide="bot"></i>
           <span>Multi-Agent Skills</span>
         </a>
+        <a href="#" class="nav-item" data-tab="codinglab">
+          <i data-lucide="code-2"></i>
+          <span>Coding Lab</span>
+        </a>
         <a href="#" class="nav-item" data-tab="terminal">
           <i data-lucide="terminal"></i>
           <span>Command Cheat Sheet</span>
@@ -295,63 +299,214 @@
 
       <!-- Terminal / Cheat Sheet Tab -->
       <section id="terminal-tab" class="tab-content">
-        <div class="content-card">
-          <div class="card-header">
-            <h3>💻 Step-by-Step ns-3 & Linux Simulation Workflow Guide</h3>
+        <div class="cheat-sheet-container">
+          <div class="cheat-sheet-header">
+            <h2>💻 ns-3 Command Cheat Sheet</h2>
+            <p>A structured quick-reference guide to configure, build, run, and debug your simulation scripts.</p>
           </div>
           
-          <div class="workflow-guide-body">
-            <h4 class="mt-4">Step 1: Configuration & CMake Initialization</h4>
-            <p>Before compiling any scripts, you must configure the build environment. This sets compilation flags, enables optional modules, and turns on examples/tests:</p>
-            <div class="terminal-command-row">
-              <code>./ns3 configure --enable-examples --enable-tests --build-profile=debug</code>
-              <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('./ns3 configure --enable-examples --enable-tests --build-profile=debug')">Copy</button>
-            </div>
-            <ul class="mt-2 text-muted" style="font-size: 13px; padding-left: 20px;">
-              <li><code>--build-profile=debug</code>: Enables compiler debugging assertions and symbols (essential for troubleshooting segmentation faults).</li>
-              <li><code>--build-profile=optimized</code>: Removes debug features to enable 5x-10x faster execution for massive trace collection.</li>
-            </ul>
+          <div class="cheat-sheet-tabs">
+            <button class="cheat-tab-btn active" data-category="all" onclick="filterCheatCommands('all')">All Commands</button>
+            <button class="cheat-tab-btn" data-category="config" onclick="filterCheatCommands('config')">Build & Config</button>
+            <button class="cheat-tab-btn" data-category="run" onclick="filterCheatCommands('run')">Execution & Run</button>
+            <button class="cheat-tab-btn" data-category="debug" onclick="filterCheatCommands('debug')">Debugging & Logs</button>
+            <button class="cheat-tab-btn" data-category="trace" onclick="filterCheatCommands('trace')">PCAP & Traces</button>
+          </div>
 
-            <h4 class="mt-4">Step 2: Compiling Your Simulation</h4>
-            <p>Compile the whole codebase or register new files placed in the <code>scratch/</code> directory:</p>
-            <div class="terminal-command-row">
-              <code>./ns3 build</code>
-              <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('./ns3 build')">Copy</button>
-            </div>
-            <p class="mt-2 text-muted" style="font-size: 13px;">If you modify a header file in a core module (like <code>src/wifi/model/wifi-phy.h</code>), this command will automatically compile only the affected modules and update dependencies.</p>
-
-            <h4 class="mt-4">Step 3: Running a Script with Custom Arguments</h4>
-            <p>Execute your compiled simulation. To pass command-line arguments to the script, append them after the double-dash (<code>--</code>):</p>
-            <div class="terminal-command-row">
-              <code>./ns3 run "scratch/aerowlan_exercises/hello-ns3 --argName=val"</code>
-              <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('./ns3 run \&quot;scratch/aerowlan_exercises/hello-ns3 --argName=val\&quot;')">Copy</button>
+          <div class="cheat-grid" id="cheat-grid">
+            <!-- Card 1 -->
+            <div class="cheat-card" data-category="config">
+              <div class="cheat-card-header">
+                <span class="cheat-badge badge-blue">Configure</span>
+                <h4>Configure CMake (Debug)</h4>
+              </div>
+              <p>Configure CMake to compile with logging, tests, and debugging assertions enabled. Crucial for development.</p>
+              <div class="terminal-command-row">
+                <code>./ns3 configure --enable-examples --enable-tests --build-profile=debug</code>
+                <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('./ns3 configure --enable-examples --enable-tests --build-profile=debug')">Copy</button>
+              </div>
             </div>
 
-            <h4 class="mt-4">Step 4: Debugging with ns-3 Logging System</h4>
-            <p>Enable verbose execution logs from specific components dynamically using the <code>NS_LOG</code> environment variable. You can target specific layers:</p>
-            <div class="terminal-command-row">
-              <code>export NS_LOG="UdpEchoClientApplication=level_all:WifiPhy=level_info"</code>
-              <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('export NS_LOG=\&quot;UdpEchoClientApplication=level_all:WifiPhy=level_info\&quot;')">Copy</button>
-            </div>
-            <p class="mt-2 text-muted" style="font-size: 13px;">Common logging levels: <code>error</code>, <code>warn</code>, <code>info</code>, <code>debug</code>, <code>logic</code>, <code>all</code>. To clear logging rules, run: <code>unset NS_LOG</code>.</p>
-
-            <h4 class="mt-4">Step 5: Collecting & Analyzing Network Traces (PCAPs)</h4>
-            <p>Many simulation scripts support trace file generation (enabled via code configurations or run-time flags). To capture standard PCAP packets:</p>
-            <div class="terminal-command-row">
-              <code>./ns3 run scratch/aerowlan_exercises/simple-wifi -- --pcap=1</code>
-              <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('./ns3 run scratch/aerowlan_exercises/simple-wifi -- --pcap=1')">Copy</button>
-            </div>
-            <p class="mt-2">To read the generated packet capture files on your Linux console, use <code>tcpdump</code>:</p>
-            <div class="terminal-command-row">
-              <code>tcpdump -nn -tt -r simple-wifi-0-0.pcap</code>
-              <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('tcpdump -nn -tt -r simple-wifi-0-0.pcap')">Copy</button>
+            <!-- Card 2 -->
+            <div class="cheat-card" data-category="config">
+              <div class="cheat-card-header">
+                <span class="cheat-badge badge-blue">Configure</span>
+                <h4>Configure CMake (Optimized)</h4>
+              </div>
+              <p>Configure CMake to strip debug symbols and compile with optimization flags. Speed up large simulation sweeps by 5x-10x.</p>
+              <div class="terminal-command-row">
+                <code>./ns3 configure --build-profile=optimized</code>
+                <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('./ns3 configure --build-profile=optimized')">Copy</button>
+              </div>
             </div>
 
-            <h4 class="mt-4">Step 6: Cleaning the Build Directory</h4>
-            <p>If you encounter linking conflicts or CMake cache corruption, clean the build directory before re-configuring:</p>
-            <div class="terminal-command-row">
-              <code>./ns3 clean</code>
-              <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('./ns3 clean')">Copy</button>
+            <!-- Card 3 -->
+            <div class="cheat-card" data-category="config">
+              <div class="cheat-card-header">
+                <span class="cheat-badge badge-green">Build</span>
+                <h4>Build the Project</h4>
+              </div>
+              <p>Compile the whole project or incrementally build changes. Scratch scripts compile automatically on build.</p>
+              <div class="terminal-command-row">
+                <code>./ns3 build</code>
+                <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('./ns3 build')">Copy</button>
+              </div>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="cheat-card" data-category="run">
+              <div class="cheat-card-header">
+                <span class="cheat-badge badge-orange">Run</span>
+                <h4>Run Scratch Executable</h4>
+              </div>
+              <p>Run a compiled script located in your scratch directory. You do not need to append the `.cc` extension.</p>
+              <div class="terminal-command-row">
+                <code>./ns3 run scratch/aerowlan_exercises/hello-ns3</code>
+                <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('./ns3 run scratch/aerowlan_exercises/hello-ns3')">Copy</button>
+              </div>
+            </div>
+
+            <!-- Card 5 -->
+            <div class="cheat-card" data-category="run">
+              <div class="cheat-card-header">
+                <span class="cheat-badge badge-orange">Run</span>
+                <h4>Run with Command-Line Args</h4>
+              </div>
+              <p>Pass custom arguments to your script using a double-dash `--` separator at runtime.</p>
+              <div class="terminal-command-row">
+                <code>./ns3 run "scratch/aerowlan_exercises/simple-wifi --distance=15.0 --pcap=1"</code>
+                <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('./ns3 run \&quot;scratch/aerowlan_exercises/simple-wifi --distance=15.0 --pcap=1\&quot;')">Copy</button>
+              </div>
+            </div>
+
+            <!-- Card 6 -->
+            <div class="cheat-card" data-category="debug">
+              <div class="cheat-card-header">
+                <span class="cheat-badge badge-purple">Debug</span>
+                <h4>Enable Logging (NS_LOG)</h4>
+              </div>
+              <p>Enable verbose execution logs from specific components using the environment variable `NS_LOG`.</p>
+              <div class="terminal-command-row">
+                <code>export NS_LOG="UdpEchoClientApplication=level_all:WifiPhy=level_info"</code>
+                <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('export NS_LOG=\&quot;UdpEchoClientApplication=level_all:WifiPhy=level_info\&quot;')">Copy</button>
+              </div>
+            </div>
+
+            <!-- Card 7 -->
+            <div class="cheat-card" data-category="debug">
+              <div class="cheat-card-header">
+                <span class="cheat-badge badge-purple">Debug</span>
+                <h4>Clear Logging Configuration</h4>
+              </div>
+              <p>Unset the logging configuration to return to default stdout behavior and silence verbose simulation output.</p>
+              <div class="terminal-command-row">
+                <code>unset NS_LOG</code>
+                <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('unset NS_LOG')">Copy</button>
+              </div>
+            </div>
+
+            <!-- Card 8 -->
+            <div class="cheat-card" data-category="trace">
+              <div class="cheat-card-header">
+                <span class="cheat-badge badge-red">Trace</span>
+                <h4>Inspect PCAP packet traces</h4>
+              </div>
+              <p>Read generated simulation packet captures directly in your Linux terminal using `tcpdump`.</p>
+              <div class="terminal-command-row">
+                <code>tcpdump -nn -tt -r simple-wifi-0-0.pcap</code>
+                <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('tcpdump -nn -tt -r simple-wifi-0-0.pcap')">Copy</button>
+              </div>
+            </div>
+
+            <!-- Card 9 -->
+            <div class="cheat-card" data-category="config">
+              <div class="cheat-card-header">
+                <span class="cheat-badge badge-blue">Clean</span>
+                <h4>Clean Build Cache</h4>
+              </div>
+              <p>Delete compilation files and reset the CMake cache. Useful if headers are missing or linking conflicts arise.</p>
+              <div class="terminal-command-row">
+                <code>./ns3 clean</code>
+                <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('./ns3 clean')">Copy</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Coding Lab Tab -->
+      <section id="codinglab-tab" class="tab-content">
+        <div class="coding-lab-container">
+          <!-- Problem Selector Sidebar -->
+          <div class="problem-sidebar">
+            <h3>ns-3 Programming Lab</h3>
+            <span class="track-badge mt-2" style="display:inline-block;">Path B: Basic to Pro</span>
+            
+            <div class="problem-list" id="problem-list">
+              <!-- Dynamically populated by app.js -->
+            </div>
+          </div>
+
+          <!-- Code Workspace (Side-by-Side) -->
+          <div class="code-workspace">
+            <div class="problem-details-panel">
+              <div class="problem-header-row">
+                <span class="difficulty-badge" id="problem-difficulty">Basic</span>
+                <h2 id="problem-title-editor">Hello World & Node Creation</h2>
+              </div>
+              <div class="problem-description-content" id="problem-description">
+                <!-- Populated dynamically -->
+              </div>
+              
+              <div class="hints-box-container">
+                <div class="hints-header">
+                  <span>💡 Need a hint?</span>
+                  <button class="btn btn-secondary btn-sm" id="btn-reveal-hint" onclick="revealNextHint()">Reveal Hint</button>
+                </div>
+                <div class="revealed-hint-content" id="revealed-hint-box" style="display: none;">
+                  <!-- Revealed hints list -->
+                </div>
+              </div>
+
+              <div class="template-instructions">
+                <button class="btn btn-secondary btn-sm btn-block" onclick="resetToTemplate()">
+                  <i data-lucide="refresh-cw" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Reset to Starter Template
+                </button>
+              </div>
+            </div>
+
+            <div class="editor-panel">
+              <div class="editor-header">
+                <span class="editor-file-label"><i data-lucide="file-code" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i> solution.cc</span>
+                <div class="editor-actions">
+                  <span class="status-indicator-text" id="editor-status-text">Ready</span>
+                </div>
+              </div>
+              
+              <div class="editor-textarea-wrapper">
+                <div class="line-numbers" id="line-numbers">
+                  <!-- Mock line numbers populated dynamically -->
+                </div>
+                <textarea id="code-editor" class="code-editor-textarea" spellcheck="false" oninput="syncLineNumbers()"></textarea>
+              </div>
+
+              <div class="editor-footer">
+                <div class="instructions-footer">
+                  <p><i data-lucide="info" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i> Code will compile & execute locally on submission.</p>
+                </div>
+                <button class="btn btn-primary" id="btn-submit-code" onclick="submitCode()">
+                  <i data-lucide="play" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i> Compile & Run Simulation
+                </button>
+              </div>
+
+              <!-- Terminal Console Output Panel -->
+              <div class="terminal-console-wrapper" id="terminal-console-wrapper" style="display: none;">
+                <div class="console-header">
+                  <span class="console-title"><i data-lucide="terminal" style="width: 13px; height: 13px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i> Execution Console Output</span>
+                  <button class="btn-console-clear" onclick="clearConsole()">Clear</button>
+                </div>
+                <pre class="console-body" id="console-body"></pre>
+              </div>
             </div>
           </div>
         </div>

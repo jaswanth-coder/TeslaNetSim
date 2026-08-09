@@ -1261,6 +1261,7 @@ function init() {
   renderSyllabus();
   loadLesson(currentModuleIndex, currentLessonIndex);
   updateProgressBar();
+  initCodingLab();
   lucide.createIcons();
 }
 
@@ -1635,3 +1636,518 @@ function nextLesson() {
 
 // Start everything
 window.onload = init;
+
+// ==========================================
+// Coding Lab - ns-3 LeetCode Component
+// ==========================================
+
+const codingLabProblems = [
+  {
+    id: "basic-nodes",
+    title: "1. Hello World & Node Creation",
+    difficulty: "Basic",
+    difficultyClass: "difficulty-basic",
+    summary: "Create nodes and output logs.",
+    description: `<p><strong>Objective:</strong> Create a NodeContainer with 2 nodes and print a simple console log.</p>
+                  <p>In ns-3, nodes are created using the <code>NodeContainer</code> helper class.</p>
+                  <p>Use <code>nodes.Create (2);</code> to instantiate nodes, and then output <code>"Hello World from ns-3! Created 2 nodes."</code> using standard C++ <code>std::cout</code>.</p>
+                  <p><strong>Note:</strong> Place your code inside the standard <code>main</code> function of the C++ file.</p>`,
+    template: `#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include <iostream>
+
+using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE ("AeroWlanHelloNodes");
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  Time::SetResolution (Time::NS);
+
+  // TODO: 1. Create a NodeContainer with 2 nodes
+  
+
+  // TODO: 2. Output "Hello World from ns-3! Created 2 nodes." to standard console
+  
+
+  return 0;
+}
+`,
+    hints: [
+      "Declare the container: <code>NodeContainer nodes;</code>",
+      "Instantiate 2 nodes: <code>nodes.Create (2);</code>",
+      "Print output: <code>std::cout << \"Hello World from ns-3! Created \" << nodes.GetN() << \" nodes.\" << std::endl;</code>"
+    ]
+  },
+  {
+    id: "basic-p2p",
+    title: "2. Point-to-Point Link",
+    difficulty: "Basic",
+    difficultyClass: "difficulty-basic",
+    summary: "Establish a standard point-to-point link.",
+    description: `<p><strong>Objective:</strong> Set up a Point-to-Point link between 2 nodes.</p>
+                  <p>Configure the link with a data rate of <code>"10Mbps"</code> and a propagation delay of <code>"5ms"</code>.</p>
+                  <p>Use the <code>PointToPointHelper</code> to set attributes and install on your <code>NodeContainer</code>.</p>`,
+    template: `#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/point-to-point-module.h"
+#include <iostream>
+
+using namespace ns3;
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  NodeContainer nodes;
+  nodes.Create (2);
+
+  // TODO: Create PointToPointHelper and set Device ("DataRate") and Channel ("Delay") attributes
+  
+
+  // TODO: Install devices onto the nodes and store the results in NetDeviceContainer
+  
+
+  std::cout << "Point-to-Point Link configured between 2 nodes." << std::endl;
+  return 0;
+}
+`,
+    hints: [
+      "Initialize helper: <code>PointToPointHelper pointToPoint;</code>",
+      "Set attributes: <code>pointToPoint.SetDeviceAttribute (\"DataRate\", StringValue (\"10Mbps\"));</code>",
+      "Set delay attribute: <code>pointToPoint.SetChannelAttribute (\"Delay\", StringValue (\"5ms\"));</code>",
+      "Install on nodes: <code>NetDeviceContainer devices = pointToPoint.Install (nodes);</code>"
+    ]
+  },
+  {
+    id: "intermediate-csma",
+    title: "3. Multi-Node Bus (CSMA)",
+    difficulty: "Intermediate",
+    difficultyClass: "difficulty-intermediate",
+    summary: "Configure CSMA multi-node bus topology.",
+    description: `<p><strong>Objective:</strong> Create a bus topology of 5 nodes using CSMA.</p>
+                  <p>Configure the CSMA channel with a data rate of <code>"100Mbps"</code> and a propagation delay of <code>"6560ns"</code>.</p>
+                  <p>Link all nodes using the <code>CsmaHelper</code>.</p>`,
+    template: `#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/csma-module.h"
+#include <iostream>
+
+using namespace ns3;
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  NodeContainer nodes;
+  nodes.Create (5);
+
+  // TODO: Instantiate CsmaHelper and set DataRate to 100Mbps, Delay to 6560ns
+  
+
+  // TODO: Install CSMA devices on nodes
+  
+
+  std::cout << "CSMA Bus topology initialized with 5 nodes." << std::endl;
+  return 0;
+}
+`,
+    hints: [
+      "Use CsmaHelper: <code>CsmaHelper csma;</code>",
+      "Set channel delay: <code>csma.SetChannelAttribute (\"Delay\", TimeValue (NanoSeconds (6560)));</code>",
+      "Install devices: <code>NetDeviceContainer devices = csma.Install (nodes);</code>"
+    ]
+  },
+  {
+    id: "intermediate-wifi",
+    title: "4. Basic 802.11n Channel",
+    difficulty: "Intermediate",
+    difficultyClass: "difficulty-intermediate",
+    summary: "Bootstrap a basic wireless station.",
+    description: `<p><strong>Objective:</strong> Configure a wireless access point and 2 stations using IEEE 802.11n.</p>
+                  <p>Use <code>WifiHelper</code> and set standard to <code>WIFI_STANDARD_80211n</code>.</p>
+                  <p>Set up an SSID <code>"lab-ssid"</code> on both the AP and STA MAC layers.</p>`,
+    template: `#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/wifi-module.h"
+#include "ns3/mobility-module.h"
+#include <iostream>
+
+using namespace ns3;
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  NodeContainer wifiApNode;
+  wifiApNode.Create (1);
+  NodeContainer wifiStaNodes;
+  wifiStaNodes.Create (2);
+
+  YansWifiChannelHelper channel = YansWifiChannelHelper::Default ();
+  YansWifiPhyHelper phy;
+  phy.SetChannel (channel.Create ());
+
+  // TODO: Configure WifiHelper with WIFI_STANDARD_80211n and ConstantRateWifiManager
+  
+
+  // TODO: Configure StaWifiMac and ApWifiMac with Ssid "lab-ssid"
+  
+
+  // TODO: Install devices on AP and Station nodes
+  
+
+  std::cout << "WiFi Setup complete: 1 AP, 2 STAs configured." << std::endl;
+  return 0;
+}
+`,
+    hints: [
+      "Set wifi standard: <code>wifi.SetStandard (WIFI_STANDARD_80211n);</code>",
+      "Create SSID: <code>Ssid ssid = Ssid (\"lab-ssid\");</code>",
+      "Set STA MAC: <code>mac.SetType (\"ns3::StaWifiMac\", \"Ssid\", SsidValue (ssid));</code> and install: <code>NetDeviceContainer staDevices = wifi.Install (phy, mac, wifiStaNodes);</code>",
+      "Set AP MAC: <code>mac.SetType (\"ns3::ApWifiMac\", \"Ssid\", SsidValue (ssid));</code> and install: <code>NetDeviceContainer apDevice = wifi.Install (phy, mac, wifiApNode);</code>"
+    ]
+  },
+  {
+    id: "advanced-mlo",
+    title: "5. WiFi 7 Multi-Link Setup",
+    difficulty: "Advanced",
+    difficultyClass: "difficulty-advanced",
+    summary: "Set up Multi-Link Operation (MLO) for WiFi 7.",
+    description: `<p><strong>Objective:</strong> Configure Multi-Link Operation (MLO) using <code>WIFI_STANDARD_80211be</code> (WiFi 7).</p>
+                  <p>Instantiate a 2-link <code>SpectrumWifiPhyHelper phy(2);</code>, configure channel settings for 5 GHz and 6 GHz, and install links dynamically.</p>`,
+    template: `#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/wifi-module.h"
+#include "ns3/spectrum-module.h"
+#include <iostream>
+
+using namespace ns3;
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  NodeContainer wifiAp;
+  wifiAp.Create (1);
+  NodeContainer wifiSta;
+  wifiSta.Create (1);
+
+  // TODO: Configure SpectrumWifiPhyHelper with 2 links
+  
+
+  // TODO: Set ChannelSettings on links 0 and 1, and add spectrum channels
+  
+
+  // TODO: Install WIFI 802.11be devices on AP and STA
+  
+
+  std::cout << "WiFi 7 MLO Simulation Setup Complete." << std::endl;
+  return 0;
+}
+`,
+    hints: [
+      "Initialize physical links: <code>SpectrumWifiPhyHelper phy (2);</code>",
+      "Set settings for Link 0: <code>phy.Set (0, \"ChannelSettings\", StringValue (\"{0, 20, BAND_5GHZ, 0}\"));</code>",
+      "Add spectrum channels: <code>auto ch = CreateObject<MultiModelSpectrumChannel>(); phy.AddChannel (ch, WIFI_SPECTRUM_5_GHZ);</code>",
+      "Assign SSID and install using <code>wifi.Install (phy, mac, nodes);</code>"
+    ]
+  },
+  {
+    id: "pro-cosr",
+    title: "6. WiFi 8 Coordinated Spatial Reuse",
+    difficulty: "Pro",
+    difficultyClass: "difficulty-pro",
+    summary: "Prototype WiFi 8 candidates with overlapping BSS.",
+    description: `<p><strong>Objective:</strong> Prototype Coordinated Spatial Reuse (CoSR) in an overlapping BSS (OBSS) topology.</p>
+                  <p>Design spatial coordinates using <code>MobilityHelper</code> with AP1 at <code>(0,0)</code>, AP2 at <code>(40,0)</code>, STA1 at <code>(10,0)</code>, and STA2 at <code>(30,0)</code>.</p>`,
+    template: `#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/wifi-module.h"
+#include "ns3/mobility-module.h"
+#include <iostream>
+
+using namespace ns3;
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  NodeContainer apNodes;
+  apNodes.Create (2);
+  NodeContainer staNodes;
+  staNodes.Create (2);
+
+  SpectrumWifiPhyHelper phy;
+  auto spectrumChannel = CreateObject<MultiModelSpectrumChannel> ();
+  phy.SetChannel (spectrumChannel);
+
+  WifiHelper wifi;
+  wifi.SetStandard (WIFI_STANDARD_80211be); // Base Wifi 7 standard for WiFi 8 prototyping
+
+  WifiMacHelper mac;
+  
+  // Set up Cell 1 (AP 0, STA 0)
+  Ssid ssid1 = Ssid ("cell-a");
+  mac.SetType ("ns3::StaWifiMac", "Ssid", SsidValue (ssid1));
+  NetDeviceContainer staDev1 = wifi.Install (phy, mac, staNodes.Get (0));
+  mac.SetType ("ns3::ApWifiMac", "Ssid", SsidValue (ssid1));
+  NetDeviceContainer apDev1 = wifi.Install (phy, mac, apNodes.Get (0));
+
+  // Set up Cell 2 (AP 1, STA 1)
+  Ssid ssid2 = Ssid ("cell-b");
+  mac.SetType ("ns3::StaWifiMac", "Ssid", SsidValue (ssid2));
+  NetDeviceContainer staDev2 = wifi.Install (phy, mac, staNodes.Get (1));
+  mac.SetType ("ns3::ApWifiMac", "Ssid", SsidValue (ssid2));
+  NetDeviceContainer apDev2 = wifi.Install (phy, mac, apNodes.Get (1));
+
+  // TODO: Configure Coordinates: AP1 at (0,0), AP2 at (40,0), STA1 at (10,0), STA2 at (30,0) using MobilityHelper
+  
+
+  std::cout << "WiFi 8 CoSR OBSS topology initialized." << std::endl;
+  return 0;
+}
+`,
+    hints: [
+      "Use position allocator: <code>Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();</code>",
+      "Add positions in order: <code>positionAlloc->Add (Vector (0.0, 0.0, 0.0));</code> for AP1, then AP2 `(40.0, 0.0, 0.0)`, STA1 `(10.0, 0.0, 0.0)`, and STA2 `(30.0, 0.0, 0.0)`.",
+      "Install mobility: <code>mobility.SetMobilityModel (\"ns3::ConstantPositionMobilityModel\"); mobility.Install (apNodes); mobility.Install (staNodes);</code>"
+    ]
+  }
+];
+
+let selectedProblemIndex = 0;
+let currentRevealedHintIndex = -1;
+let problemSubmissions = JSON.parse(localStorage.getItem('tesla_netsim_coding_submissions')) || {};
+
+function initCodingLab() {
+  renderProblemList();
+  selectProblem(0);
+}
+
+function renderProblemList() {
+  const container = document.getElementById('problem-list');
+  if (!container) return;
+  container.innerHTML = '';
+
+  codingLabProblems.forEach((prob, index) => {
+    const item = document.createElement('div');
+    item.className = `problem-item ${index === selectedProblemIndex ? 'active' : ''} ${problemSubmissions[prob.id] ? 'completed' : ''}`;
+    item.onclick = () => selectProblem(index);
+
+    item.innerHTML = `
+      <div class="problem-item-header">
+        <span class="problem-title">${prob.title}</span>
+        <span class="problem-difficulty ${prob.difficultyClass}">${prob.difficulty}</span>
+      </div>
+      <span class="problem-summary">${prob.summary}</span>
+    `;
+    container.appendChild(item);
+  });
+}
+
+function selectProblem(index) {
+  selectedProblemIndex = index;
+  const prob = codingLabProblems[index];
+  
+  // Highlight in sidebar
+  document.querySelectorAll('.problem-item').forEach((item, idx) => {
+    if (idx === index) item.classList.add('active');
+    else item.classList.remove('active');
+  });
+
+  // Load details
+  const diffBadge = document.getElementById('problem-difficulty');
+  if (diffBadge) {
+    diffBadge.innerText = prob.difficulty;
+    diffBadge.className = `difficulty-badge ${prob.difficultyClass}`;
+  }
+  
+  const titleEditor = document.getElementById('problem-title-editor');
+  if (titleEditor) titleEditor.innerText = prob.title;
+
+  const descContent = document.getElementById('problem-description');
+  if (descContent) descContent.innerHTML = prob.description;
+
+  // Load editor code (use saved submission if exists, otherwise template)
+  const savedCode = problemSubmissions[prob.id] || prob.template;
+  const editor = document.getElementById('code-editor');
+  if (editor) editor.value = savedCode;
+
+  // Reset console output panel
+  clearConsole();
+
+  const statusText = document.getElementById('editor-status-text');
+  if (statusText) statusText.innerText = 'Ready';
+
+  // Reset Hints Panel
+  currentRevealedHintIndex = -1;
+  const hintBox = document.getElementById('revealed-hint-box');
+  if (hintBox) {
+    hintBox.style.display = 'none';
+    hintBox.innerHTML = '';
+  }
+  const hintBtn = document.getElementById('btn-reveal-hint');
+  if (hintBtn) {
+    hintBtn.style.display = 'inline-block';
+    hintBtn.innerText = 'Reveal Hint';
+  }
+
+  syncLineNumbers();
+}
+
+function resetToTemplate() {
+  const prob = codingLabProblems[selectedProblemIndex];
+  const editor = document.getElementById('code-editor');
+  if (editor) {
+    editor.value = prob.template;
+    syncLineNumbers();
+  }
+  const statusText = document.getElementById('editor-status-text');
+  if (statusText) statusText.innerText = 'Reset to Template';
+}
+
+function syncLineNumbers() {
+  const editor = document.getElementById('code-editor');
+  const lineNumContainer = document.getElementById('line-numbers');
+  if (!editor || !lineNumContainer) return;
+
+  const lines = editor.value.split('\n');
+  const count = lines.length || 1;
+  let html = '';
+  for (let i = 1; i <= count; i++) {
+    html += i + '<br>';
+  }
+  lineNumContainer.innerHTML = html;
+}
+
+function revealNextHint() {
+  const prob = codingLabProblems[selectedProblemIndex];
+  if (!prob.hints || prob.hints.length === 0) return;
+
+  const hintBox = document.getElementById('revealed-hint-box');
+  if (!hintBox) return;
+
+  currentRevealedHintIndex++;
+  
+  if (currentRevealedHintIndex === 0) {
+    hintBox.style.display = 'block';
+    hintBox.innerHTML = '<h4>💡 Hints:</h4><ol id="hints-list" style="padding-left:18px; margin-top:8px;"></ol>';
+  }
+
+  const list = document.getElementById('hints-list');
+  if (list && currentRevealedHintIndex < prob.hints.length) {
+    const li = document.createElement('li');
+    li.innerHTML = prob.hints[currentRevealedHintIndex];
+    li.style.marginBottom = '6px';
+    list.appendChild(li);
+  }
+
+  // Hide button if all hints are revealed
+  const btn = document.getElementById('btn-reveal-hint');
+  if (btn && currentRevealedHintIndex >= prob.hints.length - 1) {
+    btn.style.display = 'none';
+  }
+}
+
+function clearConsole() {
+  const consoleBody = document.getElementById('console-body');
+  if (consoleBody) consoleBody.innerHTML = '';
+  const consoleWrapper = document.getElementById('terminal-console-wrapper');
+  if (consoleWrapper) consoleWrapper.style.display = 'none';
+}
+
+function submitCode() {
+  const editor = document.getElementById('code-editor');
+  const prob = codingLabProblems[selectedProblemIndex];
+  if (!editor || !prob) return;
+  const code = editor.value;
+
+  const statusText = document.getElementById('editor-status-text');
+  if (statusText) statusText.innerText = 'Compiling...';
+
+  // Toggle terminal visibility and output info
+  const consoleWrapper = document.getElementById('terminal-console-wrapper');
+  const consoleBody = document.getElementById('console-body');
+  if (consoleWrapper) consoleWrapper.style.display = 'flex';
+  if (consoleBody) {
+    consoleBody.className = 'console-body info';
+    consoleBody.innerHTML = `[System] Saving code to scratch/aerowlan_exercises/submissions/${prob.id}.cc...\n[System] Compiling targets via CMake...\n[System] Please wait, this may take up to 25 seconds...`;
+  }
+
+  fetch('/api/submit', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      problem_id: prob.id,
+      code: code
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (!consoleBody) return;
+    
+    if (data.status === 'success') {
+      if (statusText) statusText.innerText = 'Passed';
+      consoleBody.className = 'console-body';
+      consoleBody.innerHTML = `[Compilation Success]\n[Running Simulation...]\n\n${data.output}\n\n[Status] SUCCESS: Exercise completed successfully!`;
+      
+      // Save progress
+      problemSubmissions[prob.id] = code;
+      localStorage.setItem('tesla_netsim_coding_submissions', JSON.stringify(problemSubmissions));
+      renderProblemList();
+    } else if (data.status === 'compile_error') {
+      if (statusText) statusText.innerText = 'Compile Error';
+      consoleBody.className = 'console-body error';
+      consoleBody.innerHTML = `[Compilation Failed]\n\n${data.output}`;
+    } else if (data.status === 'runtime_error') {
+      if (statusText) statusText.innerText = 'Runtime Error';
+      consoleBody.className = 'console-body error';
+      consoleBody.innerHTML = `[Simulation Crash / Runtime Error]\n\n${data.output}`;
+    } else {
+      if (statusText) statusText.innerText = 'Error';
+      consoleBody.className = 'console-body error';
+      consoleBody.innerHTML = `[Error] ${data.message}`;
+    }
+    consoleBody.scrollTop = consoleBody.scrollHeight;
+  })
+  .catch(err => {
+    console.error(err);
+    if (statusText) statusText.innerText = 'Connection Error';
+    if (consoleBody) {
+      consoleBody.className = 'console-body error';
+      consoleBody.innerHTML = `[Connection Error] Could not reach local server. Make sure you started the backend by running ./run-dashboard.sh in your terminal!`;
+    }
+  });
+}
+
+// Global scope filters for Command Cheat Sheet
+window.filterCheatCommands = function(category) {
+  // Highlight tab
+  document.querySelectorAll('.cheat-tab-btn').forEach(btn => {
+    if (btn.getAttribute('data-category') === category) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  // Filter cards
+  document.querySelectorAll('.cheat-card').forEach(card => {
+    if (category === 'all' || card.getAttribute('data-category') === category) {
+      card.style.display = 'flex';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+};

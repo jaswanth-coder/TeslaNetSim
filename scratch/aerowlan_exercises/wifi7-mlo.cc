@@ -25,10 +25,16 @@ int main (int argc, char *argv[])
   NodeContainer wifiStaNode;
   wifiStaNode.Create (1);
 
-  // 2. Configure spectrum physical layer and channel
-  SpectrumWifiPhyHelper phy;
-  auto spectrumChannel = CreateObject<MultiModelSpectrumChannel> ();
-  phy.SetChannel (spectrumChannel);
+  // 2. Configure spectrum physical layer with 2 links
+  SpectrumWifiPhyHelper phy (2);
+  phy.Set (0, "ChannelSettings", StringValue ("{0, 20, BAND_5GHZ, 0}"));
+  phy.Set (1, "ChannelSettings", StringValue ("{0, 20, BAND_6GHZ, 0}"));
+
+  auto spectrumChannel1 = CreateObject<MultiModelSpectrumChannel> ();
+  phy.AddChannel (spectrumChannel1, WIFI_SPECTRUM_5_GHZ);
+
+  auto spectrumChannel2 = CreateObject<MultiModelSpectrumChannel> ();
+  phy.AddChannel (spectrumChannel2, WIFI_SPECTRUM_6_GHZ);
 
   // 3. Configure WiFi Helper (802.11be standard for WiFi 7)
   WifiHelper wifi;
@@ -39,9 +45,7 @@ int main (int argc, char *argv[])
   WifiMacHelper mac;
   Ssid ssid = Ssid ("tesla-mld-ssid");
 
-  // Define two links: Link 0 (5 GHz) and Link 1 (6 GHz)
-  // This registers MLO links in the devices
-  wifi.SetMultiLinkType (WifiHelper::DEFAULT_MLD);
+  // MLO is configured automatically by installing 2-link spectrum physical layer
 
   // Configure STA MLD Mac
   mac.SetType ("ns3::StaWifiMac",
