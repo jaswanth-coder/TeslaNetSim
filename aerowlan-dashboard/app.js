@@ -2388,6 +2388,260 @@ int main (int argc, char *argv[])
       "Configure UDP client: <code>UdpEchoClientHelper echoClient (interfaces.GetAddress (1), 9);</code>",
       "Configure client parameters like packet count and size, then install on Node 0."
     ]
+  },
+  {
+    id: "basic-mobility",
+    title: "7. Constant Position Mobility",
+    difficulty: "Basic",
+    difficultyClass: "difficulty-basic",
+    summary: "Assign physical 3D coordinates to nodes.",
+    description: `<p><strong>Objective:</strong> Place 3 nodes in a 3D coordinate system using [[MobilityHelper]] at static positions.</p>
+                  <p>Configure AP at position <code>(0.0, 0.0, 0.0)</code>, Station 1 at <code>(10.0, 0.0, 0.0)</code>, and Station 2 at <code>(20.0, 0.0, 0.0)</code>.</p>
+                  <p>Use <code>ListPositionAllocator</code> and set the mobility model to <code>"ns3::ConstantPositionMobilityModel"</code>.</p>`,
+    template: `#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/mobility-module.h"
+#include <iostream>
+
+using namespace ns3;
+
+// Write your code here
+`,
+    solution: `#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/mobility-module.h"
+#include <iostream>
+
+using namespace ns3;
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  NodeContainer nodes;
+  nodes.Create (3);
+
+  MobilityHelper mobility;
+  Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();
+  positionAlloc->Add (Vector (0.0, 0.0, 0.0));
+  positionAlloc->Add (Vector (10.0, 0.0, 0.0));
+  positionAlloc->Add (Vector (20.0, 0.0, 0.0));
+
+  mobility.SetPositionAllocator (positionAlloc);
+  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  mobility.Install (nodes);
+
+  std::cout << "Mobility coordinates allocated successfully." << std::endl;
+  return 0;
+}
+`,
+    hints: [
+      "Include the mobility header: <code>#include \"ns3/mobility-module.h\"</code>.",
+      "Create the position allocator: <code>Ptr&lt;ListPositionAllocator&gt; positionAlloc = CreateObject&lt;ListPositionAllocator&gt; ();</code>",
+      "Add positions sequentially using 3D Vectors: <code>positionAlloc-&gt;Add (Vector (x, y, z));</code>",
+      "Set allocator and model on your MobilityHelper object before calling Install."
+    ]
+  },
+  {
+    id: "intermediate-multilink",
+    title: "8. Linear Multi-Segment Network",
+    difficulty: "Intermediate",
+    difficultyClass: "difficulty-intermediate",
+    summary: "Connect 3 nodes across two subnets with routing.",
+    description: `<p><strong>Objective:</strong> Create a linear network topology of 3 nodes: Node 0 connects to Node 1, and Node 1 connects to Node 2.</p>
+                  <p>Configure P2P Links A and B with DataRate <code>"5Mbps"</code> and Delay <code>"2ms"</code>.</p>
+                  <p>Install internet stack and assign subnets <code>"10.1.1.0/24"</code> (Link A) and <code>"10.1.2.0/24"</code> (Link B).</p>
+                  <p>Enable static routing tables using <code>Ipv4GlobalRoutingHelper::PopulateRoutingTables ();</code>.</p>`,
+    template: `#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/internet-module.h"
+#include <iostream>
+
+using namespace ns3;
+
+// Write your code here
+`,
+    solution: `#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/internet-module.h"
+#include <iostream>
+
+using namespace ns3;
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  NodeContainer nodes;
+  nodes.Create (3);
+
+  NodeContainer linkANodes = NodeContainer (nodes.Get (0), nodes.Get (1));
+  NodeContainer linkBNodes = NodeContainer (nodes.Get (1), nodes.Get (2));
+
+  PointToPointHelper p2p;
+  p2p.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));
+  p2p.SetChannelAttribute ("Delay", StringValue ("2ms"));
+
+  NetDeviceContainer devicesA = p2p.Install (linkANodes);
+  NetDeviceContainer devicesB = p2p.Install (linkBNodes);
+
+  InternetStackHelper stack;
+  stack.Install (nodes);
+
+  Ipv4AddressHelper address;
+  address.SetBase ("10.1.1.0", "255.255.255.0");
+  address.Assign (devicesA);
+
+  address.SetBase ("10.1.2.0", "255.255.255.0");
+  address.Assign (devicesB);
+
+  Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
+
+  std::cout << "Linear multi-subnet routing configured successfully." << std::endl;
+  return 0;
+}
+`,
+    hints: [
+      "Group nodes into separate links: <code>NodeContainer linkANodes = NodeContainer (nodes.Get(0), nodes.Get(1));</code>",
+      "Declare PointToPointHelper and install it on both linkANodes and linkBNodes.",
+      "Assign base addresses for each link separately: call <code>address.SetBase (...)</code> then <code>address.Assign (...)</code>.",
+      "Enable global routing tables so remote packets can be routed: <code>Ipv4GlobalRoutingHelper::PopulateRoutingTables ();</code>"
+    ]
+  },
+  {
+    id: "intermediate-hybrid",
+    title: "9. Hybrid Topology (CSMA + P2P)",
+    difficulty: "Intermediate",
+    difficultyClass: "difficulty-intermediate",
+    summary: "Link a CSMA subnet to a remote node via P2P.",
+    description: `<p><strong>Objective:</strong> Create a hybrid network. Node 0, Node 1, and Node 2 share a CSMA bus (100Mbps, 6560ns).</p>
+                  <p>Connect Node 2 to a remote Node 3 via a Point-to-Point link (10Mbps, 5ms).</p>
+                  <p>Assign IP subnets <code>"172.16.1.0/24"</code> (CSMA bus) and <code>"192.168.1.0/24"</code> (P2P Link).</p>`,
+    template: `#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/csma-module.h"
+#include "ns3/internet-module.h"
+#include <iostream>
+
+using namespace ns3;
+
+// Write your code here
+`,
+    solution: `#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/csma-module.h"
+#include "ns3/internet-module.h"
+#include <iostream>
+
+using namespace ns3;
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  NodeContainer csmaNodes;
+  csmaNodes.Create (3); // Nodes 0, 1, 2
+
+  NodeContainer p2pNodes;
+  p2pNodes.Create (1); // Node 3
+  p2pNodes.Add (csmaNodes.Get (2)); // Node 2 is the gateway
+
+  CsmaHelper csma;
+  csma.SetChannelAttribute ("DataRate", StringValue ("100Mbps"));
+  csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));
+  NetDeviceContainer csmaDevices = csma.Install (csmaNodes);
+
+  PointToPointHelper p2p;
+  p2p.SetDeviceAttribute ("DataRate", StringValue ("10Mbps"));
+  p2p.SetChannelAttribute ("Delay", StringValue ("5ms"));
+  NetDeviceContainer p2pDevices = p2p.Install (p2pNodes);
+
+  InternetStackHelper stack;
+  stack.Install (csmaNodes);
+  stack.Install (p2pNodes.Get (0)); // Node 3 stack (Node 2 stack is already installed)
+
+  Ipv4AddressHelper address;
+  address.SetBase ("172.16.1.0", "255.255.255.0");
+  address.Assign (csmaDevices);
+
+  address.SetBase ("192.168.1.0", "255.255.255.0");
+  address.Assign (p2pDevices);
+
+  Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
+
+  std::cout << "Hybrid CSMA-P2P network created successfully." << std::endl;
+  return 0;
+}
+`,
+    hints: [
+      "Group Node 2 and Node 3 into a point-to-point node container: <code>p2pNodes.Add (csmaNodes.Get (2));</code>",
+      "Configure CsmaHelper and install on csmaNodes, configure PointToPointHelper and install on p2pNodes.",
+      "Assign base 172.16.1.0/24 to CSMA devices and base 192.168.1.0/24 to P2P devices.",
+      "Populate routing tables: <code>Ipv4GlobalRoutingHelper::PopulateRoutingTables ();</code>."
+    ]
+  },
+  {
+    id: "intermediate-error",
+    title: "10. Rate Error Model Configuration",
+    difficulty: "Intermediate",
+    difficultyClass: "difficulty-intermediate",
+    summary: "Configure channel packet loss using error models.",
+    description: `<p><strong>Objective:</strong> Configure a 2-node point-to-point link and introduce packet drops.</p>
+                  <p>Instantiate a <code>RateErrorModel</code>. Set its rate attribute to <code>0.05</code> (5% packet loss) on bytes basis.</p>
+                  <p>Attach the error model to the receiving node's device (index 1 of your NetDeviceContainer) using the attribute <code>"ReceiveErrorModel"</code>.</p>`,
+    template: `#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/point-to-point-module.h"
+#include <iostream>
+
+using namespace ns3;
+
+// Write your code here
+`,
+    solution: `#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/point-to-point-module.h"
+#include <iostream>
+
+using namespace ns3;
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  NodeContainer nodes;
+  nodes.Create (2);
+
+  PointToPointHelper p2p;
+  p2p.SetDeviceAttribute ("DataRate", StringValue ("10Mbps"));
+  p2p.SetChannelAttribute ("Delay", StringValue ("5ms"));
+
+  NetDeviceContainer devices = p2p.Install (nodes);
+
+  Ptr<RateErrorModel> em = CreateObject<RateErrorModel> ();
+  em->SetAttribute ("ErrorRate", DoubleValue (0.05));
+  em->SetAttribute ("ErrorUnit", ObjectValue (Create<EnumValue> (RateErrorModel::ERROR_UNIT_BYTE)));
+  
+  devices.Get (1)->SetAttribute ("ReceiveErrorModel", ObjectValue (em));
+
+  std::cout << "Rate error model attached to receiver NetDevice." << std::endl;
+  return 0;
+}
+`,
+    hints: [
+      "Instantiate error model pointer: <code>Ptr&lt;RateErrorModel&gt; em = CreateObject&lt;RateErrorModel&gt; ();</code>",
+      "Configure loss probability: <code>em-&gt;SetAttribute (\"ErrorRate\", DoubleValue (0.05));</code>",
+      "Set error unit unit to bytes: <code>em-&gt;SetAttribute (\"ErrorUnit\", ObjectValue (Create&lt;EnumValue&gt; (RateErrorModel::ERROR_UNIT_BYTE)));</code>",
+      "Apply to receiver device index 1: <code>devices.Get (1)-&gt;SetAttribute (\"ReceiveErrorModel\", ObjectValue (em));</code>"
+    ]
   }
 ];
 
