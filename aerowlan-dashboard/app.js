@@ -91,44 +91,45 @@ int main (int argc, char *argv[])
   std::cout &lt;&lt; "Simulation topology built successfully!" &lt;&lt; std::endl;
   return 0;
 }</code></pre>
-              <h4>Let's dissect each code block:</h4>
+              <h4>Detailed Architectural Walkthrough:</h4>
               <ol style="padding-left:18px; margin-top:10px;">
-                <li style="margin-bottom:8px;"><strong>Headers (Lines 1-4)</strong>:
+                <li style="margin-bottom:10px;"><strong>Headers (Lines 1-4)</strong>:
                   <ul>
-                    <li><code>#include "ns3/core-module.h"</code>: Includes basic simulator tools (time, logging, scheduler, CommandLine).</li>
-                    <li><code>#include "ns3/network-module.h"</code>: Includes topology building classes like [[NodeContainer]] and [[Node]].</li>
-                    <li><code>#include "ns3/point-to-point-module.h"</code>: Includes point-to-point link classes like [[PointToPointHelper]].</li>
+                    <li><code>#include "ns3/core-module.h"</code>: Resolves compiler dependencies for foundational utilities like timers, event schedulers, logging streams, and shell commands.</li>
+                    <li><code>#include "ns3/network-module.h"</code>: Contains basic data structures that represent network packets, node hardware interfaces, and collection helpers like [[NodeContainer]].</li>
+                    <li><code>#include "ns3/point-to-point-module.h"</code>: Provides classes representing physical ethernet cables and simple point-to-point physical transmission links.</li>
                   </ul>
                 </li>
-                <li style="margin-bottom:8px;"><strong>Namespace (Line 6)</strong>:
+                <li style="margin-bottom:10px;"><strong>The ns3 Namespace (Line 6)</strong>:
                   <ul>
-                    <li><code>using namespace ns3;</code>: ns-3 defines all its components under the <code>ns3</code> namespace. This statement avoids writing <code>ns3::NodeContainer</code> everywhere.</li>
+                    <li>All ns-3 components are scoped under the <code>ns3</code> namespace. This isolates the simulator classes from other standard C++ or third-party libraries (like standard <code>std::</code> structures) to avoid name clashes.</li>
                   </ul>
                 </li>
-                <li style="margin-bottom:8px;"><strong>Logging Component (Line 8)</strong>:
+                <li style="margin-bottom:10px;"><strong>Logging Identifiers (Line 8)</strong>:
                   <ul>
-                    <li><code>NS_LOG_COMPONENT_DEFINE ("AeroWlanHelloP2p");</code>: Registers a logging identifier, which allows configuring log messages from this script at runtime.</li>
+                    <li><code>NS_LOG_COMPONENT_DEFINE ("AeroWlanHelloP2p");</code>: Registers a unique console log module. By registering this identifier, you can filter and enable/disable console outputs from this specific script dynamically at runtime via the environment variable <code>NS_LOG</code>.</li>
                   </ul>
                 </li>
-                <li style="margin-bottom:8px;"><strong>Main Entrypoint & Commandline (Lines 10-14)</strong>:
+                <li style="margin-bottom:10px;"><strong>Main loop & Parameter Parsing (Lines 10-14)</strong>:
                   <ul>
-                    <li>Every C++ program starts in <code>main()</code>. The <code>CommandLine</code> object dynamically parses arguments from shell execution (e.g. <code>--param=val</code>).</li>
+                    <li>The simulator execution starts in the standard C++ <code>main()</code>. The <code>CommandLine cmd</code> object binds to your shell terminal interface, allowing you to pass variables to the simulator when running it in the shell, bypassing hardcoded re-compilation.</li>
                   </ul>
                 </li>
-                <li style="margin-bottom:8px;"><strong>Creating Nodes (Lines 16-17)</strong>:
+                <li style="margin-bottom:10px;"><strong>Node Containers (Lines 16-17)</strong>:
                   <ul>
-                    <li><code>NodeContainer nodes; nodes.Create(2);</code>: Instantiates the [[NodeContainer]], which allocates two empty virtual network hosts (<code>Ptr&lt;Node&gt;</code>).</li>
+                    <li><code>NodeContainer nodes; nodes.Create(2);</code>: Creates the logical nodes (hosts) inside the system. Under the hood, this instantiates two <code>Node</code> objects, tracks them using C++ smart pointers, and registers their metadata with the system scheduler.</li>
                   </ul>
                 </li>
-                <li style="margin-bottom:8px;"><strong>Configuring Physical Links (Lines 19-21)</strong>:
+                <li style="margin-bottom:10px;"><strong>Helper Abstractions (Lines 19-21)</strong>:
                   <ul>
-                    <li><code>PointToPointHelper pointToPoint;</code>: Instantiates the point-to-point helper.</li>
-                    <li><code>SetDeviceAttribute("DataRate", ...)</code> and <code>SetChannelAttribute("Delay", ...)</code> configure the speed (5 Megabits per second) and delay (2 milliseconds) of the physical link.</li>
+                    <li>Configuring network hardware is complex. The helper class <code>[[PointToPointHelper]]</code> hides the complexity of manually creating a <code>PointToPointNetDevice</code> and a <code>PointToPointChannel</code>.</li>
+                    <li><code>SetDeviceAttribute ("DataRate", ...)</code> maps directly to the link speed of the simulated NIC (Network Interface Card).</li>
+                    <li><code>SetChannelAttribute ("Delay", ...)</code> dictates the propagation speed of signals traversing the virtual cable (transmission medium delay).</li>
                   </ul>
                 </li>
-                <li style="margin-bottom:8px;"><strong>Installing Devices (Lines 23-24)</strong>:
+                <li style="margin-bottom:10px;"><strong>Device Installation (Lines 23-24)</strong>:
                   <ul>
-                    <li><code>devices = pointToPoint.Install(nodes);</code>: Connects the two nodes with the point-to-point channel, returning a container of network interfaces (<code>NetDeviceContainer</code>).</li>
+                    <li><code>pointToPoint.Install (nodes)</code>: Tells the helper to loop through your nodes, instantiate two simulated network interface cards, connect them with a channel model, and return their references inside a <code>NetDeviceContainer</code>.</li>
                   </ul>
                 </li>
               </ol>
@@ -142,14 +143,14 @@ int main (int argc, char *argv[])
               <p>ns-3 uses **CMake** to configure and build. To compile targets, we use the custom python orchestration script <code>./ns3</code> in the root directory.</p>
               <h4>1.3.1 Configuration Profiles</h4>
               <p>Before compiling, you must configure the project. There are two primary profiles:</p>
-              <ol>
-                <li><strong>Debug Profile</strong>: Configured using <code>--build-profile=debug</code>. It enables debugging symbols and, crucially, **runtime assertions** (tests that crash the simulator early if configuration parameters are illegal).</li>
-                <li><strong>Optimized Profile</strong>: Configured using <code>--build-profile=optimized</code>. It strips debug info and enables compiler optimization flags (<code>-O3</code>). Crucial for running massive simulation sweeps which execute 5x to 10x faster.</li>
+              <ol style="padding-left: 18px;">
+                <li style="margin-bottom: 8px;"><strong>Debug Profile</strong>: Configured using <code>--build-profile=debug</code>. It enables debugging symbols and, crucially, **runtime assertions** (tests that crash the simulator early if configuration parameters are illegal).</li>
+                <li style="margin-bottom: 8px;"><strong>Optimized Profile</strong>: Configured using <code>--build-profile=optimized</code>. It strips debug info and enables compiler optimization flags (<code>-O3</code>). Crucial for running massive simulation sweeps which execute 5x to 10x faster.</li>
               </ol>
               <p>Example configuration command:</p>
               <pre><code>./ns3 configure --enable-examples --enable-tests --build-profile=debug</code></pre>
-              <h4>1.3.2 Building the Project</h4>
-              <p>Once configured, compile the targets using:</p>
+              <h4>1.3.2 The CMake Build Process</h4>
+              <p>Once configured, compile the targets using the build script:</p>
               <pre><code>./ns3 build</code></pre>
               <p>Incremental compilation means if you modify a file in <code>scratch/</code>, only your script is compiled, taking ~2 seconds. However, if you modify a core header in <code>src/wifi/</code>, CMake must recompile the entire <code>wifi</code> module and all dependent modules, which can take several minutes.</p>
             `
@@ -260,147 +261,158 @@ int main (int argc, char *argv[])
       },
       {
         id: 5,
-        title: "Module 5: Conceptual Overview",
-        description: "Key abstractions, nodes, devices, channels, and walkthrough of first.cc.",
+        title: "Module 2: Conceptual Overview",
+        description: "Network abstractions, internet stacks, IPv4 address helpers, and UDP Echo applications.",
         lessons: [
           {
-            id: "T1-M5-L1",
-            title: "5.1 Key Abstractions & 5.2.1-5.2.3 first.cc Anatomy",
-            moduleTitle: "Track 1 • Module 5 • Lesson 1",
+            id: "T1-M2-L1",
+            title: "2.1 Key Abstractions: Nodes, Devices, and Channels",
+            moduleTitle: "Track 1 • Module 2 • Lesson 1",
             body: `
-              <p>Let's study the core architecture abstractions in detail:</p>
+              <p>In ns-3, virtual network topologies are constructed by tying together three primary C++ abstractions: Nodes, NetDevices, and Channels.</p>
+              <h4>2.1.1 Logical Hosts ([[Node]])</h4>
+              <p>A [[Node]] represents a physical computing system or network node (such as a router, mobile terminal, or access point). Crucially, a Node starts as a "blank slate." It has no network card interfaces, no operating system protocols, and no applications. You must explicitly configure and install these layers onto the node.</p>
+              <h4>2.1.2 Network Interfaces ([[NetDevice]])</h4>
+              <p>A [[NetDevice]] represents a Network Interface Card (NIC) and its driver (e.g. Ethernet card, WiFi antenna). A Node can contain multiple NetDevices to connect to different networks. The NetDevice handles link-layer frame framing, MAC address resolution, and physical packet queue management.</p>
+              <h4>2.1.3 Physical Media ([[Channel]])</h4>
+              <p>A [[Channel]] represents the physical transmission medium connecting hosts (e.g. copper wires, fiber optics, or open air). NetDevices must attach to a Channel to transmit signals. Wired media are represented by classes like <code>PointToPointChannel</code> or <code>CsmaChannel</code>, whereas wireless media use <code>YansWifiChannel</code>.</p>
+            `
+          },
+          {
+            id: "T1-M2-L2",
+            title: "2.2 The TCP/IP Internet Stack & Subnet Routing",
+            moduleTitle: "Track 1 • Module 2 • Lesson 2",
+            body: `
+              <p>Once nodes and devices are physically linked, you must enable transport layers and logical IP addresses to orchestrate end-to-end packet delivery.</p>
+              <h4>2.2.1 Installing Protocols ([[InternetStackHelper]])</h4>
+              <p>The helper class <code>[[InternetStackHelper]]</code> installs the IP stack, routing engines (such as static routing or OSPF), and transport layer sockets (TCP, UDP) onto your NodeContainer:</p>
+              <pre><code>InternetStackHelper stack;\nstack.Install (nodes);</code></pre>
+              <h4>2.2.2 Assigning IP Subnets ([[Ipv4AddressHelper]])</h4>
+              <p>To assign IP addresses, we use the helper <code>[[Ipv4AddressHelper]]</code>. You define the network address base and the subnet mask, then allocate them to your interfaces container:</p>
+              <pre><code>Ipv4AddressHelper address;\naddress.SetBase ("10.1.1.0", "255.255.255.0");\nIpv4InterfaceContainer interfaces = address.Assign (devices);</code></pre>
+              <p>This assigns sequential IPs (e.g., <code>10.1.1.1</code> to Node 0, <code>10.1.1.2</code> to Node 1) to each net device dynamically.</p>
+            `
+          },
+          {
+            id: "T1-M2-L3",
+            title: "2.3 Echo Applications & Simulation Scheduling",
+            moduleTitle: "Track 1 • Module 2 • Lesson 3",
+            body: `
+              <p>To generate network traffic, you install Applications onto nodes. The standard C++ test suite includes echo utilities to verify reachability.</p>
+              <h4>2.3.1 UDP Echo Servers & Clients</h4>
+              <p>We configure applications using helpers, which then compile and deploy executable binaries inside nodes:</p>
               <ul>
-                <li><strong>Node:</strong> Models the computer or host. You add network device interfaces, protocols, and apps to it.</li>
-                <li><strong>NetDevice:</strong> Models the interface card (NIC). Installed in a Node to attach it to a Channel.</li>
-                <li><strong>Channel:</strong> Models the physical link (e.g. wired point-to-point connection or wireless channel).</li>
+                <li><code>UdpEchoServerHelper</code>: Binds to a port (e.g. 9) on the receiving host. It listens for incoming packets and bounces them back.</li>
+                <li><code>UdpEchoClientHelper</code>: Deploys on the sending host. It takes the server's IP address and port as arguments and generates packets of a specified size and frequency.</li>
               </ul>
-              <h4>Anatomy of first.cc includes:</h4>
-              <p>The code starts with includes like <code>#include "ns3/core-module.h"</code> which wrap all headers in core, and uses namespace <code>ns3</code> to avoid name collisions.</p>
+              <h4>2.3.2 Timeline Execution and Simulator Timers</h4>
+              <p>Every Application must be configured with specific start and stop timers to schedule events in the event loop queue:</p>
+              <pre><code>clientApps.Start (Seconds (1.0));\nclientApps.Stop (Seconds (10.0));</code></pre>
+              <p>When the simulation starts, the scheduler schedules a client application trigger event at timestamp 1.0s, and a stop event at 10.0s, bringing the event loop to a close when no events remain.</p>
             `
           },
           {
-            id: "T1-M5-L2",
-            title: "5.2.4-5.2.9 Setting Up point-to-point links & Echo Applications",
-            moduleTitle: "Track 1 • Module 5 • Lesson 2",
-            body: `
-              <p>Let's trace how <code>first.cc</code> creates a topology:</p>
-              <pre><code>NodeContainer nodes;
-nodes.Create (2); // Create Node 0 and Node 1
-
-PointToPointHelper pointToPoint;
-pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));
-pointToPoint.SetChannelAttribute ("Delay", StringValue ("2ms"));
-
-NetDeviceContainer devices;
-devices = pointToPoint.Install (nodes);</code></pre>
-              <p>The helper configures and creates the netdevices and channel, linking both nodes.</p>
-              <h4>Internet Stack & Apps:</h4>
-              <p>We install the IP stack and assign IP addresses:</p>
-              <pre><code>InternetStackHelper stack;
-stack.Install (nodes);
-
-Ipv4AddressHelper address;
-address.SetBase ("10.1.1.0", "255.255.255.0");
-Ipv4InterfaceContainer interfaces = address.Assign (devices);</code></pre>
-              <p>We deploy <code>UdpEchoServer</code> on Node 1 (port 9) and <code>UdpEchoClient</code> on Node 0 (targeting Node 1's IP address).</p>
-            `
-          },
-          {
-            id: "T1-M5-L3",
-            title: "5.3 ns-3 Source Code structure",
-            moduleTitle: "Track 1 • Module 5 • Lesson 3",
-            body: `
-              <p>Understanding the source directory structure helps when subclassing or modifying modules:</p>
-              <ul>
-                <li><code>src/</code>: Contains source code for all modules (e.g. <code>src/core/</code>, <code>src/network/</code>, <code>src/wifi/</code>).</li>
-                <li><code>src/&lt;module&gt;/model/</code>: Holds the core C++ logic classes.</li>
-                <li><code>src/&lt;module&gt;/helper/</code>: Holds convenience helper classes.</li>
-                <li><code>src/&lt;module&gt;/test/</code>: Holds unit test scripts.</li>
-              </ul>
-            `
-          },
-          {
-            id: "T1-M5-Q",
-            title: "Module 5 Review Quiz",
+            id: "T1-M2-Q",
+            title: "Module 2 Review Quiz",
             isQuizOnly: true,
-            moduleTitle: "Track 1 • Module 5 • Assessment",
+            moduleTitle: "Track 1 • Module 2 • Assessment",
             quiz: [
               {
-                question: "1. In first.cc, how many Nodes are created in the NodeContainer?",
+                question: "1. Which ns-3 abstraction represents the physical transmission media?",
                 options: [
-                  { text: "1 Node", isCorrect: false },
-                  { text: "2 Nodes", isCorrect: true },
-                  { text: "4 Nodes", isCorrect: false }
+                  { text: "Node", isCorrect: false },
+                  { text: "NetDevice", isCorrect: false },
+                  { text: "Channel", isCorrect: true }
                 ],
-                feedbackSuccess: "Correct! The container instantiates 2 nodes (0 and 1) for the point-to-point link.",
-                feedbackError: "Incorrect. first.cc configures a single link between 2 nodes. Try again!"
+                feedbackSuccess: "Correct! The Channel class models the physical communication medium.",
+                feedbackError: "Incorrect. Channel is the physical medium. Try again!"
               },
               {
-                question: "2. Which helper connects nodes via a point-to-point link?",
+                question: "2. What helper class installs protocol layers (IP, TCP, UDP) onto Node objects?",
                 options: [
-                  { text: "CsmaHelper", isCorrect: false },
-                  { text: "PointToPointHelper", isCorrect: true },
-                  { text: "WifiHelper", isCorrect: false }
+                  { text: "InternetStackHelper", isCorrect: true },
+                  { text: "Ipv4AddressHelper", isCorrect: false },
+                  { text: "NetDeviceHelper", isCorrect: false }
                 ],
-                feedbackSuccess: "Correct! PointToPointHelper builds point-to-point topologies.",
-                feedbackError: "Incorrect. PointToPointHelper is used for link connections. Try again!"
+                feedbackSuccess: "Correct! InternetStackHelper configures the network/transport stacks on your nodes.",
+                feedbackError: "Incorrect. InternetStackHelper sets up transport sockets and IP routing. Try again!"
               },
               {
-                question: "3. What namespace contains all ns-3 classes?",
-                options: [
-                  { text: "std", isCorrect: false },
-                  { text: "ns3", isCorrect: true },
-                  { text: "net", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! Everything resides in the 'ns3' namespace.",
-                feedbackError: "Incorrect. The project uses the 'ns3' C++ namespace. Try again!"
-              },
-              {
-                question: "4. What class manages Node IP configurations and base subnets?",
+                question: "3. What helper is responsible for defining base IP networks and assigning subnets?",
                 options: [
                   { text: "Ipv4AddressHelper", isCorrect: true },
                   { text: "InternetStackHelper", isCorrect: false },
-                  { text: "Ipv4InterfaceContainer", isCorrect: false }
+                  { text: "NodeContainer", isCorrect: false }
                 ],
-                feedbackSuccess: "Correct! Ipv4AddressHelper sets up subnets and assigns IPs.",
-                feedbackError: "Incorrect. Ipv4AddressHelper assigns subnets to NetDeviceContainers. Try again!"
-              },
-              {
-                question: "5. In the ns-3 source tree, where is core class logic placed?",
-                options: [
-                  { text: "src/<module>/helper/", isCorrect: false },
-                  { text: "src/<module>/model/", isCorrect: true },
-                  { text: "src/<module>/bindings/", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! Core class headers and source files are in the model/ subfolder.",
-                feedbackError: "Incorrect. Core logic is under src/<module>/model/. Try again!"
+                feedbackSuccess: "Correct! Ipv4AddressHelper assigns base IPs and subnets to interfaces.",
+                feedbackError: "Incorrect. Ipv4AddressHelper assigns IP addresses. Try again!"
               }
             ]
           },
           {
-            id: "T1-M5-A",
-            title: "Module 5 Programming Assignment",
+            id: "T1-M2-A",
+            title: "Module 2 Programming Assignment",
             isAssignmentOnly: true,
-            moduleTitle: "Track 1 • Module 5 • Assignment",
+            moduleTitle: "Track 1 • Module 2 • Assignment",
             assignmentInstructions: `
               <h4>Assignment Objective:</h4>
-              <p>Compile and run the Point-to-Point simulation to verify that the client connects to the server and exchanges packets.</p>
+              <p>Write a multi-segment point-to-point simulation configuring global routing tables and verify packet traversal through a gateway.</p>
               
-              <h4>Step 1: Open Terminal</h4>
-              <p>Navigate to your ns-3 root directory: <code>/home/jaswanth/Downloads/ns-allinone-3.45/ns-3.45</code></p>
+              <h4>Instructions:</h4>
+              <p>Create the new assignment source file in your scratch exercises directory:</p>
+              <div class="assignment-cmd-container">
+                <div class="assignment-cmd-label">Create File Path</div>
+                <div class="assignment-cmd-box">
+                  <code>scratch/aerowlan_exercises/module2_assignment.cc</code>
+                  <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('scratch/aerowlan_exercises/module2_assignment.cc')">Copy Path</button>
+                </div>
+              </div>
+
+              <p>Write an ns-3 program inside it that establishes a linear topology of 3 nodes:</p>
+              <ul style="padding-left: 18px; margin-top: 8px; margin-bottom: 8px;">
+                <li>Create 3 nodes (Node 0, Node 1, Node 2).</li>
+                <li>Connect Node 0 to Node 1 via Point-to-Point Link A (DataRate: <code>"5Mbps"</code>, Delay: <code>"2ms"</code>).</li>
+                <li>Connect Node 1 to Node 2 via Point-to-Point Link B (DataRate: <code>"5Mbps"</code>, Delay: <code>"2ms"</code>).</li>
+                <li>Install the Internet stack on all nodes.</li>
+                <li>Assign subnet <code>"10.1.1.0/24"</code> to Link A, and subnet <code>"10.1.2.0/24"</code> to Link B.</li>
+                <li>Enable global routing: <code>Ipv4GlobalRoutingHelper::PopulateRoutingTables ();</code></li>
+                <li>Install a UDP echo server on Node 2 (port 9).</li>
+                <li>Install a UDP echo client on Node 0 targeting Node 2's IP address (port 9, packet size: 54, max packets: 1, interval: 1s).</li>
+                <li>Configure the server application to start at 1s, client to start at 2s and stop at 10s.</li>
+              </ul>
               
-              <h4>Step 2: Build the project</h4>
-              <pre><code>./ns3 build</code></pre>
+              <h4>Step 1: Build the assignment target</h4>
+              <p>Verify that your C++ file compiles correctly in your terminal:</p>
+              <div class="assignment-cmd-container">
+                <div class="assignment-cmd-label">Compile Project</div>
+                <div class="assignment-cmd-box">
+                  <code>./ns3 build</code>
+                  <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('./ns3 build')">Copy</button>
+                </div>
+              </div>
               
-              <h4>Step 3: Run the simulation and save output</h4>
-              <p>Run the script and redirect console stdout to <code>module5_output.txt</code>:</p>
-              <pre><code>./ns3 run scratch/aerowlan_exercises/p2p-simulation > scratch/aerowlan_exercises/module5_output.txt 2>&1</code></pre>
+              <h4>Step 2: Run the simulation and capture output</h4>
+              <p>Run the simulation and redirect output to the validation file:</p>
+              <div class="assignment-cmd-container">
+                <div class="assignment-cmd-label">Run Simulation</div>
+                <div class="assignment-cmd-box">
+                  <code>./ns3 run scratch/aerowlan_exercises/module2_assignment > scratch/aerowlan_exercises/module2_output.txt 2>&1</code>
+                  <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('./ns3 run scratch/aerowlan_exercises/module2_assignment > scratch/aerowlan_exercises/module2_output.txt 2>&1')">Copy</button>
+                </div>
+              </div>
               
-              <h4>Step 4: Submit output</h4>
-              <p>Copy all contents of <code>module5_output.txt</code> and paste it in the box below to verify.</p>
+              <h4>Step 3: Submit logs for verification</h4>
+              <p>Open the generated text file, copy its content, and paste it into the submission paste area below to submit:</p>
+              <div class="assignment-cmd-container">
+                <div class="assignment-cmd-label">Verification Output File</div>
+                <div class="assignment-cmd-box">
+                  <code>scratch/aerowlan_exercises/module2_output.txt</code>
+                  <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('scratch/aerowlan_exercises/module2_output.txt')">Copy Path</button>
+                </div>
+              </div>
             `,
-            assignmentVerifyKeyword: "TeslaP2PSimulation",
-            practiceFile: "scratch/aerowlan_exercises/p2p-simulation.cc"
+            assignmentVerifyKeyword: "Received 54 bytes from 10.1.2.2",
+            practiceFile: "scratch/aerowlan_exercises/module2_assignment.cc"
           }
         ]
       },
@@ -1522,15 +1534,6 @@ function init() {
 
 // Check if a lesson is locked (cannot skip modules)
 function isLessonLocked(mIdx, lIdx) {
-  const activeTrack = tracks[currentTrackIndex];
-  for (let m = 0; m < mIdx; m++) {
-    const prevMod = activeTrack.modules[m];
-    // Must complete the very last element (usually the final quiz or assignment)
-    const lastLesson = prevMod.lessons[prevMod.lessons.length - 1];
-    if (!progress.completedLessons.includes(lastLesson.id)) {
-      return true;
-    }
-  }
   return false;
 }
 
