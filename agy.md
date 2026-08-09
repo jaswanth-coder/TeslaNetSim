@@ -43,5 +43,5 @@ All submissions written in the dashboard Coding Lab are saved in:
 
 ## 🧑‍🏫 Tutoring Status
 - **Current Module:** Track 1 • Module 1: Getting Started (renumbered from Module 4).
-- **Active Task:** Code sandbox ready. User is prompted to write their solutions in headers-only LeetCode style.
-- **Git Push Status:** All features committed and pushed to `TeslaNetSim` repository.
+- **Active Task:** Syllabus refactored with a full step-by-step walkthrough of a basic ns-3 program (`first.cc`). Programming assignment C++ template file created in `scratch/aerowlan_exercises/module1_assignment.cc`. Isolated all terminal commands into standalone containers.
+- **Git Push Status:** All updates (lessons, syntax fix, starter code, state files) committed and pushed to remote branch.
