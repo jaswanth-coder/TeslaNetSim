@@ -42,6 +42,6 @@ All submissions written in the dashboard Coding Lab are saved in:
 6. `pro-cosr` (WiFi 8 Spatial Reuse OBSS) - *Not Started*
 
 ## 🧑‍🏫 Tutoring Status
-- **Current Module:** Track 1 • Module 1: Getting Started (renumbered from Module 4).
-- **Active Task:** Syllabus refactored with a full step-by-step walkthrough of a basic ns-3 program (`first.cc`). Programming assignment C++ template file created in `scratch/aerowlan_exercises/module1_assignment.cc`. Isolated all terminal commands into standalone containers.
-- **Git Push Status:** All updates (lessons, syntax fix, starter code, state files) committed and pushed to remote branch.
+- **Current Module:** Track 1 • Module 2: Conceptual Overview.
+- **Active Task:** Bypassed lesson locks in `app.js` (`isLessonLocked` always returns `false`) to allow full evaluation. Expanded Module 1 explanations. Refactored Module 2 with key abstractions (Node/NetDevice/Channel), internet stacks, IP assignments, global routing tables, and UDP echo client/server scheduling. Created a multi-segment router simulation template under `scratch/aerowlan_exercises/module2_assignment.cc`.
+- **Git Push Status:** All updates (Lock bypass, Module 2 lessons, C++ templates, and state tracker) committed and pushed.
