@@ -43,5 +43,5 @@ All submissions written in the dashboard Coding Lab are saved in:
 
 ## 🧑‍🏫 Tutoring Status
 - **Current Module:** Track 1 • Module 3: Tweaking.
-- **Active Task:** Refactored Module 3 with detailed logging levels and a fully annotated logging demo script (Lesson 3.2). Exposed CommandLine argument mapping and logging components configuration. Created assignment C++ template under `scratch/aerowlan_exercises/module3_assignment.cc`.
-- **Git Push Status:** All updates (Module 3 lessons, templates, and state tracker) committed and pushed.
+- **Active Task:** Revamped Coding Lab to transition from very basic node configurations to intermediate applications setups. Excluded pro/advanced WiFi 7 & 8 simulations. Added a sandbox notice banner inside `index.html` clarifying compilation role.
+- **Git Push Status:** All updates (Coding Lab revamped, notice warning, and state tracker) committed and pushed.
