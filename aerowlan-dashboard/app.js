@@ -75,7 +75,7 @@ const tracks = [
               <h4>1.2.2 Building the Project</h4>
               <p>Once configured, compile the targets using:</p>
               <pre><code>./ns3 build</code></pre>
-              <p>Incremental compilation means if you modify a file in <code>scratch/</code>, only your script is compiled, taking ~2 seconds. However, if you modify a core header in <code>src/wifi/</code>, CMake must recompile the entire `wifi` module and all dependent modules, which can take several minutes.</p>
+              <p>Incremental compilation means if you modify a file in <code>scratch/</code>, only your script is compiled, taking ~2 seconds. However, if you modify a core header in <code>src/wifi/</code>, CMake must recompile the entire <code>wifi</code> module and all dependent modules, which can take several minutes.</p>
             `
           },
           {
