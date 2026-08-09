@@ -2068,7 +2068,7 @@ const codingLabProblems = [
     title: "1. Hello World & Node Creation",
     difficulty: "Basic",
     difficultyClass: "difficulty-basic",
-    summary: "Create nodes and output logs.",
+    summary: "Create nodes and print validation logs.",
     description: `<p><strong>Objective:</strong> Create a NodeContainer with 2 nodes and print a simple console log.</p>
                   <p>In ns-3, nodes are created using the [[NodeContainer]] helper class.</p>
                   <p>Use <code>nodes.Create (2);</code> to instantiate nodes, and then output <code>"Hello World from ns-3! Created 2 nodes."</code> using standard C++ <code>std::cout</code>.</p>
@@ -2087,39 +2087,78 @@ using namespace ns3;
 
 using namespace ns3;
 
-NS_LOG_COMPONENT_DEFINE ("AeroWlanHelloNodes");
-
 int main (int argc, char *argv[])
 {
   CommandLine cmd (__FILE__);
   cmd.Parse (argc, argv);
-
-  Time::SetResolution (Time::NS);
 
   NodeContainer nodes;
   nodes.Create (2);
 
   std::cout << "Hello World from ns-3! Created " << nodes.GetN() << " nodes." << std::endl;
-
   return 0;
 }
 `,
     hints: [
-      "You need to write the <code>int main(int argc, char *argv[])</code> function definition.",
-      "Declare the container: <code>NodeContainer nodes;</code>",
-      "Instantiate 2 nodes: <code>nodes.Create (2);</code>",
+      "Declare the main entrypoint: <code>int main (int argc, char *argv[])</code>.",
+      "Instantiate a NodeContainer object: <code>NodeContainer nodes;</code>",
+      "Create nodes using Create(): <code>nodes.Create (2);</code>",
       "Print output: <code>std::cout << \"Hello World from ns-3! Created \" << nodes.GetN() << \" nodes.\" << std::endl;</code>"
     ]
   },
   {
-    id: "basic-p2p",
-    title: "2. Point-to-Point Link",
+    id: "basic-args",
+    title: "2. Dynamic Node Parameterization",
     difficulty: "Basic",
     difficultyClass: "difficulty-basic",
-    summary: "Establish a standard point-to-point link.",
-    description: `<p><strong>Objective:</strong> Set up a Point-to-Point link between 2 nodes.</p>
-                  <p>Configure the link with a data rate of <code>"10Mbps"</code> and a propagation delay of <code>"5ms"</code>.</p>
-                  <p>Use the [[PointToPointHelper]] to set attributes and install on your [[NodeContainer]].</p>`,
+    summary: "Implement CommandLine parsing for dynamic node counts.",
+    description: `<p><strong>Objective:</strong> Write a script that reads an integer parameter <code>nodeCount</code> from the command line (default value: 4), instantiates that number of nodes, and outputs the result.</p>
+                  <p>Use the <code>CommandLine</code> helper to map a local variable, parse arguments, and print: <code>"Created X nodes dynamically."</code> (where X is the variable value).</p>`,
+    template: `#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include <iostream>
+
+using namespace ns3;
+
+// Write your code here
+`,
+    solution: `#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include <iostream>
+
+using namespace ns3;
+
+int main (int argc, char *argv[])
+{
+  uint32_t nodeCount = 4;
+
+  CommandLine cmd (__FILE__);
+  cmd.AddValue ("nodeCount", "Number of nodes to create", nodeCount);
+  cmd.Parse (argc, argv);
+
+  NodeContainer nodes;
+  nodes.Create (nodeCount);
+
+  std::cout << "Created " << nodes.GetN() << " nodes dynamically." << std::endl;
+  return 0;
+}
+`,
+    hints: [
+      "Initialize your dynamic variable first: <code>uint32_t nodeCount = 4;</code>",
+      "Instantiate CommandLine: <code>CommandLine cmd (__FILE__);</code>",
+      "Bind variable to parser: <code>cmd.AddValue (\"nodeCount\", \"Description\", nodeCount);</code>",
+      "Call parse: <code>cmd.Parse (argc, argv);</code>"
+    ]
+  },
+  {
+    id: "basic-p2p",
+    title: "3. Wired Point-to-Point Link",
+    difficulty: "Basic",
+    difficultyClass: "difficulty-basic",
+    summary: "Configure a 2-node point-to-point connection.",
+    description: `<p><strong>Objective:</strong> Establish a Point-to-Point link between 2 nodes.</p>
+                  <p>Configure the link characteristics with a data rate of <code>"10Mbps"</code> and a propagation delay of <code>"5ms"</code>.</p>
+                  <p>Use the [[PointToPointHelper]] to configure attributes and install them on your [[NodeContainer]], and output: <code>"P2P Link configured successfully."</code>.</p>`,
     template: `#include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/point-to-point-module.h"
@@ -2144,34 +2183,34 @@ int main (int argc, char *argv[])
   NodeContainer nodes;
   nodes.Create (2);
 
-  PointToPointHelper pointToPoint;
-  pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("10Mbps"));
-  pointToPoint.SetChannelAttribute ("Delay", StringValue ("5ms"));
+  PointToPointHelper p2p;
+  p2p.SetDeviceAttribute ("DataRate", StringValue ("10Mbps"));
+  p2p.SetChannelAttribute ("Delay", StringValue ("5ms"));
 
   NetDeviceContainer devices;
-  devices = pointToPoint.Install (nodes);
+  devices = p2p.Install (nodes);
 
-  std::cout << "Point-to-Point Link configured between 2 nodes." << std::endl;
+  std::cout << "P2P Link configured successfully." << std::endl;
   return 0;
 }
 `,
     hints: [
-      "Implement `main` and declare a 2-node `NodeContainer nodes;`.",
-      "Initialize helper: <code>PointToPointHelper pointToPoint;</code>",
-      "Set attributes: <code>pointToPoint.SetDeviceAttribute (\"DataRate\", StringValue (\"10Mbps\"));</code>",
-      "Set delay attribute: <code>pointToPoint.SetChannelAttribute (\"Delay\", StringValue (\"5ms\"));</code>",
-      "Install on nodes: <code>NetDeviceContainer devices = pointToPoint.Install (nodes);</code>"
+      "Declare nodes container and create 2 nodes: <code>nodes.Create (2);</code>.",
+      "Initialize helper: <code>PointToPointHelper p2p;</code>",
+      "Set rate: <code>p2p.SetDeviceAttribute (\"DataRate\", StringValue (\"10Mbps\"));</code>",
+      "Set delay: <code>p2p.SetChannelAttribute (\"Delay\", StringValue (\"5ms\"));</code>",
+      "Install: <code>NetDeviceContainer devices = p2p.Install (nodes);</code>"
     ]
   },
   {
     id: "intermediate-csma",
-    title: "3. Multi-Node Bus (CSMA)",
+    title: "4. CSMA Shared Bus Topology",
     difficulty: "Intermediate",
     difficultyClass: "difficulty-intermediate",
-    summary: "Configure CSMA multi-node bus topology.",
-    description: `<p><strong>Objective:</strong> Create a bus topology of 5 nodes using CSMA.</p>
-                  <p>Configure the CSMA channel with a data rate of <code>"100Mbps"</code> and a propagation delay of <code>"6560ns"</code>.</p>
-                  <p>Link all nodes using the [[CsmaHelper]].</p>`,
+    summary: "Connect 4 nodes in an Ethernet-like bus topology.",
+    description: `<p><strong>Objective:</strong> Connect 4 nodes in a shared bus topology using CSMA.</p>
+                  <p>Configure the shared CSMA channel with a data rate of <code>"100Mbps"</code> and a propagation delay of <code>"6560ns"</code>.</p>
+                  <p>Use the [[CsmaHelper]] to set channel attributes and install devices on the nodes.</p>`,
     template: `#include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/csma-module.h"
@@ -2194,7 +2233,7 @@ int main (int argc, char *argv[])
   cmd.Parse (argc, argv);
 
   NodeContainer nodes;
-  nodes.Create (5);
+  nodes.Create (4);
 
   CsmaHelper csma;
   csma.SetChannelAttribute ("DataRate", StringValue ("100Mbps"));
@@ -2203,30 +2242,30 @@ int main (int argc, char *argv[])
   NetDeviceContainer devices;
   devices = csma.Install (nodes);
 
-  std::cout << "CSMA Bus topology initialized with 5 nodes." << std::endl;
+  std::cout << "CSMA shared bus topology configured successfully." << std::endl;
   return 0;
 }
 `,
     hints: [
-      "Declare 5 nodes: `nodes.Create(5);`.",
-      "Use CsmaHelper: <code>CsmaHelper csma;</code>",
+      "Create a container of 4 nodes: <code>nodes.Create (4);</code>",
+      "Initialize the helper class: <code>CsmaHelper csma;</code>",
       "Set channel delay: <code>csma.SetChannelAttribute (\"Delay\", TimeValue (NanoSeconds (6560)));</code>",
-      "Install devices: <code>NetDeviceContainer devices = csma.Install (nodes);</code>"
+      "Install CSMA net devices: <code>NetDeviceContainer devices = csma.Install (nodes);</code>"
     ]
   },
   {
-    id: "intermediate-wifi",
-    title: "4. Basic 802.11n Channel",
+    id: "intermediate-ip",
+    title: "5. Internet Stack & IPv4 Subnets",
     difficulty: "Intermediate",
     difficultyClass: "difficulty-intermediate",
-    summary: "Bootstrap a basic wireless station.",
-    description: `<p><strong>Objective:</strong> Configure a wireless access point and 2 stations using IEEE 802.11n.</p>
-                  <p>Use [[WifiHelper]] and set standard to <code>WIFI_STANDARD_80211n</code>.</p>
-                  <p>Set up an SSID <code>"lab-ssid"</code> on both the AP and STA MAC layers.</p>`,
+    summary: "Install transport protocols and assign IP addresses.",
+    description: `<p><strong>Objective:</strong> Configure a 2-node point-to-point link, install protocol stacks, and assign static IP addresses.</p>
+                  <p>Install the internet protocol stack using [[InternetStackHelper]].</p>
+                  <p>Configure IP addresses with a base address of <code>"192.168.1.0"</code> and a mask of <code>"255.255.255.0"</code> using [[Ipv4AddressHelper]].</p>`,
     template: `#include "ns3/core-module.h"
 #include "ns3/network-module.h"
-#include "ns3/wifi-module.h"
-#include "ns3/mobility-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/internet-module.h"
 #include <iostream>
 
 using namespace ns3;
@@ -2235,8 +2274,8 @@ using namespace ns3;
 `,
     solution: `#include "ns3/core-module.h"
 #include "ns3/network-module.h"
-#include "ns3/wifi-module.h"
-#include "ns3/mobility-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/internet-module.h"
 #include <iostream>
 
 using namespace ns3;
@@ -2246,51 +2285,46 @@ int main (int argc, char *argv[])
   CommandLine cmd (__FILE__);
   cmd.Parse (argc, argv);
 
-  NodeContainer wifiApNode;
-  wifiApNode.Create (1);
-  NodeContainer wifiStaNodes;
-  wifiStaNodes.Create (2);
+  NodeContainer nodes;
+  nodes.Create (2);
 
-  YansWifiChannelHelper channel = YansWifiChannelHelper::Default ();
-  YansWifiPhyHelper phy;
-  phy.SetChannel (channel.Create ());
+  PointToPointHelper p2p;
+  p2p.SetDeviceAttribute ("DataRate", StringValue ("10Mbps"));
+  p2p.SetChannelAttribute ("Delay", StringValue ("5ms"));
 
-  WifiHelper wifi;
-  wifi.SetStandard (WIFI_STANDARD_80211n);
-  wifi.SetRemoteStationManager ("ns3::ConstantRateWifiManager");
+  NetDeviceContainer devices = p2p.Install (nodes);
 
-  WifiMacHelper mac;
-  Ssid ssid = Ssid ("lab-ssid");
+  InternetStackHelper stack;
+  stack.Install (nodes);
 
-  mac.SetType ("ns3::StaWifiMac", "Ssid", SsidValue (ssid));
-  NetDeviceContainer staDevices = wifi.Install (phy, mac, wifiStaNodes);
+  Ipv4AddressHelper address;
+  address.SetBase ("192.168.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfaces = address.Assign (devices);
 
-  mac.SetType ("ns3::ApWifiMac", "Ssid", SsidValue (ssid));
-  NetDeviceContainer apDevice = wifi.Install (phy, mac, wifiApNode);
-
-  std::cout << "WiFi Setup complete: 1 AP, 2 STAs configured." << std::endl;
+  std::cout << "Internet stack installed and IPs assigned successfully." << std::endl;
   return 0;
 }
 `,
     hints: [
-      "Set wifi standard: <code>wifi.SetStandard (WIFI_STANDARD_80211n);</code>",
-      "Create SSID: <code>Ssid ssid = Ssid (\"lab-ssid\");</code>",
-      "Set STA MAC: <code>mac.SetType (\"ns3::StaWifiMac\", \"Ssid\", SsidValue (ssid));</code> and install: <code>NetDeviceContainer staDevices = wifi.Install (phy, mac, wifiStaNodes);</code>",
-      "Set AP MAC: <code>mac.SetType (\"ns3::ApWifiMac\", \"Ssid\", SsidValue (ssid));</code> and install: <code>NetDeviceContainer apDevice = wifi.Install (phy, mac, wifiApNode);</code>"
+      "Ensure you include the header <code>#include \"ns3/internet-module.h\"</code>.",
+      "Install the network stack: <code>InternetStackHelper stack; stack.Install (nodes);</code>",
+      "Configure base IP: <code>Ipv4AddressHelper address; address.SetBase (\"192.168.1.0\", \"255.255.255.0\");</code>",
+      "Assign address interfaces: <code>Ipv4InterfaceContainer interfaces = address.Assign (devices);</code>"
     ]
   },
   {
-    id: "advanced-mlo",
-    title: "5. WiFi 7 Multi-Link Setup",
-    difficulty: "Advanced",
-    difficultyClass: "difficulty-advanced",
-    summary: "Set up Multi-Link Operation (MLO) for WiFi 7.",
-    description: `<p><strong>Objective:</strong> Configure Multi-Link Operation (MLO) using <code>WIFI_STANDARD_80211be</code> (WiFi 7).</p>
-                  <p>Instantiate a 2-link [[SpectrumWifiPhyHelper]] phy(2), configure channel settings for 5 GHz and 6 GHz, and install links dynamically.</p>`,
+    id: "intermediate-echo",
+    title: "6. UDP Echo Application Setup",
+    difficulty: "Intermediate",
+    difficultyClass: "difficulty-intermediate",
+    summary: "Configure and schedule client/server applications.",
+    description: `<p><strong>Objective:</strong> Setup a 2-node wired network, install UDP Echo Server on Node 1 (port 9) starting at 1.0s, and UDP Echo Client on Node 0 (targeting Node 1, port 9, packet size 1024, max packets 1) starting at 2.0s.</p>
+                  <p>Schedule application timers and invoke simulation run hooks.</p>`,
     template: `#include "ns3/core-module.h"
 #include "ns3/network-module.h"
-#include "ns3/wifi-module.h"
-#include "ns3/spectrum-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/applications-module.h"
 #include <iostream>
 
 using namespace ns3;
@@ -2299,8 +2333,9 @@ using namespace ns3;
 `,
     solution: `#include "ns3/core-module.h"
 #include "ns3/network-module.h"
-#include "ns3/wifi-module.h"
-#include "ns3/spectrum-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/applications-module.h"
 #include <iostream>
 
 using namespace ns3;
@@ -2310,122 +2345,48 @@ int main (int argc, char *argv[])
   CommandLine cmd (__FILE__);
   cmd.Parse (argc, argv);
 
-  NodeContainer wifiAp;
-  wifiAp.Create (1);
-  NodeContainer wifiSta;
-  wifiSta.Create (1);
+  NodeContainer nodes;
+  nodes.Create (2);
 
-  SpectrumWifiPhyHelper phy (2);
-  auto spectrumChannel = CreateObject<MultiModelSpectrumChannel> ();
-  
-  phy.Set (0, "ChannelSettings", StringValue ("{0, 20, BAND_5GHZ, 0}"));
-  phy.AddChannel (spectrumChannel, WIFI_SPECTRUM_5_GHZ);
-  
-  phy.Set (1, "ChannelSettings", StringValue ("{0, 20, BAND_6GHZ, 0}"));
-  phy.AddChannel (spectrumChannel, WIFI_SPECTRUM_6_GHZ);
+  PointToPointHelper p2p;
+  p2p.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));
+  p2p.SetChannelAttribute ("Delay", StringValue ("2ms"));
 
-  WifiHelper wifi;
-  wifi.SetStandard (WIFI_STANDARD_80211be);
+  NetDeviceContainer devices = p2p.Install (nodes);
 
-  WifiMacHelper mac;
-  Ssid ssid = Ssid ("mlo-ssid");
+  InternetStackHelper stack;
+  stack.Install (nodes);
 
-  mac.SetType ("ns3::StaWifiMac", "Ssid", SsidValue (ssid));
-  NetDeviceContainer staDevices = wifi.Install (phy, mac, wifiSta);
+  Ipv4AddressHelper address;
+  address.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfaces = address.Assign (devices);
 
-  mac.SetType ("ns3::ApWifiMac", "Ssid", SsidValue (ssid));
-  NetDeviceContainer apDevice = wifi.Install (phy, mac, wifiAp);
+  UdpEchoServerHelper echoServer (9);
+  ApplicationContainer serverApps = echoServer.Install (nodes.Get (1));
+  serverApps.Start (Seconds (1.0));
+  serverApps.Stop (Seconds (10.0));
 
-  std::cout << "WiFi 7 MLO Simulation Setup Complete." << std::endl;
+  UdpEchoClientHelper echoClient (interfaces.GetAddress (1), 9);
+  echoClient.SetAttribute ("MaxPackets", UintegerValue (1));
+  echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+  echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
+
+  ApplicationContainer clientApps = echoClient.Install (nodes.Get (0));
+  clientApps.Start (Seconds (2.0));
+  clientApps.Stop (Seconds (10.0));
+
+  Simulator::Run ();
+  Simulator::Destroy ();
+
+  std::cout << "UDP Echo Client and Server configured and scheduled." << std::endl;
   return 0;
 }
 `,
     hints: [
-      "Initialize physical links: <code>SpectrumWifiPhyHelper phy (2);</code>",
-      "Set settings for Link 0: <code>phy.Set (0, \"ChannelSettings\", StringValue (\"{0, 20, BAND_5GHZ, 0}\"));</code>",
-      "Add spectrum channels: <code>auto ch = CreateObject<MultiModelSpectrumChannel>(); phy.AddChannel (ch, WIFI_SPECTRUM_5_GHZ);</code>",
-      "Assign SSID and install using <code>wifi.Install (phy, mac, nodes);</code>"
-    ]
-  },
-  {
-    id: "pro-cosr",
-    title: "6. WiFi 8 Coordinated Spatial Reuse",
-    difficulty: "Pro",
-    difficultyClass: "difficulty-pro",
-    summary: "Prototype WiFi 8 candidates with overlapping BSS.",
-    description: `<p><strong>Objective:</strong> Prototype Coordinated Spatial Reuse (CoSR) in an overlapping BSS (OBSS) topology.</p>
-                  <p>Design spatial coordinates using [[MobilityHelper]] with AP1 at <code>(0,0)</code>, AP2 at <code>(40,0)</code>, STA1 at <code>(10,0)</code>, and STA2 at <code>(30,0)</code>.</p>`,
-    template: `#include "ns3/core-module.h"
-#include "ns3/network-module.h"
-#include "ns3/wifi-module.h"
-#include "ns3/mobility-module.h"
-#include <iostream>
-
-using namespace ns3;
-
-// Write your code here
-`,
-    solution: `#include "ns3/core-module.h"
-#include "ns3/network-module.h"
-#include "ns3/wifi-module.h"
-#include "ns3/mobility-module.h"
-#include <iostream>
-
-using namespace ns3;
-
-int main (int argc, char *argv[])
-{
-  CommandLine cmd (__FILE__);
-  cmd.Parse (argc, argv);
-
-  NodeContainer apNodes;
-  apNodes.Create (2);
-  NodeContainer staNodes;
-  staNodes.Create (2);
-
-  SpectrumWifiPhyHelper phy;
-  auto spectrumChannel = CreateObject<MultiModelSpectrumChannel> ();
-  phy.SetChannel (spectrumChannel);
-
-  WifiHelper wifi;
-  wifi.SetStandard (WIFI_STANDARD_80211be); // Base Wifi 7 standard for WiFi 8 prototyping
-
-  WifiMacHelper mac;
-  
-  // Set up Cell 1 (AP 0, STA 0)
-  Ssid ssid1 = Ssid ("cell-a");
-  mac.SetType ("ns3::StaWifiMac", "Ssid", SsidValue (ssid1));
-  NetDeviceContainer staDev1 = wifi.Install (phy, mac, staNodes.Get (0));
-  mac.SetType ("ns3::ApWifiMac", "Ssid", SsidValue (ssid1));
-  NetDeviceContainer apDev1 = wifi.Install (phy, mac, apNodes.Get (0));
-
-  // Set up Cell 2 (AP 1, STA 1)
-  Ssid ssid2 = Ssid ("cell-b");
-  mac.SetType ("ns3::StaWifiMac", "Ssid", SsidValue (ssid2));
-  NetDeviceContainer staDev2 = wifi.Install (phy, mac, staNodes.Get (1));
-  mac.SetType ("ns3::ApWifiMac", "Ssid", SsidValue (ssid2));
-  NetDeviceContainer apDev2 = wifi.Install (phy, mac, apNodes.Get (1));
-
-  // Configure Coordinates: AP1 at (0,0), AP2 at (40,0)
-  MobilityHelper mobility;
-  Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();
-  positionAlloc->Add (Vector (0.0, 0.0, 0.0));   // AP 1
-  positionAlloc->Add (Vector (40.0, 0.0, 0.0));  // AP 2
-  positionAlloc->Add (Vector (10.0, 0.0, 0.0));  // STA 1
-  positionAlloc->Add (Vector (30.0, 0.0, 0.0));  // STA 2
-  mobility.SetPositionAllocator (positionAlloc);
-  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-  mobility.Install (apNodes);
-  mobility.Install (staNodes);
-
-  std::cout << "WiFi 8 CoSR OBSS topology initialized." << std::endl;
-  return 0;
-}
-`,
-    hints: [
-      "Use position allocator: <code>Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();</code>",
-      "Add positions in order: <code>positionAlloc->Add (Vector (0.0, 0.0, 0.0));</code> for AP1, then AP2 `(40.0, 0.0, 0.0)`, STA1 `(10.0, 0.0, 0.0)`, and STA2 `(30.0, 0.0, 0.0)`.",
-      "Install mobility: <code>mobility.SetMobilityModel (\"ns3::ConstantPositionMobilityModel\"); mobility.Install (apNodes); mobility.Install (staNodes);</code>"
+      "Include application headers: <code>#include \"ns3/applications-module.h\"</code>.",
+      "Initialize UDP server on port 9: <code>UdpEchoServerHelper echoServer (9);</code> and install it on Node 1: <code>nodes.Get (1)</code>.",
+      "Configure UDP client: <code>UdpEchoClientHelper echoClient (interfaces.GetAddress (1), 9);</code>",
+      "Configure client parameters like packet count and size, then install on Node 0."
     ]
   }
 ];
