@@ -312,6 +312,104 @@ int main (int argc, char *argv[])
             `
           },
           {
+            id: "T1-M2-L4",
+            title: "2.4 Walkthrough of a Multi-Link C++ Script",
+            moduleTitle: "Track 1 • Module 2 • Lesson 4",
+            body: `
+              <p>To help you implement the programming assignment, let's study a complete C++ script of a 2-segment network topology. This example is very similar to your assignment, but uses different link rates, delays, IP subnets, and packet configurations. Pay attention to how routing and devices are configured:</p>
+              <pre><code>#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/internet-module.h"
+#include &lt;iostream&gt;
+
+using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE ("AeroWlanMultiLinkExample");
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  // 1. Allocate nodes
+  NodeContainer nodes;
+  nodes.Create (3);
+
+  NodeContainer linkANodes = NodeContainer (nodes.Get (0), nodes.Get (1));
+  NodeContainer linkBNodes = NodeContainer (nodes.Get (1), nodes.Get (2));
+
+  // 2. Configure Point-to-Point links
+  PointToPointHelper p2p;
+  p2p.SetDeviceAttribute ("DataRate", StringValue ("10Mbps"));
+  p2p.SetChannelAttribute ("Delay", StringValue ("5ms"));
+
+  NetDeviceContainer devicesA = p2p.Install (linkANodes);
+  NetDeviceContainer devicesB = p2p.Install (linkBNodes);
+
+  // 3. Install Internet Stack
+  InternetStackHelper stack;
+  stack.Install (nodes);
+
+  // 4. Assign IP addresses to each segment
+  Ipv4AddressHelper address;
+  
+  address.SetBase ("192.168.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfacesA = address.Assign (devicesA);
+
+  address.SetBase ("192.168.2.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfacesB = address.Assign (devicesB);
+
+  // 5. Populate Global Routing tables
+  Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
+
+  // 6. Setup UDP Echo Server on Node 2
+  UdpEchoServerHelper echoServer (9);
+  ApplicationContainer serverApps = echoServer.Install (nodes.Get (2));
+  serverApps.Start (Seconds (1.0));
+  serverApps.Stop (Seconds (10.0));
+
+  // 7. Setup UDP Echo Client on Node 0 targeting Node 2's IP address
+  Ipv4Address serverIp = interfacesB.GetAddress (1); // Node 2's IP on Link B
+  UdpEchoClientHelper echoClient (serverIp, 9);
+  echoClient.SetAttribute ("MaxPackets", UintegerValue (3));
+  echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+  echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
+
+  ApplicationContainer clientApps = echoClient.Install (nodes.Get (0));
+  clientApps.Start (Seconds (2.0));
+  clientApps.Stop (Seconds (10.0));
+
+  Simulator::Run ();
+  Simulator::Destroy ();
+  return 0;
+}</code></pre>
+              <h4>Key Concepts Walkthrough:</h4>
+              <ol style="padding-left:18px; margin-top:10px;">
+                <li style="margin-bottom:10px;"><strong>Segmenting Node Containers (Lines 18-20)</strong>:
+                  <ul>
+                    <li>In a multi-link wired network, helpers cannot install on the entire <code>nodes</code> container at once because point-to-point links only connect two nodes. We build sub-containers using <code>NodeContainer(nodeA, nodeB)</code> to represent specific links.</li>
+                  </ul>
+                </li>
+                <li style="margin-bottom:10px;"><strong>Multiple Subnet Allocation (Lines 35-42)</strong>:
+                  <ul>
+                    <li>Each physical link represents a distinct subnet. We must call <code>SetBase</code> to redefine the network base (e.g. <code>192.168.1.0</code> vs <code>192.168.2.0</code>) before invoking <code>Assign</code>.</li>
+                  </ul>
+                </li>
+                <li style="margin-bottom:10px;"><strong>Global Routing Tables (Line 45)</strong>:
+                  <ul>
+                    <li>Without routing tables, Node 0 does not know how to reach Node 2 because Node 0 is only connected to the 192.168.1.0/24 network. Calling <code>Ipv4GlobalRoutingHelper::PopulateRoutingTables()</code> commands the simulator to crawl the topology and automatically write static routing tables for every node.</li>
+                  </ul>
+                </li>
+                <li style="margin-bottom:10px;"><strong>Targeting Server IPs (Line 54)</strong>:
+                  <ul>
+                    <li>We retrieve Node 2's IP address by querying <code>interfacesB</code> at index 1. Since Node 1 is index 0 on Link B, Node 2 is index 1.</li>
+                  </ul>
+                </li>
+              </ol>
+            `
+          },
+          {
             id: "T1-M2-Q",
             title: "Module 2 Review Quiz",
             isQuizOnly: true,
@@ -1492,6 +1590,16 @@ const glossaryDb = {
     title: "Ipv4AddressHelper",
     desc: "Assigns IPv4 addresses to interfaces of net devices installed on nodes. It handles network subnet allocation and increments IP addresses automatically.",
     usage: "Ipv4AddressHelper address;\naddress.SetBase (\"192.168.1.0\", \"255.255.255.0\");\nIpv4InterfaceContainer interfaces = address.Assign (devices);"
+  },
+  "NetDevice": {
+    title: "NetDevice",
+    desc: "A base class representing a network interface card (NIC) driver and physical layer controller in ns-3. It connects a Node to a Channel to enable packet transmission.",
+    usage: "NetDeviceContainer devices = p2p.Install (nodes);\nPtr<NetDevice> device = devices.Get (0);"
+  },
+  "Channel": {
+    title: "Channel",
+    desc: "A base class representing a physical transmission medium (like Ethernet cables or open air frequency spectrums) linking simulated devices.",
+    usage: "Ptr<Channel> channel = device->GetChannel ();"
   }
 };
 
