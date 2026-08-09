@@ -516,137 +516,191 @@ int main (int argc, char *argv[])
       },
       {
         id: 6,
-        title: "Module 6: Tweaking",
-        description: "Enabling console log modules, command-line parsing, and custom inputs.",
+        title: "Module 3: Tweaking",
+        description: "Enabling console log modules, dynamic command-line parsing, and log levels.",
         lessons: [
           {
-            id: "T1-M6-L1",
-            title: "6.1 Using the Logging Module",
-            moduleTitle: "Track 1 • Module 6 • Lesson 1",
+            id: "T1-M3-L1",
+            title: "3.1 The ns-3 Logging Subsystem & Levels",
+            moduleTitle: "Track 1 • Module 3 • Lesson 1",
             body: `
-              <p>ns-3 provides a robust logging subsystem that can be toggled without recompiling. Logging levels specify the detail of printed messages:</p>
-              <ul>
-                <li><code>LOG_LEVEL_ERROR</code>: Only print error logs.</li>
-                <li><code>LOG_LEVEL_WARN</code>: Print warnings and errors.</li>
-                <li><code>LOG_LEVEL_INFO</code>: Print informational logs (e.g. packet transmissions).</li>
-                <li><code>LOG_LEVEL_ALL</code>: Print all logging details, including logical paths.</li>
-              </ul>
-              <p>Configure this via shell variables before running: <code>export NS_LOG="UdpEchoClientApplication=level_all"</code>.</p>
+              <p>When writing complex network simulations, using standard C++ console output (like <code>std::cout</code>) is bad practice. Printing streams is slow, cluttered, and cannot be disabled without modifying the source code. To solve this, ns-3 provides a robust, granular **Logging Subsystem**.</p>
+              <h4>3.1.1 Logging Levels</h4>
+              <p>The logging module offers seven levels of severity. When you configure a level, all levels of equal or higher severity are automatically enabled:</p>
+              <ol style="padding-left:18px; margin-top:10px;">
+                <li style="margin-bottom:8px;"><strong><code>LOG_ERROR</code></strong>: Serious error conditions that may halt simulation (highest severity).</li>
+                <li style="margin-bottom:8px;"><strong><code>LOG_WARN</code></strong>: Warning messages indicating potential anomalous behavior.</li>
+                <li style="margin-bottom:8px;"><strong><code>LOG_DEBUG</code></strong>: General debugging details (such as variables state change).</li>
+                <li style="margin-bottom:8px;"><strong><code>LOG_INFO</code></strong>: Informational alerts (such as packet queue/dequeue, routing table changes).</li>
+                <li style="margin-bottom:8px;"><strong><code>LOG_FUNCTION</code></strong>: Traces function calls. Every time a function is entered or exited, it is printed automatically (extremely useful for tracing execution flow).</li>
+                <li style="margin-bottom:8px;"><strong><code>LOG_LOGIC</code></strong>: Inner logic steps inside methods.</li>
+                <li style="margin-bottom:8px;"><strong><code>LOG_ALL</code></strong>: Enables all levels of logging details (lowest severity, most verbose).</li>
+              </ol>
             `
           },
           {
-            id: "T1-M6-L2",
-            title: "6.2 Using Command Line Arguments",
-            moduleTitle: "Track 1 • Module 6 • Lesson 2",
+            id: "T1-M3-L2",
+            title: "3.2 Walkthrough of a Logging Script",
+            moduleTitle: "Track 1 • Module 3 • Lesson 2",
             body: `
-              <p>You can configure variables dynamically during run time using the <code>CommandLine</code> class:</p>
-              <pre><code>int main (int argc, char *argv[])
+              <p>Let's study a complete C++ script demonstrating how to define logging components, write conditional logs, and trace function entry/exit states:</p>
+              <pre><code>#include "ns3/core-module.h"
+#include &lt;iostream&gt;
+
+using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE ("AeroWlanLoggingDemo");
+
+void MyFunction (int value)
 {
-  uint32_t nPackets = 3;
+  NS_LOG_FUNCTION (value);
+  NS_LOG_INFO ("Inside MyFunction with value " &lt;&lt; value);
+}
+
+int main (int argc, char *argv[])
+{
   CommandLine cmd (__FILE__);
-  cmd.AddValue ("nPackets", "Number of packets", nPackets);
   cmd.Parse (argc, argv);
-  ...
+
+  NS_LOG_INFO ("Simulation starting...");
+  MyFunction (42);
+  NS_LOG_INFO ("Simulation completed.");
+
+  return 0;
 }</code></pre>
-              <p>Run this script passing the parameters after the double-dash: <br>
-              <code>./ns3 run "scratch/my-script --nPackets=10"</code></p>
+              <h4>Line-by-Line Logging Breakdown:</h4>
+              <ol style="padding-left:18px; margin-top:10px;">
+                <li style="margin-bottom:10px;"><strong>Logging Component Registration (Line 6)</strong>:
+                  <ul>
+                    <li><code>NS_LOG_COMPONENT_DEFINE ("AeroWlanLoggingDemo");</code>: Registers a unique name tag for this file's logging namespace. You toggle logs for this file from the terminal by referencing this string.</li>
+                  </ul>
+                </li>
+                <li style="margin-bottom:10px;"><strong>Function Tracing (Line 10)</strong>:
+                  <ul>
+                    <li><code>NS_LOG_FUNCTION (value);</code>: When this function is called, ns-3 automatically prints its parameters (e.g. <code>MyFunction(42)</code>). This acts as a dynamic call trace.</li>
+                  </ul>
+                </li>
+                <li style="margin-bottom:10px;"><strong>Conditional Logs (Lines 11, 19, 21)</strong>:
+                  <ul>
+                    <li><code>NS_LOG_INFO ("...");</code>: Logs descriptive details. Unlike <code>std::cout</code>, these lines are completely silenced in optimized build profiles, preserving peak execution performance.</li>
+                  </ul>
+                </li>
+              </ol>
             `
           },
           {
-            id: "T1-M6-L3",
-            title: "6.3 Overview of the Tracing System",
-            moduleTitle: "Track 1 • Module 6 • Lesson 3",
+            id: "T1-M3-L3",
+            title: "3.3 Dynamic CommandLine Arguments",
+            moduleTitle: "Track 1 • Module 3 • Lesson 3",
             body: `
-              <p>The ns-3 tracing system separates data production from data consumption. It uses two concepts:</p>
-              <ul>
-                <li><strong>Trace Source:</strong> An event hook inside core code (e.g. <code>CourseChange</code> in mobility models). When triggered, it calls any connected callback function, passing variables.</li>
-                <li><strong>Trace Sink:</strong> A user callback function connected to a Source to record or process the variables.</li>
-              </ul>
+              <p>Rather than recompiling the simulator to tweak variables (like packet size, link bandwidth, or node counts), you register variables inside the <code>CommandLine</code> helper.</p>
+              <h4>3.3.1 Binding Variables in C++</h4>
+              <p>To expose a variable to the command-line interface, bind it using <code>AddValue</code> before parsing:</p>
+              <pre><code>uint32_t packetSize = 128;\nCommandLine cmd (__FILE__);\ncmd.AddValue ("packetSize", "Size of packet in bytes", packetSize);\ncmd.Parse (argc, argv);</code></pre>
+              <h4>3.3.2 Execution Syntax</h4>
+              <p>You override these registered variables from the command line by adding parameters after a double-dash (<code>--</code>):</p>
+              <pre><code>./ns3 run "scratch/my-simulation --packetSize=512"</code></pre>
             `
           },
           {
-            id: "T1-M6-Q",
-            title: "Module 6 Review Quiz",
+            id: "T1-M3-Q",
+            title: "Module 3 Review Quiz",
             isQuizOnly: true,
-            moduleTitle: "Track 1 • Module 6 • Assessment",
+            moduleTitle: "Track 1 • Module 3 • Assessment",
             quiz: [
               {
-                question: "1. Which environment variable triggers ns-3 debug log filtering on the console?",
+                question: "1. Which macro is placed at the top of a file to register its logging component name?",
                 options: [
-                  { text: "NS_DEBUG", isCorrect: false },
+                  { text: "NS_LOG_COMPONENT_DEFINE", isCorrect: true },
+                  { text: "NS_LOG_REGISTER", isCorrect: false },
+                  { text: "NS_LOG_INFO", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! NS_LOG_COMPONENT_DEFINE defines the component name for terminal filter reference.",
+                feedbackError: "Incorrect. The correct macro is NS_LOG_COMPONENT_DEFINE. Try again!"
+              },
+              {
+                question: "2. Which macro traces function entry states and print parameters automatically?",
+                options: [
+                  { text: "NS_LOG_INFO", isCorrect: false },
+                  { text: "NS_LOG_FUNCTION", isCorrect: true },
+                  { text: "NS_LOG_LOGIC", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! NS_LOG_FUNCTION automatically formats and logs function call signatures.",
+                feedbackError: "Incorrect. NS_LOG_FUNCTION is designed to log function traces. Try again!"
+              },
+              {
+                question: "3. What environment variable is used to filter and enable log levels from your terminal shell?",
+                options: [
                   { text: "NS_LOG", isCorrect: true },
-                  { text: "LOG_LEVEL", isCorrect: false }
+                  { text: "NS_DEBUG", isCorrect: false },
+                  { text: "NS_LEVEL", isCorrect: false }
                 ],
-                feedbackSuccess: "Correct! The NS_LOG environment variable specifies logging components and levels.",
-                feedbackError: "Incorrect. The variable is NS_LOG. Try again!"
-              },
-              {
-                question: "2. Which logging level output includes logical function trace tracking?",
-                options: [
-                  { text: "level_info", isCorrect: false },
-                  { text: "level_logic", isCorrect: true },
-                  { text: "level_error", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! level_logic traces function entry/exit execution paths.",
-                feedbackError: "Incorrect. Logic-level tracing is enabled with level_logic or level_all. Try again!"
-              },
-              {
-                question: "3. How are script parameters separated from simulator parameters in the command line?",
-                options: [
-                  { text: "Using a double-dash ( -- )", isCorrect: true },
-                  { text: "Using a colon ( : )", isCorrect: false },
-                  { text: "Using export commands", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! -- separates build runner arguments from script arguments.",
-                feedbackError: "Incorrect. Use a double-dash ( -- ) to separate arguments. Try again!"
-              },
-              {
-                question: "4. What class binds command-line variables to script attributes?",
-                options: [
-                  { text: "CommandLine", isCorrect: true },
-                  { text: "Config", isCorrect: false },
-                  { text: "Parser", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! CommandLine manages parameter bindings.",
-                feedbackError: "Incorrect. The class is CommandLine. Try again!"
-              },
-              {
-                question: "5. What is a Trace Sink in ns-3?",
-                options: [
-                  { text: "A user callback function that receives data from a Trace Source", isCorrect: true },
-                  { text: "A physical cable modeled in simulation", isCorrect: false },
-                  { text: "A method to delete nodes", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! Trace Sinks consume values exported by Trace Sources.",
-                feedbackError: "Incorrect. A Trace Sink is a callback function that registers to capture source data. Try again!"
+                feedbackSuccess: "Correct! The NS_LOG env variable maps component names to target levels.",
+                feedbackError: "Incorrect. You configure console output details using the NS_LOG variable. Try again!"
               }
             ]
           },
           {
-            id: "T1-M6-A",
-            title: "Module 6 Programming Assignment",
+            id: "T1-M3-A",
+            title: "Module 3 Programming Assignment",
             isAssignmentOnly: true,
-            moduleTitle: "Track 1 • Module 6 • Assignment",
+            moduleTitle: "Track 1 • Module 3 • Assignment",
             assignmentInstructions: `
               <h4>Assignment Objective:</h4>
-              <p>Configure dynamic console logs using the <code>NS_LOG</code> environment variable and run the CSMA simulation.</p>
+              <p>Write an ns-3 script that integrates command-line arguments and conditional information logs, then execute it with logs enabled in your terminal shell.</p>
               
-              <h4>Step 1: Open Terminal</h4>
-              <p>Navigate to your ns-3 directory.</p>
+              <h4>Instructions:</h4>
+              <p>Create the new assignment source file in your scratch exercises directory:</p>
+              <div class="assignment-cmd-container">
+                <div class="assignment-cmd-label">Create File Path</div>
+                <div class="assignment-cmd-box">
+                  <code>scratch/aerowlan_exercises/module3_assignment.cc</code>
+                  <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('scratch/aerowlan_exercises/module3_assignment.cc')">Copy Path</button>
+                </div>
+              </div>
+
+              <p>Write an ns-3 program inside it containing the following components:</p>
+              <ul style="padding-left: 18px; margin-top: 8px; margin-bottom: 8px;">
+                <li>Include <code>"ns3/core-module.h"</code>.</li>
+                <li>Define the logging component name: <code>"AeroWlanModule3"</code>.</li>
+                <li>In <code>main()</code>, declare a variable: <code>uint32_t packetSize = 128;</code></li>
+                <li>Use the <code>CommandLine</code> helper to expose the argument <code>"packetSize"</code>.</li>
+                <li>Parse command-line parameters.</li>
+                <li>Write a log statement using <code>NS_LOG_INFO</code> that prints exactly: <code>Simulation starting with packetSize: X</code> (where X is the variable value).</li>
+              </ul>
               
-              <h4>Step 2: Enable logs for UdpEchoClientApplication</h4>
-              <p>Export the logging variable in your shell:</p>
-              <pre><code>export NS_LOG="UdpEchoClientApplication=level_info"</code></pre>
+              <h4>Step 1: Build the assignment target</h4>
+              <p>Verify that your C++ file compiles correctly in your terminal:</p>
+              <div class="assignment-cmd-container">
+                <div class="assignment-cmd-label">Compile Project</div>
+                <div class="assignment-cmd-box">
+                  <code>./ns3 build</code>
+                  <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('./ns3 build')">Copy</button>
+                </div>
+              </div>
               
-              <h4>Step 3: Run the CSMA simulation and save output</h4>
-              <p>Run the simulation and redirect output to <code>module6_output.txt</code>:</p>
-              <pre><code>./ns3 run scratch/aerowlan_exercises/csma-simulation > scratch/aerowlan_exercises/module6_output.txt 2>&1</code></pre>
+              <h4>Step 2: Enable logs in your shell and run simulation</h4>
+              <p>Export the logging variable and run the simulation passing 512 bytes as packet size. Redirect the output to the validation file:</p>
+              <div class="assignment-cmd-container">
+                <div class="assignment-cmd-label">Run Simulation</div>
+                <div class="assignment-cmd-box">
+                  <code>export NS_LOG="AeroWlanModule3=info" && ./ns3 run "scratch/aerowlan_exercises/module3_assignment --packetSize=512" > scratch/aerowlan_exercises/module3_output.txt 2>&1</code>
+                  <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('export NS_LOG=\&quot;AeroWlanModule3=info\&quot; && ./ns3 run \&quot;scratch/aerowlan_exercises/module3_assignment --packetSize=512\&quot; > scratch/aerowlan_exercises/module3_output.txt 2>&1')">Copy</button>
+                </div>
+              </div>
               
-              <h4>Step 4: Submit output</h4>
-              <p>Copy and paste the contents of <code>module6_output.txt</code> here to verify you successfully captured UdpEchoClient console output.</p>
+              <h4>Step 3: Submit logs for verification</h4>
+              <p>Open the generated text file, copy its content, and paste it into the submission paste area below to submit:</p>
+              <div class="assignment-cmd-container">
+                <div class="assignment-cmd-label">Verification Output File</div>
+                <div class="assignment-cmd-box">
+                  <code>scratch/aerowlan_exercises/module3_output.txt</code>
+                  <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('scratch/aerowlan_exercises/module3_output.txt')">Copy Path</button>
+                </div>
+              </div>
             `,
-            assignmentVerifyKeyword: "Sent 1024 bytes",
-            practiceFile: "scratch/aerowlan_exercises/csma-simulation.cc"
+            assignmentVerifyKeyword: "Simulation starting with packetSize: 512",
+            practiceFile: "scratch/aerowlan_exercises/module3_assignment.cc"
           }
         ]
       },
