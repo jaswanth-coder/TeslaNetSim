@@ -43,5 +43,5 @@ All submissions written in the dashboard Coding Lab are saved in:
 
 ## 🧑‍🏫 Tutoring Status
 - **Current Module:** Track 1 • Module 3: Tweaking.
-- **Active Task:** Revamped Coding Lab to transition from very basic node configurations to intermediate applications setups. Excluded pro/advanced WiFi 7 & 8 simulations. Added a sandbox notice banner inside `index.html` clarifying compilation role.
-- **Git Push Status:** All updates (Coding Lab revamped, notice warning, and state tracker) committed and pushed.
+- **Active Task:** Expanded Coding Lab questions from 6 to 10. Added new basic mobility coordinate allocation and medium-level linear multi-subnet, hybrid CSMA-P2P topology, and rate error packet drop configuration.
+- **Git Push Status:** All updates (Coding Lab expanded list and state tracker) committed and pushed.
