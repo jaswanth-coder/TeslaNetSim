@@ -1255,8 +1255,172 @@ wifi.SetMultiLinkType (WifiHelper::DEFAULT_MLD);</code></pre>
   }
 ];
 
+// Preprocess Track 1 modules to renumber 4-10 -> 1-7
+function preprocessTracks() {
+  const track1 = tracks[0];
+  track1.modules.forEach(mod => {
+    if (mod.id >= 4 && mod.id <= 10) {
+      const oldId = mod.id;
+      const newId = oldId - 3;
+      mod.id = newId;
+      mod.title = mod.title.replace(`Module ${oldId}:`, `Module ${newId}:`);
+      
+      mod.lessons.forEach(les => {
+        les.id = les.id.replace(`T1-M${oldId}`, `T1-M${newId}`);
+        les.moduleTitle = les.moduleTitle.replace(`Module ${oldId}`, `Module ${newId}`);
+        if (les.title) {
+          les.title = les.title.replace(`${oldId}.`, `${newId}.`);
+        }
+      });
+    }
+  });
+}
+
+// Convert code blocks inside assignment instructions into styled boxes
+function formatAssignmentInstructions(html) {
+  if (!html) return '';
+  let formatted = html.replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/gi, (match, cmd) => {
+    const trimmedCmd = cmd.trim();
+    const escapedCmd = trimmedCmd.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+    return `
+      <div class="assignment-cmd-container">
+        <div class="assignment-cmd-label">Terminal Command</div>
+        <div class="assignment-cmd-box">
+          <code>${trimmedCmd}</code>
+          <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${escapedCmd}')">Copy</button>
+        </div>
+      </div>
+    `;
+  });
+  return formatted;
+}
+
+// Parse Obsidian-style [[WikiLinks]] to glossary tags
+function parseWikiLinks(text) {
+  if (!text) return '';
+  return text.replace(/\[\[(.*?)\]\]/g, (match, term) => {
+    return `<span class="wiki-link" onclick="showGlossary('${term}')">${term}</span>`;
+  });
+}
+
+// Theme Toggle State management
+function initTheme() {
+  const currentTheme = localStorage.getItem('obsidian_theme') || 'dark';
+  const body = document.body;
+  const themeIcon = document.getElementById('theme-icon');
+  
+  if (currentTheme === 'light') {
+    body.classList.add('light-theme');
+    if (themeIcon) themeIcon.setAttribute('data-lucide', 'moon');
+  } else {
+    body.classList.remove('light-theme');
+    if (themeIcon) themeIcon.setAttribute('data-lucide', 'sun');
+  }
+}
+
+window.toggleTheme = function() {
+  const body = document.body;
+  const themeIcon = document.getElementById('theme-icon');
+  
+  if (body.classList.contains('light-theme')) {
+    body.classList.remove('light-theme');
+    localStorage.setItem('obsidian_theme', 'dark');
+    if (themeIcon) themeIcon.setAttribute('data-lucide', 'sun');
+  } else {
+    body.classList.add('light-theme');
+    localStorage.setItem('obsidian_theme', 'light');
+    if (themeIcon) themeIcon.setAttribute('data-lucide', 'moon');
+  }
+  if (window.lucide) window.lucide.createIcons();
+};
+
+const glossaryDb = {
+  "NodeContainer": {
+    title: "NodeContainer",
+    desc: "A class in ns-3 that holds a collection of <code>Ptr&lt;Node&gt;</code> pointers. It is the standard helper class used to create, organize, and reference nodes in network topologies.",
+    usage: "NodeContainer nodes;\nnodes.Create (4); // Instantiates 4 nodes"
+  },
+  "Node": {
+    title: "Node",
+    desc: "Represents a basic computing host or network device in ns-3 (analogous to a host computer or router). Applications, net devices, and protocol stacks are installed on nodes.",
+    usage: "Ptr<Node> node = nodes.Get (0); // Retrieve pointer to the first node"
+  },
+  "PointToPointHelper": {
+    title: "PointToPointHelper",
+    desc: "A helper class used to create a point-to-point channel and configure the transmission characteristics (DataRate, Delay) of point-to-point network devices installed on nodes.",
+    usage: "PointToPointHelper p2p;\np2p.SetDeviceAttribute (\"DataRate\", StringValue (\"10Mbps\"));\np2p.SetChannelAttribute (\"Delay\", StringValue (\"5ms\"));\nNetDeviceContainer devices = p2p.Install (nodes);"
+  },
+  "CsmaHelper": {
+    title: "CsmaHelper",
+    desc: "A helper class that configures and installs CSMA (Carrier Sense Multiple Access) network devices and channels. This simulates an Ethernet-like bus topology linking multiple nodes on a single shared channel.",
+    usage: "CsmaHelper csma;\ncsma.SetChannelAttribute (\"DataRate\", StringValue (\"100Mbps\"));\ncsma.SetChannelAttribute (\"Delay\", TimeValue (NanoSeconds (6560)));\nNetDeviceContainer devices = csma.Install (nodes);"
+  },
+  "WifiHelper": {
+    title: "WifiHelper",
+    desc: "The primary orchestrator class for configuring and installing wireless network devices on nodes. It configures wifi standards (e.g. 802.11n, 802.11ac, 802.11ax, 802.11be) and rate control managers.",
+    usage: "WifiHelper wifi;\nwifi.SetStandard (WIFI_STANDARD_80211be);\nwifi.SetRemoteStationManager (\"ns3::ConstantRateWifiManager\");"
+  },
+  "YansWifiPhyHelper": {
+    title: "YansWifiPhyHelper",
+    desc: "Configures physical layer parameters for the Yans propagation loss and delay models (Yet Another Network Simulator). Used to model classic, non-spectrum wireless channels.",
+    usage: "YansWifiChannelHelper channel = YansWifiChannelHelper::Default ();\nYansWifiPhyHelper phy;\nphy.SetChannel (channel.Create ());"
+  },
+  "SpectrumWifiPhyHelper": {
+    title: "SpectrumWifiPhyHelper",
+    desc: "Configures physical layer parameters for spectrum-based channel models. Necessary for modeling complex, overlapping bands, multi-link operation (MLO) in WiFi 7, and frequency selectivity.",
+    usage: "SpectrumWifiPhyHelper phy (2); // Init for 2 links\nphy.Set (0, \"ChannelSettings\", StringValue (\"{0, 20, BAND_5GHZ, 0}\"));"
+  },
+  "WifiMacHelper": {
+    title: "WifiMacHelper",
+    desc: "Configures the wireless MAC layer (Media Access Control) type (AP mode, Station mode, Ad-Hoc, or Mesh) and attributes (such as SSIDs or QoS settings) before installation.",
+    usage: "WifiMacHelper mac;\nSsid ssid = Ssid (\"lab-wifi\");\nmac.SetType (\"ns3::StaWifiMac\", \"Ssid\", SsidValue (ssid));"
+  },
+  "MobilityHelper": {
+    title: "MobilityHelper",
+    desc: "Configures and installs spatial positions and mobility behaviors on nodes. This represents static physical coordinates or dynamic paths (e.g., random walk, waypoint routing) for wireless simulations.",
+    usage: "MobilityHelper mobility;\nmobility.SetPositionAllocator (\"ns3::GridPositionAllocator\", ...);\nmobility.SetMobilityModel (\"ns3::ConstantPositionMobilityModel\");\nmobility.Install (nodes);"
+  },
+  "InternetStackHelper": {
+    title: "InternetStackHelper",
+    desc: "Installs protocol stacks (IPv4, IPv6, TCP, UDP, ARP) on nodes. Essential for any layer-3 simulation involving routing or IP-based sockets.",
+    usage: "InternetStackHelper internet;\ninternet.Install (nodes);"
+  },
+  "Ipv4AddressHelper": {
+    title: "Ipv4AddressHelper",
+    desc: "Assigns IPv4 addresses to interfaces of net devices installed on nodes. It handles network subnet allocation and increments IP addresses automatically.",
+    usage: "Ipv4AddressHelper address;\naddress.SetBase (\"192.168.1.0\", \"255.255.255.0\");\nIpv4InterfaceContainer interfaces = address.Assign (devices);"
+  }
+};
+
+window.showGlossary = function(term) {
+  const item = glossaryDb[term];
+  if (!item) return;
+
+  const modal = document.getElementById('glossary-modal');
+  const title = document.getElementById('glossary-modal-title');
+  const body = document.getElementById('glossary-modal-body');
+
+  if (modal && title && body) {
+    title.innerText = item.title;
+    body.innerHTML = `
+      <p>${item.desc}</p>
+      <h4 style="margin-top:14px; font-weight:600; font-size:11px; text-transform:uppercase; color:var(--text-muted);">C++ Code Snippet</h4>
+      <pre style="background:rgba(0,0,0,0.15); padding:10px; border-radius:6px; border:1px solid var(--border-glow); margin-top:6px;"><code style="font-family:monospace; font-size:12px; color:#34d399; white-space:pre-wrap;">${item.usage}</code></pre>
+    `;
+    modal.classList.add('active');
+  }
+};
+
+window.closeGlossary = function(event) {
+  const modal = document.getElementById('glossary-modal');
+  if (!modal) return;
+  modal.classList.remove('active');
+};
+
 // Initialize Dashboard & Learning Hub
 function init() {
+  preprocessTracks();
+  initTheme();
   renderMilestones();
   renderSyllabus();
   loadLesson(currentModuleIndex, currentLessonIndex);
@@ -1404,9 +1568,10 @@ function loadLesson(mIdx, lIdx) {
     practiceBox.style.display = 'none';
     assignmentBlock.style.display = 'block';
     
-    document.getElementById('assignment-instructions').innerHTML = lesson.assignmentInstructions;
+    let formattedHtml = formatAssignmentInstructions(lesson.assignmentInstructions);
+    document.getElementById('assignment-instructions').innerHTML = parseWikiLinks(formattedHtml);
   } else {
-    bodyElement.innerHTML = lesson.body;
+    bodyElement.innerHTML = parseWikiLinks(lesson.body);
     quizBlock.style.display = 'none';
     assignmentBlock.style.display = 'none';
     
@@ -1649,10 +1814,18 @@ const codingLabProblems = [
     difficultyClass: "difficulty-basic",
     summary: "Create nodes and output logs.",
     description: `<p><strong>Objective:</strong> Create a NodeContainer with 2 nodes and print a simple console log.</p>
-                  <p>In ns-3, nodes are created using the <code>NodeContainer</code> helper class.</p>
+                  <p>In ns-3, nodes are created using the [[NodeContainer]] helper class.</p>
                   <p>Use <code>nodes.Create (2);</code> to instantiate nodes, and then output <code>"Hello World from ns-3! Created 2 nodes."</code> using standard C++ <code>std::cout</code>.</p>
-                  <p><strong>Note:</strong> Place your code inside the standard <code>main</code> function of the C++ file.</p>`,
+                  <p><strong>Note:</strong> Write the complete <code>int main (int argc, char *argv[])</code> block and structure yourself.</p>`,
     template: `#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include <iostream>
+
+using namespace ns3;
+
+// Write your code here
+`,
+    solution: `#include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include <iostream>
 
@@ -1667,16 +1840,16 @@ int main (int argc, char *argv[])
 
   Time::SetResolution (Time::NS);
 
-  // TODO: 1. Create a NodeContainer with 2 nodes
-  
+  NodeContainer nodes;
+  nodes.Create (2);
 
-  // TODO: 2. Output "Hello World from ns-3! Created 2 nodes." to standard console
-  
+  std::cout << "Hello World from ns-3! Created " << nodes.GetN() << " nodes." << std::endl;
 
   return 0;
 }
 `,
     hints: [
+      "You need to write the <code>int main(int argc, char *argv[])</code> function definition.",
       "Declare the container: <code>NodeContainer nodes;</code>",
       "Instantiate 2 nodes: <code>nodes.Create (2);</code>",
       "Print output: <code>std::cout << \"Hello World from ns-3! Created \" << nodes.GetN() << \" nodes.\" << std::endl;</code>"
@@ -1690,8 +1863,17 @@ int main (int argc, char *argv[])
     summary: "Establish a standard point-to-point link.",
     description: `<p><strong>Objective:</strong> Set up a Point-to-Point link between 2 nodes.</p>
                   <p>Configure the link with a data rate of <code>"10Mbps"</code> and a propagation delay of <code>"5ms"</code>.</p>
-                  <p>Use the <code>PointToPointHelper</code> to set attributes and install on your <code>NodeContainer</code>.</p>`,
+                  <p>Use the [[PointToPointHelper]] to set attributes and install on your [[NodeContainer]].</p>`,
     template: `#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/point-to-point-module.h"
+#include <iostream>
+
+using namespace ns3;
+
+// Write your code here
+`,
+    solution: `#include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/point-to-point-module.h"
 #include <iostream>
@@ -1706,17 +1888,19 @@ int main (int argc, char *argv[])
   NodeContainer nodes;
   nodes.Create (2);
 
-  // TODO: Create PointToPointHelper and set Device ("DataRate") and Channel ("Delay") attributes
-  
+  PointToPointHelper pointToPoint;
+  pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("10Mbps"));
+  pointToPoint.SetChannelAttribute ("Delay", StringValue ("5ms"));
 
-  // TODO: Install devices onto the nodes and store the results in NetDeviceContainer
-  
+  NetDeviceContainer devices;
+  devices = pointToPoint.Install (nodes);
 
   std::cout << "Point-to-Point Link configured between 2 nodes." << std::endl;
   return 0;
 }
 `,
     hints: [
+      "Implement `main` and declare a 2-node `NodeContainer nodes;`.",
       "Initialize helper: <code>PointToPointHelper pointToPoint;</code>",
       "Set attributes: <code>pointToPoint.SetDeviceAttribute (\"DataRate\", StringValue (\"10Mbps\"));</code>",
       "Set delay attribute: <code>pointToPoint.SetChannelAttribute (\"Delay\", StringValue (\"5ms\"));</code>",
@@ -1731,8 +1915,17 @@ int main (int argc, char *argv[])
     summary: "Configure CSMA multi-node bus topology.",
     description: `<p><strong>Objective:</strong> Create a bus topology of 5 nodes using CSMA.</p>
                   <p>Configure the CSMA channel with a data rate of <code>"100Mbps"</code> and a propagation delay of <code>"6560ns"</code>.</p>
-                  <p>Link all nodes using the <code>CsmaHelper</code>.</p>`,
+                  <p>Link all nodes using the [[CsmaHelper]].</p>`,
     template: `#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/csma-module.h"
+#include <iostream>
+
+using namespace ns3;
+
+// Write your code here
+`,
+    solution: `#include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/csma-module.h"
 #include <iostream>
@@ -1747,17 +1940,19 @@ int main (int argc, char *argv[])
   NodeContainer nodes;
   nodes.Create (5);
 
-  // TODO: Instantiate CsmaHelper and set DataRate to 100Mbps, Delay to 6560ns
-  
+  CsmaHelper csma;
+  csma.SetChannelAttribute ("DataRate", StringValue ("100Mbps"));
+  csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));
 
-  // TODO: Install CSMA devices on nodes
-  
+  NetDeviceContainer devices;
+  devices = csma.Install (nodes);
 
   std::cout << "CSMA Bus topology initialized with 5 nodes." << std::endl;
   return 0;
 }
 `,
     hints: [
+      "Declare 5 nodes: `nodes.Create(5);`.",
       "Use CsmaHelper: <code>CsmaHelper csma;</code>",
       "Set channel delay: <code>csma.SetChannelAttribute (\"Delay\", TimeValue (NanoSeconds (6560)));</code>",
       "Install devices: <code>NetDeviceContainer devices = csma.Install (nodes);</code>"
@@ -1770,9 +1965,19 @@ int main (int argc, char *argv[])
     difficultyClass: "difficulty-intermediate",
     summary: "Bootstrap a basic wireless station.",
     description: `<p><strong>Objective:</strong> Configure a wireless access point and 2 stations using IEEE 802.11n.</p>
-                  <p>Use <code>WifiHelper</code> and set standard to <code>WIFI_STANDARD_80211n</code>.</p>
+                  <p>Use [[WifiHelper]] and set standard to <code>WIFI_STANDARD_80211n</code>.</p>
                   <p>Set up an SSID <code>"lab-ssid"</code> on both the AP and STA MAC layers.</p>`,
     template: `#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/wifi-module.h"
+#include "ns3/mobility-module.h"
+#include <iostream>
+
+using namespace ns3;
+
+// Write your code here
+`,
+    solution: `#include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/wifi-module.h"
 #include "ns3/mobility-module.h"
@@ -1794,14 +1999,18 @@ int main (int argc, char *argv[])
   YansWifiPhyHelper phy;
   phy.SetChannel (channel.Create ());
 
-  // TODO: Configure WifiHelper with WIFI_STANDARD_80211n and ConstantRateWifiManager
-  
+  WifiHelper wifi;
+  wifi.SetStandard (WIFI_STANDARD_80211n);
+  wifi.SetRemoteStationManager ("ns3::ConstantRateWifiManager");
 
-  // TODO: Configure StaWifiMac and ApWifiMac with Ssid "lab-ssid"
-  
+  WifiMacHelper mac;
+  Ssid ssid = Ssid ("lab-ssid");
 
-  // TODO: Install devices on AP and Station nodes
-  
+  mac.SetType ("ns3::StaWifiMac", "Ssid", SsidValue (ssid));
+  NetDeviceContainer staDevices = wifi.Install (phy, mac, wifiStaNodes);
+
+  mac.SetType ("ns3::ApWifiMac", "Ssid", SsidValue (ssid));
+  NetDeviceContainer apDevice = wifi.Install (phy, mac, wifiApNode);
 
   std::cout << "WiFi Setup complete: 1 AP, 2 STAs configured." << std::endl;
   return 0;
@@ -1821,8 +2030,18 @@ int main (int argc, char *argv[])
     difficultyClass: "difficulty-advanced",
     summary: "Set up Multi-Link Operation (MLO) for WiFi 7.",
     description: `<p><strong>Objective:</strong> Configure Multi-Link Operation (MLO) using <code>WIFI_STANDARD_80211be</code> (WiFi 7).</p>
-                  <p>Instantiate a 2-link <code>SpectrumWifiPhyHelper phy(2);</code>, configure channel settings for 5 GHz and 6 GHz, and install links dynamically.</p>`,
+                  <p>Instantiate a 2-link [[SpectrumWifiPhyHelper]] phy(2), configure channel settings for 5 GHz and 6 GHz, and install links dynamically.</p>`,
     template: `#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/wifi-module.h"
+#include "ns3/spectrum-module.h"
+#include <iostream>
+
+using namespace ns3;
+
+// Write your code here
+`,
+    solution: `#include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/wifi-module.h"
 #include "ns3/spectrum-module.h"
@@ -1840,14 +2059,26 @@ int main (int argc, char *argv[])
   NodeContainer wifiSta;
   wifiSta.Create (1);
 
-  // TODO: Configure SpectrumWifiPhyHelper with 2 links
+  SpectrumWifiPhyHelper phy (2);
+  auto spectrumChannel = CreateObject<MultiModelSpectrumChannel> ();
   
+  phy.Set (0, "ChannelSettings", StringValue ("{0, 20, BAND_5GHZ, 0}"));
+  phy.AddChannel (spectrumChannel, WIFI_SPECTRUM_5_GHZ);
+  
+  phy.Set (1, "ChannelSettings", StringValue ("{0, 20, BAND_6GHZ, 0}"));
+  phy.AddChannel (spectrumChannel, WIFI_SPECTRUM_6_GHZ);
 
-  // TODO: Set ChannelSettings on links 0 and 1, and add spectrum channels
-  
+  WifiHelper wifi;
+  wifi.SetStandard (WIFI_STANDARD_80211be);
 
-  // TODO: Install WIFI 802.11be devices on AP and STA
-  
+  WifiMacHelper mac;
+  Ssid ssid = Ssid ("mlo-ssid");
+
+  mac.SetType ("ns3::StaWifiMac", "Ssid", SsidValue (ssid));
+  NetDeviceContainer staDevices = wifi.Install (phy, mac, wifiSta);
+
+  mac.SetType ("ns3::ApWifiMac", "Ssid", SsidValue (ssid));
+  NetDeviceContainer apDevice = wifi.Install (phy, mac, wifiAp);
 
   std::cout << "WiFi 7 MLO Simulation Setup Complete." << std::endl;
   return 0;
@@ -1867,8 +2098,18 @@ int main (int argc, char *argv[])
     difficultyClass: "difficulty-pro",
     summary: "Prototype WiFi 8 candidates with overlapping BSS.",
     description: `<p><strong>Objective:</strong> Prototype Coordinated Spatial Reuse (CoSR) in an overlapping BSS (OBSS) topology.</p>
-                  <p>Design spatial coordinates using <code>MobilityHelper</code> with AP1 at <code>(0,0)</code>, AP2 at <code>(40,0)</code>, STA1 at <code>(10,0)</code>, and STA2 at <code>(30,0)</code>.</p>`,
+                  <p>Design spatial coordinates using [[MobilityHelper]] with AP1 at <code>(0,0)</code>, AP2 at <code>(40,0)</code>, STA1 at <code>(10,0)</code>, and STA2 at <code>(30,0)</code>.</p>`,
     template: `#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/wifi-module.h"
+#include "ns3/mobility-module.h"
+#include <iostream>
+
+using namespace ns3;
+
+// Write your code here
+`,
+    solution: `#include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/wifi-module.h"
 #include "ns3/mobility-module.h"
@@ -1909,8 +2150,17 @@ int main (int argc, char *argv[])
   mac.SetType ("ns3::ApWifiMac", "Ssid", SsidValue (ssid2));
   NetDeviceContainer apDev2 = wifi.Install (phy, mac, apNodes.Get (1));
 
-  // TODO: Configure Coordinates: AP1 at (0,0), AP2 at (40,0), STA1 at (10,0), STA2 at (30,0) using MobilityHelper
-  
+  // Configure Coordinates: AP1 at (0,0), AP2 at (40,0)
+  MobilityHelper mobility;
+  Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();
+  positionAlloc->Add (Vector (0.0, 0.0, 0.0));   // AP 1
+  positionAlloc->Add (Vector (40.0, 0.0, 0.0));  // AP 2
+  positionAlloc->Add (Vector (10.0, 0.0, 0.0));  // STA 1
+  positionAlloc->Add (Vector (30.0, 0.0, 0.0));  // STA 2
+  mobility.SetPositionAllocator (positionAlloc);
+  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  mobility.Install (apNodes);
+  mobility.Install (staNodes);
 
   std::cout << "WiFi 8 CoSR OBSS topology initialized." << std::endl;
   return 0;
@@ -1975,7 +2225,7 @@ function selectProblem(index) {
   if (titleEditor) titleEditor.innerText = prob.title;
 
   const descContent = document.getElementById('problem-description');
-  if (descContent) descContent.innerHTML = prob.description;
+  if (descContent) descContent.innerHTML = parseWikiLinks(prob.description);
 
   // Load editor code (use saved submission if exists, otherwise template)
   const savedCode = problemSubmissions[prob.id] || prob.template;
@@ -2029,6 +2279,15 @@ function syncLineNumbers() {
   lineNumContainer.innerHTML = html;
 }
 
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function revealNextHint() {
   const prob = codingLabProblems[selectedProblemIndex];
   if (!prob.hints || prob.hints.length === 0) return;
@@ -2051,12 +2310,39 @@ function revealNextHint() {
     list.appendChild(li);
   }
 
-  // Hide button if all hints are revealed
-  const btn = document.getElementById('btn-reveal-hint');
-  if (btn && currentRevealedHintIndex >= prob.hints.length - 1) {
-    btn.style.display = 'none';
+  // Show locked solution button once all standard hints are revealed
+  if (currentRevealedHintIndex >= prob.hints.length - 1) {
+    const btn = document.getElementById('btn-reveal-hint');
+    if (btn) btn.style.display = 'none';
+
+    // Append Reveal Solution button
+    const revealSolBtn = document.createElement('button');
+    revealSolBtn.id = 'btn-reveal-sol';
+    revealSolBtn.className = 'btn btn-primary btn-sm mt-3';
+    revealSolBtn.style.width = '100%';
+    revealSolBtn.innerHTML = '🔓 Reveal Full Solution';
+    revealSolBtn.onclick = revealSolution;
+    hintBox.appendChild(revealSolBtn);
   }
 }
+
+window.revealSolution = function() {
+  const prob = codingLabProblems[selectedProblemIndex];
+  const hintBox = document.getElementById('revealed-hint-box');
+  if (!prob || !hintBox) return;
+
+  const solDiv = document.createElement('div');
+  solDiv.style.marginTop = '16px';
+  solDiv.innerHTML = `
+    <h4 style="margin-top:14px; color:#fbbf24; font-weight:600;">🔑 Complete C++ Solution:</h4>
+    <pre style="background:#05070c; padding:12px; border-radius:6px; border:1px solid var(--border-glow); margin-top:8px; overflow-x:auto;"><code style="font-family:monospace; color:#34d399; font-size:12.5px; white-space:pre;">${escapeHtml(prob.solution)}</code></pre>
+  `;
+  hintBox.appendChild(solDiv);
+
+  // Hide the reveal solution button
+  const btn = document.getElementById('btn-reveal-sol');
+  if (btn) btn.style.display = 'none';
+};
 
 function clearConsole() {
   const consoleBody = document.getElementById('console-body');

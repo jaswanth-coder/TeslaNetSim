@@ -8,17 +8,33 @@
 }
 
 :root {
-  --bg-primary: #0b0f19;
-  --bg-secondary: #111827;
-  --bg-card: #1f2937;
-  --text-main: #f3f4f6;
+  --bg-primary: #1e1e1e;
+  --bg-secondary: #161616;
+  --bg-card: #2a2a2a;
+  --text-main: #dcddde;
   --text-muted: #9ca3af;
-  --ns3-blue: #1d4ed8;
+  --ns3-blue: #38bdf8;
   --ns3-orange: #ea580c;
-  --border-glow: rgba(255, 255, 255, 0.08);
+  --border-glow: #2d2d2d;
   --success: #10b981;
-  --warning: #f59e0b;
-  --purple: #8b5cf6;
+  --warning: #fbbf24;
+  --purple: #a78bfa;
+  --accent-violet: #8b5cf6;
+}
+
+body.light-theme {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f6f8fa;
+  --bg-card: #ffffff;
+  --text-main: #24292f;
+  --text-muted: #57606a;
+  --ns3-blue: #0969da;
+  --ns3-orange: #bc4c00;
+  --border-glow: #d0d7de;
+  --success: #1a7f37;
+  --warning: #9a6700;
+  --purple: #8250df;
+  --accent-violet: #6f42c1;
 }
 
 body {
@@ -26,6 +42,7 @@ body {
   color: var(--text-main);
   overflow-x: hidden;
   height: 100vh;
+  transition: background-color 0.2s, color 0.2s;
 }
 
 /* App Layout */
@@ -564,10 +581,26 @@ body {
   border-radius: 6px;
   border: 1px solid var(--border-glow);
   margin-top: 6px;
+  gap: 12px;
+  width: 100%;
 }
 
 .file-path-row code, .terminal-command-row code {
   color: #34d399;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12.5px;
+  overflow-x: auto;
+  white-space: nowrap;
+  max-width: calc(100% - 65px);
+  display: block;
+}
+
+body.light-theme .file-path-row, body.light-theme .terminal-command-row {
+  background-color: #f6f8fa;
+}
+
+body.light-theme .file-path-row code, body.light-theme .terminal-command-row code {
+  color: #0969da;
 }
 
 /* Quiz Block */
@@ -1403,4 +1436,209 @@ body {
   font-size: 12.5px;
   color: var(--text-muted);
   line-height: 1.5;
+}
+
+/* ==========================================
+   Obsidian Theme Light Mode Overrides
+   ========================================== */
+body.light-theme .content-card,
+body.light-theme .cheat-card,
+body.light-theme .problem-details-panel,
+body.light-theme .editor-panel,
+body.light-theme .syllabus-sidebar,
+body.light-theme .problem-sidebar {
+  background-color: var(--bg-card);
+  border-color: var(--border-glow);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+body.light-theme h1,
+body.light-theme h2,
+body.light-theme h3,
+body.light-theme h4,
+body.light-theme .cheat-card-header h4,
+body.light-theme .syllabus-sidebar h3,
+body.light-theme .problem-sidebar h3,
+body.light-theme .modal-card-header h3 {
+  color: #24292f !important;
+}
+
+body.light-theme .nav-item.active {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #24292f;
+}
+
+body.light-theme .nav-item {
+  color: var(--text-muted);
+}
+
+body.light-theme .nav-item:hover {
+  color: var(--text-main);
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* ==========================================
+   Theme Switcher Button
+   ========================================== */
+.theme-toggle-btn {
+  background: none;
+  border: 1px solid var(--border-glow);
+  color: var(--text-muted);
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  margin-left: 8px;
+}
+
+.theme-toggle-btn:hover {
+  background-color: var(--border-glow);
+  color: var(--text-main);
+}
+
+/* ==========================================
+   Obsidian WikiLinks & Popup Modals
+   ========================================== */
+.wiki-link {
+  color: var(--purple);
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px dashed var(--purple);
+  cursor: pointer;
+  transition: background-color 0.2s;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+
+.wiki-link:hover {
+  background-color: rgba(139, 92, 246, 0.1);
+}
+
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 2500;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(1.5px);
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+.modal-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-glow);
+  border-radius: 8px;
+  width: 90%;
+  max-width: 480px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  animation: modalSlideUp 0.22s ease-out;
+}
+
+@keyframes modalSlideUp {
+  from { transform: translateY(15px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-card-header {
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-glow);
+  padding: 12px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.modal-close-btn:hover {
+  color: var(--text-main);
+}
+
+.modal-card-body {
+  padding: 18px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-main);
+}
+
+.modal-card-body h4 {
+  font-size: 14px;
+  margin-top: 12px;
+  margin-bottom: 4px;
+}
+
+.modal-card-body code {
+  background-color: rgba(0, 0, 0, 0.25);
+  color: #fbbf24;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+body.light-theme .modal-card-body code {
+  background-color: #f3f4f6;
+  color: #bc4c00;
+}
+
+/* ==========================================
+   Assignment Layout Command Boxes
+   ========================================== */
+.assignment-cmd-container {
+  margin: 12px 0;
+}
+
+.assignment-cmd-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.assignment-cmd-box {
+  background-color: #05070c;
+  border: 1px solid var(--border-glow);
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+  color: #38bdf8;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+body.light-theme .assignment-cmd-box {
+  background-color: #f6f8fa;
+  color: #0969da;
+}
+
+.assignment-cmd-box code {
+  overflow-x: auto;
+  white-space: nowrap;
+  max-width: calc(100% - 60px);
+  display: block;
 }

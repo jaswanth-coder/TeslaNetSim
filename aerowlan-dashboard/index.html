@@ -34,10 +34,6 @@
           <i data-lucide="book-open"></i>
           <span>Learning Hub</span>
         </a>
-        <a href="#" class="nav-item" data-tab="agents">
-          <i data-lucide="bot"></i>
-          <span>Multi-Agent Skills</span>
-        </a>
         <a href="#" class="nav-item" data-tab="codinglab">
           <i data-lucide="code-2"></i>
           <span>Coding Lab</span>
@@ -54,6 +50,9 @@
           <p>Antigravity CLI Link</p>
           <span>Connected</span>
         </div>
+        <button id="theme-toggle" class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Light/Dark Theme">
+          <i data-lucide="sun" id="theme-icon"></i>
+        </button>
       </div>
     </aside>
 
@@ -226,72 +225,6 @@
               <button class="btn btn-primary" id="btn-next-lesson" onclick="nextLesson()">
                 Next Lesson <i data-lucide="arrow-right"></i>
               </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Multi-Agent Skills Tab -->
-      <section id="agents-tab" class="tab-content">
-        <div class="agents-intro">
-          <h2>Active AI Agents & Skills</h2>
-          <p>These agents coordinate and adapt based on your prompts. You can verify and modify their instructions in your local IDE.</p>
-        </div>
-
-        <div class="agents-grid">
-          <div class="agent-card">
-            <div class="agent-card-header">
-              <span class="agent-avatar">🎓</span>
-              <div>
-                <h3>wlan-teaching-expert</h3>
-                <span class="badge purple">Interactive Instruction</span>
-              </div>
-            </div>
-            <p>Guides you through lessons, manages quizzes, sets coding challenges, and tracks your progress from scratch to professional research.</p>
-            <div class="agent-source-link">
-              <a href="file:///home/jaswanth/Downloads/ns-allinone-3.45/ns-3.45/.agents/skills/wlan-teaching-expert/SKILL.md" target="_blank">View Instructions (SKILL.md)</a>
-            </div>
-          </div>
-
-          <div class="agent-card">
-            <div class="agent-card-header">
-              <span class="agent-avatar">💻</span>
-              <div>
-                <h3>wlan-cpp-coder</h3>
-                <span class="badge green">Code Synthesis</span>
-              </div>
-            </div>
-            <p>Writes high-quality, compiler-verified C++ code for ns-3 modules, helpers, and scratch scripts according to standard conventions.</p>
-            <div class="agent-source-link">
-              <a href="file:///home/jaswanth/Downloads/ns-allinone-3.45/ns-3.45/.agents/skills/wlan-cpp-coder/SKILL.md" target="_blank">View Instructions (SKILL.md)</a>
-            </div>
-          </div>
-
-          <div class="agent-card">
-            <div class="agent-card-header">
-              <span class="agent-avatar">👁️‍🗨️</span>
-              <div>
-                <h3>wlan-netanim-visualizer</h3>
-                <span class="badge blue">Visualization</span>
-              </div>
-            </div>
-            <p>Sets up AnimationInterface configurations in simulation scripts, manages nodes, labels, colors, and packet tracing outputs.</p>
-            <div class="agent-source-link">
-              <a href="file:///home/jaswanth/Downloads/ns-allinone-3.45/ns-3.45/.agents/skills/wlan-netanim-visualizer/SKILL.md" target="_blank">View Instructions (SKILL.md)</a>
-            </div>
-          </div>
-
-          <div class="agent-card">
-            <div class="agent-card-header">
-              <span class="agent-avatar">📝</span>
-              <div>
-                <h3>wlan-markdown-documenter</h3>
-                <span class="badge orange">Technical Writing</span>
-              </div>
-            </div>
-            <p>Drafts markdown specifications, research notes, Git readmes, and comparisons of simulation results for your GitHub showcase.</p>
-            <div class="agent-source-link">
-              <a href="file:///home/jaswanth/Downloads/ns-allinone-3.45/ns-3.45/.agents/skills/wlan-markdown-documenter/SKILL.md" target="_blank">View Instructions (SKILL.md)</a>
             </div>
           </div>
         </div>
@@ -512,6 +445,19 @@
         </div>
       </section>
     </main>
+  </div>
+
+  <!-- Obsidian-style WikiLink Glossary Modal -->
+  <div id="glossary-modal" class="modal-overlay" onclick="closeGlossary(event)">
+    <div class="modal-card">
+      <div class="modal-card-header">
+        <h3 id="glossary-modal-title">Definition</h3>
+        <button class="modal-close-btn" onclick="closeGlossary(event)">&times;</button>
+      </div>
+      <div class="modal-card-body" id="glossary-modal-body">
+        <!-- Glossary definition text -->
+      </div>
+    </div>
   </div>
 
   <script src="app.js"></script>
