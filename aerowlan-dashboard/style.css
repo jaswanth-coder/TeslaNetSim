@@ -453,6 +453,25 @@ body {
   border: 1px solid var(--border-glow);
   border-radius: 12px;
   padding: 20px;
+  position: sticky;
+  top: 90px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+/* Custom scrollbar styling for a premium dark look */
+.syllabus-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+.syllabus-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.syllabus-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.3);
+  border-radius: 4px;
+}
+.syllabus-sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.5);
 }
 
 .syllabus-sidebar h3 {

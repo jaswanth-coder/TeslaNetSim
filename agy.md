@@ -35,13 +35,22 @@ All submissions written in the dashboard Coding Lab are saved in:
 
 ### Problem Status & Submissions:
 1. `basic-nodes` (Hello World & Node Creation) - **Completed** ✅
-2. `basic-p2p` (Point-to-Point Link) - *Not Started*
-3. `intermediate-csma` (Multi-Node Bus) - *Not Started*
-4. `intermediate-wifi` (802.11n Channel) - *Not Started*
-5. `advanced-mlo` (WiFi 7 Multi-Link Setup) - *Not Started*
-6. `pro-cosr` (WiFi 8 Spatial Reuse OBSS) - *Not Started*
+2. `basic-args` (Dynamic Node Parameterization) - *Not Started*
+3. `basic-p2p` (Point-to-Point Link Setup) - *Not Started*
+4. `intermediate-csma` (CSMA Bus Network) - *Not Started*
+5. `intermediate-wifi` (802.11ac Wireless Channel) - *Not Started*
+6. `intermediate-wifi-mlo` (WiFi 7 MLO Basics) - *Not Started*
+7. `basic-mobility` (Constant Position Mobility) - *Not Started*
+8. `intermediate-multilink` (Linear Multi-Subnet Network) - *Not Started*
+9. `intermediate-hybrid` (Hybrid CSMA + P2P Network) - *Not Started*
+10. `intermediate-error` (Rate Error Model Configuration) - *Not Started*
+11. `intermediate-udp-echo` (UDP Echo Application Setup) - *Not Started*
+12. `intermediate-onoff-sink` (OnOff & PacketSink Traffic Generation) - *Not Started*
+13. `advanced-qos-edca` (QoS EDCA Queue Customization) - *Not Started*
+14. `advanced-wifi7-mlo-channels` (WiFi 7 MLO Multi-Band Channel Configuration) - *Not Started*
+15. `pro-wifi8-cosr-sensitivity` (WiFi 8 Coordinated Spatial Reuse Sensitivity) - *Not Started*
 
 ## 🧑‍🏫 Tutoring Status
-- **Current Module:** Track 1 • Module 3: Tweaking.
-- **Active Task:** Expanded Coding Lab questions from 6 to 10. Added new basic mobility coordinate allocation and medium-level linear multi-subnet, hybrid CSMA-P2P topology, and rate error packet drop configuration.
-- **Git Push Status:** All updates (Coding Lab expanded list and state tracker) committed and pushed.
+- **Current Module:** Track 1 • Layman Analogies & PDF Extractions.
+- **Active Task:** Extracted core specifications from Chapters 8 (Tracing) and 9 (Data Collection) of the ns-3 tutorial PDF to a reference markdown file. Used the notes to fully expand Modules 5 & 6 in app.js, covering pointer-to-function callbacks, Config wildcards, context vs context-less paths, and the three-tier DCF (Probes, Collectors, Aggregators).
+- **Git Push Status:** All updates committed and pushed.
