@@ -362,6 +362,41 @@
               </div>
             </div>
           </div>
+
+          <!-- Interactive Wifi Module Architecture Mind Map -->
+          <div class="mindmap-section" style="margin-top: 40px; padding: 24px; background: var(--bg-secondary); border: 1px solid var(--border-glow); border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
+            <h3 style="font-family: 'Outfit', sans-serif; font-size: 18px; color: #cbd5e1; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+              <span>🌐</span> ns-3 WiFi Module Architecture Interactive Mind Map
+            </h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">
+              Hover over architecture nodes to trace logical links, and click nodes to view headers, descriptions, and key subclass method functions.
+            </p>
+            
+            <div class="mindmap-container" style="display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start;">
+              <!-- Interactive SVG canvas -->
+              <div class="mindmap-canvas-wrapper" style="position: relative; background: rgba(5, 7, 12, 0.6); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 8px; overflow: hidden; height: 420px; display: flex; align-items: center; justify-content: center;">
+                <svg id="wifi-mindmap-svg" width="100%" height="100%" viewBox="0 0 600 420" style="cursor: default;"></svg>
+              </div>
+              
+              <!-- Sidebar details panel -->
+              <div id="mindmap-details-panel" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; padding: 18px; min-height: 420px; display: flex; flex-direction: column; gap: 12px; transition: all 0.3s ease;">
+                <div id="mindmap-empty-state" style="margin: auto; text-align: center; color: var(--text-muted); font-size: 13px;">
+                  <span style="font-size: 24px; display: block; margin-bottom: 10px;">🖱️</span>
+                  Hover or click a node in the mind map to inspect module functions
+                </div>
+                <div id="mindmap-content-state" style="display: none;">
+                  <span id="mindmap-badge" class="badge blue" style="font-size: 9px; text-transform: uppercase;">Helper API</span>
+                  <h4 id="mindmap-node-name" style="font-size: 16px; color: #a5b4fc; font-family: 'Outfit', sans-serif; margin-top: 6px; margin-bottom: 4px;">WifiHelper</h4>
+                  <code id="mindmap-node-header" style="font-size: 11px; color: #34d399; font-family: monospace; display: block; margin-bottom: 10px; background: rgba(52, 211, 153, 0.08); padding: 2px 6px; border-radius: 4px; width: fit-content;">#include "ns3/wifi-helper.h"</code>
+                  <p id="mindmap-node-desc" style="font-size: 12.5px; color: #d1d5db; line-height: 1.5; margin-bottom: 14px;">Description goes here.</p>
+                  <h5 style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Key Methods & Functions:</h5>
+                  <ul id="mindmap-node-methods" class="clean-list" style="font-size: 11.5px; color: #cbd5e1; display: flex; flex-direction: column; gap: 6px; padding-left: 0;">
+                    <!-- methods dynamic list -->
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

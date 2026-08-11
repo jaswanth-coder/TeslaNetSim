@@ -1661,3 +1661,18 @@ body.light-theme .assignment-cmd-box {
   max-width: calc(100% - 60px);
   display: block;
 }
+
+/* WiFi Mind Map Animations & Styles */
+#wifi-mindmap-svg line {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+#wifi-mindmap-svg g circle {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+#wifi-mindmap-svg g:hover circle {
+  filter: drop-shadow(0 0 6px rgba(129, 140, 248, 0.5));
+}
+#mindmap-details-panel {
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.05);
+}
+

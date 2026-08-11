@@ -2698,6 +2698,7 @@ function init() {
   loadLesson(currentModuleIndex, currentLessonIndex);
   updateProgressBar();
   initCodingLab();
+  initWifiMindmap();
   lucide.createIcons();
 }
 
@@ -4263,3 +4264,187 @@ window.filterCheatCommands = function(category) {
     }
   });
 };
+
+// WiFi Mindmap Data
+const wifiMindmapNodes = [
+  { id: "root", label: "WiFi Module", x: 300, y: 210, r: 28, color: "#818cf8", category: "Core Module", header: "ns3/wifi-module.h", desc: "The top-level container module for all wireless networking protocols, channels, physical layers, and helpers in ns-3.", methods: ["Install WifiNetDevices", "Manage Spectrum Channels", "Support 802.11a/b/g/n/ac/ax/be/bn"] },
+  
+  { id: "helpers", label: "Helpers API", x: 140, y: 110, r: 22, color: "#3b82f6", category: "Helpers", header: "ns3/wifi-helper.h", desc: "High-level API wrappers used to configure and install WiFi net devices onto Node containers easily.", methods: ["SetStandard(standard)", "SetRemoteStationManager(manager)", "Install(phy, mac, nodes)"], parent: "root" },
+  { id: "wifihelper", label: "WifiHelper", x: 45, y: 65, r: 16, color: "#60a5fa", category: "Helpers", header: "ns3/wifi-helper.h", desc: "Coordinates the configuration of standard, physical helpers, and remote station managers to instantiate WifiNetDevices.", methods: ["SetStandard(WIFI_STANDARD_80211be)", "SetRemoteStationManager(type, attributes)", "Install(phyHelper, macHelper, nodeContainer)"], parent: "helpers" },
+  { id: "machelper", label: "WifiMacHelper", x: 45, y: 145, r: 16, color: "#60a5fa", category: "Helpers", header: "ns3/wifi-mac-helper.h", desc: "Configures MAC type (AP, STA, Adhoc, Mesh) and Quality of Service (QoS) parameters on devices.", methods: ["SetType(type, attributes)", "SetMultiLinkType(mldType)", "CreateMacDevice()"], parent: "helpers" },
+  { id: "phyhelper", label: "WifiPhyHelper", x: 130, y: 40, r: 16, color: "#60a5fa", category: "Helpers", header: "ns3/wifi-phy-helper.h", desc: "Configures physical channels, receiver sensitivity thresholds, and antennas for wireless nodes.", methods: ["Set(attribute, value)", "SetChannel(channelHelper)", "CreatePhyDevice()"], parent: "helpers" },
+  
+  { id: "mac", label: "MAC Layer", x: 300, y: 80, r: 22, color: "#ec4899", category: "MAC Layer", header: "ns3/wifi-mac.h", desc: "Manages MAC-level states, frame sequencing, duplicate detection, and medium access coordination.", methods: ["ConfigureStandard(standard)", "SetLinkUpCallback(callback)", "Receive(packet, header)"], parent: "root" },
+  { id: "wifimac", label: "WifiMac", x: 215, y: 35, r: 16, color: "#f472b6", category: "MAC Layer", header: "ns3/wifi-mac.h", desc: "Base class for all WiFi MAC models. Subclasses include ApWifiMac, StaWifiMac, and AdhocWifiMac.", methods: ["Enqueue(packet, destination)", "SetSsid(ssid)", "SetBssid(bssid)"], parent: "mac" },
+  { id: "qostxop", label: "QosTxop", x: 385, y: 35, r: 16, color: "#f472b6", category: "MAC Layer", header: "ns3/qos-txop.h", desc: "Manages Enhanced Distributed Channel Access (EDCA) transmission queues and AIFSN backoff priorities.", methods: ["SetAifsn(value)", "SetMinCw(value)", "SetMaxCw(value)", "GetQueueSize()"], parent: "mac" },
+  
+  { id: "phy", label: "PHY Layer", x: 460, y: 180, r: 22, color: "#10b981", category: "PHY Layer", header: "ns3/wifi-phy.h", desc: "Models the physical transmission and reception parameters, signal propagation, error models, and spectrum configurations.", methods: ["Send(packet, parameters)", "StartReceive(packet, rxParams)", "SetCcaSensitivityThreshold(value)"], parent: "root" },
+  { id: "wifiphy", label: "WifiPhy", x: 540, y: 125, r: 16, color: "#34d399", category: "PHY Layer", header: "ns3/wifi-phy.h", desc: "Base class for physical layer models, managing Tx/Rx states (IDLE, CCA_BUSY, TX, RX) and noise calculations.", methods: ["SetTxPowerStart(value)", "SetTxPowerEnd(value)", "RegisterListener(listener)"], parent: "phy" },
+  { id: "channel", label: "WifiChannel", x: 540, y: 235, r: 16, color: "#34d399", category: "PHY Layer", header: "ns3/wifi-channel.h", desc: "Models the medium propagation loss, multipath fading, and signal delays between transmitting and receiving antennas.", methods: ["Send(packet, txPower, txParams)", "AddPropagationLossModel(model)", "SetPropagationDelayModel(model)"], parent: "phy" },
+  
+  { id: "mlo", label: "MLO (WiFi 7/8)", x: 260, y: 320, r: 22, color: "#eab308", category: "Multi-Link", header: "ns3/wifi-mld-mac.h", desc: "Manages Multi-Link Operation (MLO) introduced in IEEE 802.11be (WiFi 7), coordinating links across bands (2.4GHz, 5GHz, 6GHz).", methods: ["AddLink(link)", "GetLink(linkId)", "RoutePacketToLink(packet)"], parent: "root" },
+  { id: "mldmac", label: "WifiMldMac", x: 175, y: 375, r: 16, color: "#fde047", category: "Multi-Link", header: "ns3/wifi-mld-mac.h", desc: "Coordinates traffic routing and link scheduling across multiple physical radio links for high-throughput clients.", methods: ["AssociateLinks(staMld, apMld)", "GetNumLinks()", "SetLinkState(linkId, state)"], parent: "mlo" },
+  { id: "wifilink", label: "WifiLink", x: 345, y: 375, r: 16, color: "#fde047", category: "Multi-Link", header: "ns3/wifi-link.h", desc: "Represents a single active channel configuration interface participating inside a Multi-Link Device (MLD).", methods: ["GetLinkId()", "GetBand()", "GetChannelWidth()"], parent: "mlo" }
+];
+
+window.initWifiMindmap = function() {
+  const svg = document.getElementById('wifi-mindmap-svg');
+  if (!svg) return;
+  svg.innerHTML = '';
+
+  // 1. Draw Connection Lines
+  wifiMindmapNodes.forEach(node => {
+    if (node.parent) {
+      const parentNode = wifiMindmapNodes.find(n => n.id === node.parent);
+      if (parentNode) {
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", node.x);
+        line.setAttribute("y1", node.y);
+        line.setAttribute("x2", parentNode.x);
+        line.setAttribute("y2", parentNode.y);
+        line.setAttribute("stroke", "rgba(99, 102, 241, 0.2)");
+        line.setAttribute("stroke-width", "2");
+        line.setAttribute("id", `link-${node.id}-${parentNode.id}`);
+        svg.appendChild(line);
+      }
+    }
+  });
+
+  // 2. Draw Nodes
+  wifiMindmapNodes.forEach(node => {
+    const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    group.setAttribute("style", "cursor: pointer;");
+    group.setAttribute("id", `node-group-${node.id}`);
+
+    // Outer glowing ring
+    const glow = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    glow.setAttribute("cx", node.x);
+    glow.setAttribute("cy", node.y);
+    glow.setAttribute("r", node.r + 4);
+    glow.setAttribute("fill", "none");
+    glow.setAttribute("stroke", node.color);
+    glow.setAttribute("stroke-width", "1");
+    glow.setAttribute("opacity", "0");
+    glow.setAttribute("id", `node-glow-${node.id}`);
+    glow.style.transition = "all 0.2s ease";
+
+    // Main Circle
+    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.setAttribute("cx", node.x);
+    circle.setAttribute("cy", node.y);
+    circle.setAttribute("r", node.r);
+    circle.setAttribute("fill", node.color);
+    circle.setAttribute("opacity", "0.95");
+    circle.setAttribute("id", `node-circle-${node.id}`);
+    circle.style.transition = "all 0.2s ease";
+
+    // Text Label
+    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    text.setAttribute("x", node.x);
+    text.setAttribute("y", node.y + (node.r > 20 ? 4 : 3));
+    text.setAttribute("text-anchor", "middle");
+    text.setAttribute("fill", "#ffffff");
+    text.setAttribute("style", `font-family: 'Outfit', sans-serif; font-size: ${node.r > 20 ? 9 : 7}px; font-weight: 600; pointer-events: none;`);
+    text.textContent = node.label;
+
+    group.appendChild(glow);
+    group.appendChild(circle);
+    group.appendChild(text);
+
+    // Event listeners
+    group.onmouseenter = () => {
+      // Highlight glow
+      glow.setAttribute("opacity", "0.4");
+      glow.setAttribute("stroke-width", "3");
+      circle.setAttribute("r", node.r + 2);
+      
+      // Highlight lines connected to parent or children
+      wifiMindmapNodes.forEach(other => {
+        if (other.parent === node.id || node.parent === other.id) {
+          const lId = other.parent === node.id ? `link-${other.id}-${node.id}` : `link-${node.id}-${other.id}`;
+          const lineElement = document.getElementById(lId);
+          if (lineElement) {
+            lineElement.setAttribute("stroke", "rgba(99, 102, 241, 0.8)");
+            lineElement.setAttribute("stroke-width", "3");
+          }
+        }
+      });
+
+      // Update sidebar
+      updateMindmapSidebar(node);
+    };
+
+    group.onmouseleave = () => {
+      glow.setAttribute("opacity", "0");
+      glow.setAttribute("stroke-width", "1");
+      circle.setAttribute("r", node.r);
+
+      // Restore lines
+      wifiMindmapNodes.forEach(other => {
+        if (other.parent === node.id || node.parent === other.id) {
+          const lId = other.parent === node.id ? `link-${other.id}-${node.id}` : `link-${node.id}-${other.id}`;
+          const lineElement = document.getElementById(lId);
+          if (lineElement) {
+            lineElement.setAttribute("stroke", "rgba(99, 102, 241, 0.2)");
+            lineElement.setAttribute("stroke-width", "2");
+          }
+        }
+      });
+    };
+
+    group.onclick = () => {
+      // Sticky focus on click
+      updateMindmapSidebar(node);
+      
+      // Temporarily ripple background
+      const ripple = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      ripple.setAttribute("cx", node.x);
+      ripple.setAttribute("cy", node.y);
+      ripple.setAttribute("r", node.r);
+      ripple.setAttribute("fill", "none");
+      ripple.setAttribute("stroke", node.color);
+      ripple.setAttribute("stroke-width", "2");
+      ripple.setAttribute("opacity", "0.8");
+      svg.appendChild(ripple);
+
+      let radius = node.r;
+      const interval = setInterval(() => {
+        radius += 3;
+        ripple.setAttribute("r", radius);
+        ripple.setAttribute("opacity", 1 - (radius - node.r) / 40);
+        if (radius > node.r + 40) {
+          clearInterval(interval);
+          svg.removeChild(ripple);
+        }
+      }, 15);
+    };
+
+    svg.appendChild(group);
+  });
+};
+
+function updateMindmapSidebar(node) {
+  const emptyState = document.getElementById('mindmap-empty-state');
+  const contentState = document.getElementById('mindmap-content-state');
+  if (!emptyState || !contentState) return;
+
+  emptyState.style.display = 'none';
+  contentState.style.display = 'block';
+
+  document.getElementById('mindmap-badge').innerText = node.category;
+  document.getElementById('mindmap-node-name').innerText = node.label;
+  document.getElementById('mindmap-node-header').innerText = `#include "${node.header}"`;
+  document.getElementById('mindmap-node-desc').innerText = node.desc;
+
+  const methodsList = document.getElementById('mindmap-node-methods');
+  methodsList.innerHTML = '';
+  node.methods.forEach(method => {
+    const li = document.createElement('li');
+    li.style.display = 'flex';
+    li.style.alignItems = 'start';
+    li.style.gap = '6px';
+    li.style.marginBottom = '4px';
+    li.innerHTML = `<span style="color:#a5b4fc; font-weight:bold;">•</span> <code style="font-family:monospace; color:#cbd5e1; word-break:break-all;">${method}</code>`;
+    methodsList.appendChild(li);
+  });
+}
