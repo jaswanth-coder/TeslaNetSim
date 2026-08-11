@@ -24,9 +24,28 @@ This package runs locally inside your ns-3 workspace using the **Antigravity Age
 * **Interactive Local Dashboard**: A beautiful, premium single-page web app styled in ns-3 colors (dark slate blue and orange) to read lessons, solve module quizzes, and verify programming exercises.
 * **5-Question Module Quizzes**: Test your knowledge at the end of each module with varying levels of multiple-choice assessments.
 * **Auto-Grading Practical Assignments**: Write your code in your terminal, run the simulation, and paste the stdout logs directly into the dashboard. The client-side auto-grader will verify your logs and unlock the next module!
-* **Two Learning Tracks**:
+* **Three Learning Tracks**:
   * **Track 1: ns-3 Master Class (General & Wired)**: Aligns exactly with the official ns-3 tutorial chapters 4 through 10.
-  * **Track 2: WiFi 7/8 Research Pro**: Dedicated to advanced wireless stack modeling, EDCA QoS queuing, WiFi 7 MLO (Multi-Link Operation), and WiFi 8 coordinated basic service set scheduling (CoSR, CoBF).
+  * **Track 2: WiFi 7/8 Research Pro**: Dedicated to advanced wireless stack modeling, EDCA QoS queuing, WiFi 7 MLO (Multi-Link Operation), and WiFi 8 coordinated basic service BSS scheduling.
+  * **Track 3: C++ Foundations for ns-3**: Covers basic C++ syntax, Stack/Heap memory allocation, virtual tables, inheritance, and ns-3 custom smart pointers (<code>Ptr</code>) / callback configurations.
+
+---
+
+## 🛠️ Recent Refactorings (August 11, 2026)
+
+* **Track 3: C++ Foundations for ns-3**:
+  * Added a third complete learning track to bridge standard C++ concepts (variables, loops, OOP inheritance, virtual dispatch, templates) to ns-3 proprietary classes like <code>Ptr&lt;T&gt;</code>, <code>CreateObject&lt;T&gt;()</code>, and <code>Callback</code>.
+  * Included interactive compiler-verification exercises compiled locally with standard <code>g++</code>.
+* **Interactive SVG WiFi Architecture Explorer**:
+  * Designed a dedicated **WiFi Architecture Map** tab featuring a dynamic horizontal tree mind map.
+  * Nodes representing core modules, class structures, and member functions are clickable and expandable with smooth Bezier linking lines.
+  * Clicking on method nodes displays functional C++ prototypes, parameter descriptions, and copies code usage examples directly to the clipboard.
+* **Premium UI and UX Refinements**:
+  * Enforced a unified dark-theme across all assets.
+  * Replaced the long course list with a smooth, collapsible accordion navigation sidebar.
+  * Overrode Python backend headers in <code>server.py</code> with <code>no-store, no-cache</code> properties to prevent browser caching.
+* **Tracing & Data Collection Enriched Modules**:
+  * Re-documented Module 5 (Tracing) and Module 6 (Data Collection) based on Chapters 8 & 9 of the ns-3 tutorial, clarifying callback systems, Config wildcards, three-tier DCF (Probes, Collectors, Aggregators), and FlowMonitor metrics.
 
 ---
 
