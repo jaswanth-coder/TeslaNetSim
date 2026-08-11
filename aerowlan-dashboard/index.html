@@ -42,6 +42,10 @@
           <i data-lucide="terminal"></i>
           <span>Command Cheat Sheet</span>
         </a>
+        <a href="#" class="nav-item" data-tab="mindmap">
+          <i data-lucide="network"></i>
+          <span>WiFi Architecture Map</span>
+        </a>
       </nav>
 
       <div class="sidebar-footer">
@@ -362,36 +366,57 @@
               </div>
             </div>
           </div>
+        </div>
+      </section>
 
-          <!-- Interactive Wifi Module Architecture Mind Map -->
-          <div class="mindmap-section" style="margin-top: 40px; padding: 24px; background: var(--bg-secondary); border: 1px solid var(--border-glow); border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
-            <h3 style="font-family: 'Outfit', sans-serif; font-size: 18px; color: #cbd5e1; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
-              <span>🌐</span> ns-3 WiFi Module Architecture Interactive Mind Map
-            </h3>
-            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">
-              Hover over architecture nodes to trace logical links, and click nodes to view headers, descriptions, and key subclass method functions.
-            </p>
+      <!-- WiFi Architecture Map Tab -->
+      <section id="mindmap-tab" class="tab-content">
+        <div class="mindmap-section" style="padding: 24px; background: var(--bg-secondary); border: 1px solid var(--border-glow); border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); margin: 0 auto; max-width: 1200px;">
+          <h2 style="font-family: 'Outfit', sans-serif; font-size: 22px; color: #f8fafc; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+            <span>🌐</span> ns-3 WiFi Module Interactive Architecture Explorer
+          </h2>
+          <p style="font-size: 13.5px; color: var(--text-muted); margin-bottom: 24px;">
+            Click nodes to expand/collapse their hierarchy. Click on class methods to inspect their parameters, detailed descriptions, and C++ caller examples.
+          </p>
+          
+          <div class="mindmap-container" style="display: grid; grid-template-columns: 1fr 380px; gap: 24px; align-items: start;">
+            <!-- Interactive SVG canvas -->
+            <div class="mindmap-canvas-wrapper" style="position: relative; background: rgba(5, 7, 12, 0.6); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 8px; overflow: auto; height: 580px; display: flex; align-items: start; padding: 10px;">
+              <svg id="wifi-mindmap-svg" width="600" height="560" style="cursor: default; min-width: 600px; min-height: 560px;"></svg>
+            </div>
             
-            <div class="mindmap-container" style="display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start;">
-              <!-- Interactive SVG canvas -->
-              <div class="mindmap-canvas-wrapper" style="position: relative; background: rgba(5, 7, 12, 0.6); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 8px; overflow: hidden; height: 420px; display: flex; align-items: center; justify-content: center;">
-                <svg id="wifi-mindmap-svg" width="100%" height="100%" viewBox="0 0 600 420" style="cursor: default;"></svg>
+            <!-- Sidebar details panel -->
+            <div id="mindmap-details-panel" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; padding: 20px; min-height: 580px; display: flex; flex-direction: column; gap: 14px; transition: all 0.3s ease; max-height: 580px; overflow-y: auto;">
+              <div id="mindmap-empty-state" style="margin: auto; text-align: center; color: var(--text-muted); font-size: 14px;">
+                <span style="font-size: 28px; display: block; margin-bottom: 12px;">🖱️</span>
+                Click a class or method node in the mind map to inspect its C++ function details and parameter calls
               </div>
               
-              <!-- Sidebar details panel -->
-              <div id="mindmap-details-panel" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; padding: 18px; min-height: 420px; display: flex; flex-direction: column; gap: 12px; transition: all 0.3s ease;">
-                <div id="mindmap-empty-state" style="margin: auto; text-align: center; color: var(--text-muted); font-size: 13px;">
-                  <span style="font-size: 24px; display: block; margin-bottom: 10px;">🖱️</span>
-                  Hover or click a node in the mind map to inspect module functions
-                </div>
-                <div id="mindmap-content-state" style="display: none;">
+              <div id="mindmap-content-state" style="display: none;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
                   <span id="mindmap-badge" class="badge blue" style="font-size: 9px; text-transform: uppercase;">Helper API</span>
-                  <h4 id="mindmap-node-name" style="font-size: 16px; color: #a5b4fc; font-family: 'Outfit', sans-serif; margin-top: 6px; margin-bottom: 4px;">WifiHelper</h4>
-                  <code id="mindmap-node-header" style="font-size: 11px; color: #34d399; font-family: monospace; display: block; margin-bottom: 10px; background: rgba(52, 211, 153, 0.08); padding: 2px 6px; border-radius: 4px; width: fit-content;">#include "ns3/wifi-helper.h"</code>
-                  <p id="mindmap-node-desc" style="font-size: 12.5px; color: #d1d5db; line-height: 1.5; margin-bottom: 14px;">Description goes here.</p>
-                  <h5 style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Key Methods & Functions:</h5>
-                  <ul id="mindmap-node-methods" class="clean-list" style="font-size: 11.5px; color: #cbd5e1; display: flex; flex-direction: column; gap: 6px; padding-left: 0;">
-                    <!-- methods dynamic list -->
+                  <span id="mindmap-node-type-label" style="font-size: 11px; color: var(--text-muted); font-style: italic;">Class</span>
+                </div>
+                
+                <h4 id="mindmap-node-name" style="font-size: 18px; color: #a5b4fc; font-family: 'Outfit', sans-serif; margin-bottom: 4px;">WifiHelper</h4>
+                <code id="mindmap-node-header" style="font-size: 11px; color: #34d399; font-family: monospace; display: block; margin-bottom: 12px; background: rgba(52, 211, 153, 0.08); padding: 3px 8px; border-radius: 4px; width: fit-content;">#include "ns3/wifi-helper.h"</code>
+                
+                <p id="mindmap-node-desc" style="font-size: 13px; color: #cbd5e1; line-height: 1.6; margin-bottom: 16px;">Description goes here.</p>
+                
+                <!-- Expanded Method Details Block -->
+                <div id="mindmap-method-details" style="display: none; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px; margin-top: 14px;">
+                  <h5 style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Method Prototype:</h5>
+                  <pre style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 14px;"><code id="mindmap-method-proto" style="font-family: monospace; font-size: 11.5px; color: #f472b6; white-space: pre-wrap;">void SetStandard (WifiStandard standard)</code></pre>
+                  
+                  <h5 style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">C++ Usage Example:</h5>
+                  <pre style="background: #05070c; padding: 10px 14px; border-radius: 6px; border: 1px solid var(--border-glow); margin-bottom: 10px; position: relative;"><code id="mindmap-method-example" style="font-family: monospace; font-size: 11.5px; color: #34d399; white-space: pre-wrap;">wifi.SetStandard (WIFI_STANDARD_80211be);</code><button class="btn btn-secondary btn-sm" style="position: absolute; top: 6px; right: 6px; font-size: 9px; padding: 2px 6px;" onclick="navigator.clipboard.writeText(document.getElementById('mindmap-method-example').innerText)">Copy</button></pre>
+                </div>
+                
+                <!-- Key Methods List (Only shown for Class nodes) -->
+                <div id="mindmap-class-details" style="display: none; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px; margin-top: 14px;">
+                  <h5 style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">Key Methods:</h5>
+                  <ul id="mindmap-node-methods" class="clean-list" style="font-size: 12px; color: #cbd5e1; display: flex; flex-direction: column; gap: 8px; padding-left: 0;">
+                    <!-- dynamic list of methods -->
                   </ul>
                 </div>
               </div>

@@ -4265,58 +4265,406 @@ window.filterCheatCommands = function(category) {
   });
 };
 
-// WiFi Mindmap Data
-const wifiMindmapNodes = [
-  { id: "root", label: "WiFi Module", x: 300, y: 210, r: 28, color: "#818cf8", category: "Core Module", header: "ns3/wifi-module.h", desc: "The top-level container module for all wireless networking protocols, channels, physical layers, and helpers in ns-3.", methods: ["Install WifiNetDevices", "Manage Spectrum Channels", "Support 802.11a/b/g/n/ac/ax/be/bn"] },
-  
-  { id: "helpers", label: "Helpers API", x: 140, y: 110, r: 22, color: "#3b82f6", category: "Helpers", header: "ns3/wifi-helper.h", desc: "High-level API wrappers used to configure and install WiFi net devices onto Node containers easily.", methods: ["SetStandard(standard)", "SetRemoteStationManager(manager)", "Install(phy, mac, nodes)"], parent: "root" },
-  { id: "wifihelper", label: "WifiHelper", x: 45, y: 65, r: 16, color: "#60a5fa", category: "Helpers", header: "ns3/wifi-helper.h", desc: "Coordinates the configuration of standard, physical helpers, and remote station managers to instantiate WifiNetDevices.", methods: ["SetStandard(WIFI_STANDARD_80211be)", "SetRemoteStationManager(type, attributes)", "Install(phyHelper, macHelper, nodeContainer)"], parent: "helpers" },
-  { id: "machelper", label: "WifiMacHelper", x: 45, y: 145, r: 16, color: "#60a5fa", category: "Helpers", header: "ns3/wifi-mac-helper.h", desc: "Configures MAC type (AP, STA, Adhoc, Mesh) and Quality of Service (QoS) parameters on devices.", methods: ["SetType(type, attributes)", "SetMultiLinkType(mldType)", "CreateMacDevice()"], parent: "helpers" },
-  { id: "phyhelper", label: "WifiPhyHelper", x: 130, y: 40, r: 16, color: "#60a5fa", category: "Helpers", header: "ns3/wifi-phy-helper.h", desc: "Configures physical channels, receiver sensitivity thresholds, and antennas for wireless nodes.", methods: ["Set(attribute, value)", "SetChannel(channelHelper)", "CreatePhyDevice()"], parent: "helpers" },
-  
-  { id: "mac", label: "MAC Layer", x: 300, y: 80, r: 22, color: "#ec4899", category: "MAC Layer", header: "ns3/wifi-mac.h", desc: "Manages MAC-level states, frame sequencing, duplicate detection, and medium access coordination.", methods: ["ConfigureStandard(standard)", "SetLinkUpCallback(callback)", "Receive(packet, header)"], parent: "root" },
-  { id: "wifimac", label: "WifiMac", x: 215, y: 35, r: 16, color: "#f472b6", category: "MAC Layer", header: "ns3/wifi-mac.h", desc: "Base class for all WiFi MAC models. Subclasses include ApWifiMac, StaWifiMac, and AdhocWifiMac.", methods: ["Enqueue(packet, destination)", "SetSsid(ssid)", "SetBssid(bssid)"], parent: "mac" },
-  { id: "qostxop", label: "QosTxop", x: 385, y: 35, r: 16, color: "#f472b6", category: "MAC Layer", header: "ns3/qos-txop.h", desc: "Manages Enhanced Distributed Channel Access (EDCA) transmission queues and AIFSN backoff priorities.", methods: ["SetAifsn(value)", "SetMinCw(value)", "SetMaxCw(value)", "GetQueueSize()"], parent: "mac" },
-  
-  { id: "phy", label: "PHY Layer", x: 460, y: 180, r: 22, color: "#10b981", category: "PHY Layer", header: "ns3/wifi-phy.h", desc: "Models the physical transmission and reception parameters, signal propagation, error models, and spectrum configurations.", methods: ["Send(packet, parameters)", "StartReceive(packet, rxParams)", "SetCcaSensitivityThreshold(value)"], parent: "root" },
-  { id: "wifiphy", label: "WifiPhy", x: 540, y: 125, r: 16, color: "#34d399", category: "PHY Layer", header: "ns3/wifi-phy.h", desc: "Base class for physical layer models, managing Tx/Rx states (IDLE, CCA_BUSY, TX, RX) and noise calculations.", methods: ["SetTxPowerStart(value)", "SetTxPowerEnd(value)", "RegisterListener(listener)"], parent: "phy" },
-  { id: "channel", label: "WifiChannel", x: 540, y: 235, r: 16, color: "#34d399", category: "PHY Layer", header: "ns3/wifi-channel.h", desc: "Models the medium propagation loss, multipath fading, and signal delays between transmitting and receiving antennas.", methods: ["Send(packet, txPower, txParams)", "AddPropagationLossModel(model)", "SetPropagationDelayModel(model)"], parent: "phy" },
-  
-  { id: "mlo", label: "MLO (WiFi 7/8)", x: 260, y: 320, r: 22, color: "#eab308", category: "Multi-Link", header: "ns3/wifi-mld-mac.h", desc: "Manages Multi-Link Operation (MLO) introduced in IEEE 802.11be (WiFi 7), coordinating links across bands (2.4GHz, 5GHz, 6GHz).", methods: ["AddLink(link)", "GetLink(linkId)", "RoutePacketToLink(packet)"], parent: "root" },
-  { id: "mldmac", label: "WifiMldMac", x: 175, y: 375, r: 16, color: "#fde047", category: "Multi-Link", header: "ns3/wifi-mld-mac.h", desc: "Coordinates traffic routing and link scheduling across multiple physical radio links for high-throughput clients.", methods: ["AssociateLinks(staMld, apMld)", "GetNumLinks()", "SetLinkState(linkId, state)"], parent: "mlo" },
-  { id: "wifilink", label: "WifiLink", x: 345, y: 375, r: 16, color: "#fde047", category: "Multi-Link", header: "ns3/wifi-link.h", desc: "Represents a single active channel configuration interface participating inside a Multi-Link Device (MLD).", methods: ["GetLinkId()", "GetBand()", "GetChannelWidth()"], parent: "mlo" }
-];
+// WiFi Mindmap Hierarchical Tree Data
+const wifiTreeData = {
+  id: "root",
+  label: "WiFi Module",
+  category: "Core Module",
+  header: "ns3/wifi-module.h",
+  desc: "The top-level container module for all wireless networking protocols, channels, physical layers, and helpers in ns-3.",
+  color: "#818cf8",
+  r: 24,
+  children: [
+    {
+      id: "helpers",
+      label: "Helpers API",
+      category: "Helpers",
+      header: "ns3/wifi-helper.h",
+      desc: "High-level API wrappers used to configure and install WiFi net devices onto Node containers easily.",
+      color: "#3b82f6",
+      r: 20,
+      children: [
+        {
+          id: "wifihelper",
+          label: "WifiHelper",
+          category: "Helpers",
+          header: "ns3/wifi-helper.h",
+          desc: "Coordinates the configuration of standards, physical helpers, and remote station managers to instantiate WifiNetDevices.",
+          color: "#60a5fa",
+          r: 16,
+          children: [
+            {
+              id: "wifihelper_setstandard",
+              label: "SetStandard",
+              category: "Method",
+              desc: "Sets the IEEE 802.11 standard to be used by the devices (e.g. 802.11a/b/g/n/ac/ax/be/bn). This automatically updates the MAC and PHY layers to standard-specific parameters.",
+              color: "#a78bfa",
+              r: 12,
+              prototype: "void SetStandard (WifiStandard standard)",
+              example: "WifiHelper wifi;\nwifi.SetStandard (WIFI_STANDARD_80211be); // Configures devices for WiFi 7 (EHT)"
+            },
+            {
+              id: "wifihelper_setremote",
+              label: "SetRemoteStationManager",
+              category: "Method",
+              desc: "Sets the rate control algorithm used to dynamically scale MCS transmission rates based on signal state (SNR, packet loss history).",
+              color: "#a78bfa",
+              r: 12,
+              prototype: "void SetRemoteStationManager (std::string type, std::string n0 = \"\", AttributeValue v0 = AttributeValue(), ...)",
+              example: "WifiHelper wifi;\nwifi.SetRemoteStationManager (\"ns3::ConstantRateWifiManager\",\n                             \"DataMode\", StringValue (\"EhtMcs9\"),\n                             \"ControlMode\", StringValue (\"EhtMcs0\"));"
+            },
+            {
+              id: "wifihelper_install",
+              label: "Install",
+              category: "Method",
+              desc: "Instantiates WifiNetDevices on a NodeContainer, configuring the specified physical helper and MAC helper objects.",
+              color: "#a78bfa",
+              r: 12,
+              prototype: "NetDeviceContainer Install (const WifiPhyHelper &phy, const WifiMacHelper &mac, NodeContainer c) const",
+              example: "WifiHelper wifi;\nNetDeviceContainer devices = wifi.Install (phyHelper, macHelper, nodes);"
+            }
+          ]
+        },
+        {
+          id: "machelper",
+          label: "WifiMacHelper",
+          category: "Helpers",
+          header: "ns3/wifi-mac-helper.h",
+          desc: "Configures MAC type (AP, STA, Adhoc, Mesh) and Quality of Service (QoS) parameters on devices.",
+          color: "#60a5fa",
+          r: 16,
+          children: [
+            {
+              id: "machelper_settype",
+              label: "SetType",
+              category: "Method",
+              desc: "Sets the MAC layer type and configures optional attributes (like SSID or association timeouts).",
+              color: "#a78bfa",
+              r: 12,
+              prototype: "void SetType (std::string type, std::string n0 = \"\", const AttributeValue &v0 = AttributeValue(), ...)",
+              example: "WifiMacHelper mac;\nSsid ssid = Ssid (\"ns3-network\");\nmac.SetType (\"ns3::StaWifiMac\", \"Ssid\", SsidValue (ssid), \"ActiveProbing\", BooleanValue (false));"
+            },
+            {
+              id: "machelper_setmultilink",
+              label: "SetMultiLinkType",
+              category: "Method",
+              desc: "Configures MLO Multi-Link Device type (e.g. DEFAULT_MLD) to bind multiple link MAC interfaces.",
+              color: "#a78bfa",
+              r: 12,
+              prototype: "void SetMultiLinkType (WifiHelper::MldType type)",
+              example: "WifiMacHelper mac;\nmac.SetMultiLinkType (WifiHelper::DEFAULT_MLD);"
+            }
+          ]
+        },
+        {
+          id: "phyhelper",
+          label: "WifiPhyHelper",
+          category: "Helpers",
+          header: "ns3/wifi-phy-helper.h",
+          desc: "Configures physical channels, receiver sensitivity thresholds, and antennas for wireless nodes.",
+          color: "#60a5fa",
+          r: 16,
+          children: [
+            {
+              id: "phyhelper_setchannel",
+              label: "SetChannel",
+              category: "Method",
+              desc: "Links physical devices to a shared propagation channel medium helper.",
+              color: "#a78bfa",
+              r: 12,
+              prototype: "void SetChannel (Ptr<WifiChannel> channel)",
+              example: "YansWifiChannelHelper channelHelper = YansWifiChannelHelper::Default ();\nYansWifiPhyHelper phyHelper;\nphyHelper.SetChannel (channelHelper.Create ());"
+            },
+            {
+              id: "phyhelper_set",
+              label: "Set",
+              category: "Method",
+              desc: "Sets physical layer attributes dynamically on the helper template.",
+              color: "#a78bfa",
+              r: 12,
+              prototype: "void Set (std::string name, const AttributeValue &value)",
+              example: "YansWifiPhyHelper phyHelper;\nphyHelper.Set (\"ChannelSettings\", StringValue (\"{0, 80, BAND_5GHZ, 0}\"));"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "mac",
+      label: "MAC Layer",
+      category: "MAC Layer",
+      header: "ns3/wifi-mac.h",
+      desc: "Manages MAC-level states, frame sequencing, duplicate detection, and medium access coordination.",
+      color: "#ec4899",
+      r: 20,
+      children: [
+        {
+          id: "wifimac",
+          label: "WifiMac",
+          category: "MAC Layer",
+          header: "ns3/wifi-mac.h",
+          desc: "Base class for all WiFi MAC models. Subclasses include ApWifiMac, StaWifiMac, and AdhocWifiMac.",
+          color: "#f472b6",
+          r: 16,
+          children: [
+            {
+              id: "wifimac_enqueue",
+              label: "Enqueue",
+              category: "Method",
+              desc: "Enqueues a packet for transmission to a specific destination node address.",
+              color: "#a78bfa",
+              r: 12,
+              prototype: "void Enqueue (Ptr<Packet> packet, Mac48Address to)",
+              example: "Ptr<Packet> pkt = Create<Packet> (1024);\nmac->Enqueue (pkt, destinationAddress);"
+            },
+            {
+              id: "wifimac_setssid",
+              label: "SetSsid",
+              category: "Method",
+              desc: "Sets the Service Set Identifier (network name) for the MAC layer device.",
+              color: "#a78bfa",
+              r: 12,
+              prototype: "void SetSsid (Ssid ssid)",
+              example: "Ssid networkSsid = Ssid (\"wifi-simulation\");\nmac->SetSsid (networkSsid);"
+            }
+          ]
+        },
+        {
+          id: "qostxop",
+          label: "QosTxop",
+          category: "MAC Layer",
+          header: "ns3/qos-txop.h",
+          desc: "Manages Enhanced Distributed Channel Access (EDCA) transmission queues and AIFSN backoff priorities.",
+          color: "#f472b6",
+          r: 16,
+          children: [
+            {
+              id: "qostxop_setaifsn",
+              label: "SetAifsn",
+              category: "Method",
+              desc: "Sets the Arbitration Interframe Space Number, adjusting medium access wait times.",
+              color: "#a78bfa",
+              r: 12,
+              prototype: "void SetAifsn (uint8_t aifsn)",
+              example: "Ptr<QosTxop> voTxop = mac->GetVoTxop ();\nvoTxop->SetAifsn (2); // Shorten voice queue delay"
+            },
+            {
+              id: "qostxop_setcw",
+              label: "SetMinCw",
+              category: "Method",
+              desc: "Sets the minimum contention window size for backoff slot selection.",
+              color: "#a78bfa",
+              r: 12,
+              prototype: "void SetMinCw (uint32_t minCw)",
+              example: "Ptr<QosTxop> beTxop = mac->GetBeTxop ();\nbeTxop->SetMinCw (15); // Standard best effort contention min"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "phy",
+      label: "PHY Layer",
+      category: "PHY Layer",
+      header: "ns3/wifi-phy.h",
+      desc: "Models the physical transmission and reception parameters, signal propagation, error models, and spectrum configurations.",
+      color: "#10b981",
+      r: 20,
+      children: [
+        {
+          id: "wifiphy",
+          label: "WifiPhy",
+          category: "PHY Layer",
+          header: "ns3/wifi-phy.h",
+          desc: "Base class for physical layer models, managing Tx/Rx states (IDLE, CCA_BUSY, TX, RX) and noise calculations.",
+          color: "#34d399",
+          r: 16,
+          children: [
+            {
+              id: "wifiphy_settxpower",
+              label: "SetTxPower",
+              category: "Method",
+              desc: "Sets transmission power level starting and ending parameters in dBm.",
+              color: "#a78bfa",
+              r: 12,
+              prototype: "void SetTxPowerStart (double start) / SetTxPowerEnd (double end)",
+              example: "phy->SetTxPowerStart (16.0); // 16 dBm transmission power\nphy->SetTxPowerEnd (16.0);"
+            },
+            {
+              id: "wifiphy_register",
+              label: "RegisterListener",
+              category: "Method",
+              desc: "Attaches a listener to track physical state transitions (e.g. busy states, rx errors).",
+              color: "#a78bfa",
+              r: 12,
+              prototype: "void RegisterListener (WifiPhyListener *listener)",
+              example: "MyPhyListener listener;\nphy->RegisterListener (&listener);"
+            }
+          ]
+        },
+        {
+          id: "channel",
+          label: "WifiChannel",
+          category: "PHY Layer",
+          header: "ns3/wifi-channel.h",
+          desc: "Models the medium propagation loss, multipath fading, and signal delays between transmitting and receiving antennas.",
+          color: "#34d399",
+          r: 16,
+          children: [
+            {
+              id: "channel_addprop",
+              label: "AddPropagationLossModel",
+              category: "Method",
+              desc: "Chains a propagation path loss model to estimate signal degradation over distance.",
+              color: "#a78bfa",
+              r: 12,
+              prototype: "void AddPropagationLossModel (Ptr<PropagationLossModel> loss)",
+              example: "Ptr<LogDistancePropagationLossModel> lossModel = CreateObject<LogDistancePropagationLossModel> ();\nchannel->AddPropagationLossModel (lossModel);"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "mlo",
+      label: "MLO (WiFi 7/8)",
+      category: "Multi-Link",
+      header: "ns3/wifi-mld-mac.h",
+      desc: "Manages Multi-Link Operation (MLO) introduced in IEEE 802.11be (WiFi 7), coordinating links across bands (2.4GHz, 5GHz, 6GHz).",
+      color: "#eab308",
+      r: 20,
+      children: [
+        {
+          id: "mldmac",
+          label: "WifiMldMac",
+          category: "Multi-Link",
+          header: "ns3/wifi-mld-mac.h",
+          desc: "Coordinates traffic routing and link scheduling across multiple physical radio links for high-throughput clients.",
+          color: "#fde047",
+          r: 16,
+          children: [
+            {
+              id: "mldmac_associatelinks",
+              label: "AssociateLinks",
+              category: "Method",
+              desc: "Creates logical MLD links association between an access point and a station.",
+              color: "#a78bfa",
+              r: 12,
+              prototype: "void AssociateLinks (Ptr<WifiMldMac> staMld, Ptr<WifiMldMac> apMld)",
+              example: "mldMac->AssociateLinks (staMldMac, apMldMac);"
+            }
+          ]
+        },
+        {
+          id: "wifilink",
+          label: "WifiLink",
+          category: "Multi-Link",
+          header: "ns3/wifi-link.h",
+          desc: "Represents a single active channel configuration interface participating inside a Multi-Link Device (MLD).",
+          color: "#fde047",
+          r: 16,
+          children: [
+            {
+              id: "wifilink_getband",
+              label: "GetBand",
+              category: "Method",
+              desc: "Returns the frequency band of the link (e.g. BAND_24GHZ, BAND_5GHZ, BAND_6GHZ).",
+              color: "#a78bfa",
+              r: 12,
+              prototype: "WifiPhyBand GetBand () const",
+              example: "WifiPhyBand band = link->GetBand ();"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+};
+
+// State tracking for expanded nodes
+window.wifiMindmapExpanded = new Set(["root", "helpers", "mac", "phy", "mlo", "wifihelper", "machelper", "phyhelper", "wifimac", "qostxop", "wifiphy", "channel", "mldmac", "wifilink"]);
 
 window.initWifiMindmap = function() {
   const svg = document.getElementById('wifi-mindmap-svg');
   if (!svg) return;
   svg.innerHTML = '';
 
-  // 1. Draw Connection Lines
-  wifiMindmapNodes.forEach(node => {
-    if (node.parent) {
-      const parentNode = wifiMindmapNodes.find(n => n.id === node.parent);
-      if (parentNode) {
-        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        line.setAttribute("x1", node.x);
-        line.setAttribute("y1", node.y);
-        line.setAttribute("x2", parentNode.x);
-        line.setAttribute("y2", parentNode.y);
-        line.setAttribute("stroke", "rgba(99, 102, 241, 0.2)");
-        line.setAttribute("stroke-width", "2");
-        line.setAttribute("id", `link-${node.id}-${parentNode.id}`);
-        svg.appendChild(line);
-      }
+  // 1. Calculate positions dynamically using structured dendrogram layout
+  const nodes = [];
+  const links = [];
+  let nextY = 40;
+
+  function traverse(node, depth, parentNode) {
+    const nodeInfo = {
+      id: node.id,
+      label: node.label,
+      category: node.category,
+      header: node.header,
+      desc: node.desc,
+      color: node.color,
+      r: node.r,
+      prototype: node.prototype,
+      example: node.example,
+      methods: node.children ? node.children.map(c => c.label) : [],
+      depth: depth,
+      parent: parentNode ? parentNode.id : null,
+      children: node.children || []
+    };
+
+    nodes.push(nodeInfo);
+
+    if (parentNode) {
+      links.push({ source: parentNode.id, target: node.id });
+    }
+
+    const isExpanded = window.wifiMindmapExpanded.has(node.id);
+    if (isExpanded && node.children && node.children.length > 0) {
+      const firstChildY = nextY;
+      node.children.forEach(child => {
+        traverse(child, depth + 1, nodeInfo);
+      });
+      const lastChildY = nextY - 50; // offset Y
+      nodeInfo.x = 60 + depth * 140;
+      nodeInfo.y = (firstChildY + lastChildY) / 2;
+    } else {
+      nodeInfo.x = 60 + depth * 140;
+      nodeInfo.y = nextY;
+      nextY += 50; // gap
+    }
+  }
+
+  traverse(wifiTreeData, 0, null);
+
+  // Resize SVG height dynamically to prevent clipping!
+  svg.setAttribute("height", Math.max(560, nextY + 30));
+
+  // 2. Draw Connection Lines as smooth curves (Horizontal Dendrogram style)
+  links.forEach(link => {
+    const sourceNode = nodes.find(n => n.id === link.source);
+    const targetNode = nodes.find(n => n.id === link.target);
+    if (sourceNode && targetNode) {
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      const x1 = sourceNode.x;
+      const y1 = sourceNode.y;
+      const x2 = targetNode.x;
+      const y2 = targetNode.y;
+      const controlX = (x1 + x2) / 2;
+      path.setAttribute("d", `M ${x1} ${y1} C ${controlX} ${y1}, ${controlX} ${y2}, ${x2} ${y2}`);
+      path.setAttribute("stroke", "rgba(99, 102, 241, 0.25)");
+      path.setAttribute("fill", "none");
+      path.setAttribute("stroke-width", "2");
+      path.setAttribute("id", `link-${sourceNode.id}-${targetNode.id}`);
+      svg.appendChild(path);
     }
   });
 
-  // 2. Draw Nodes
-  wifiMindmapNodes.forEach(node => {
+  // 3. Draw Nodes
+  nodes.forEach(node => {
     const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
     group.setAttribute("style", "cursor: pointer;");
     group.setAttribute("id", `node-group-${node.id}`);
 
-    // Outer glowing ring
+    // Outer glow circle
     const glow = document.createElementNS("http://www.w3.org/2000/svg", "circle");
     glow.setAttribute("cx", node.x);
     glow.setAttribute("cy", node.y);
@@ -4338,40 +4686,49 @@ window.initWifiMindmap = function() {
     circle.setAttribute("id", `node-circle-${node.id}`);
     circle.style.transition = "all 0.2s ease";
 
-    // Text Label
+    // Indicator if node is expandable (+ / - helper symbol)
+    let indicator = null;
+    if (node.children && node.children.length > 0) {
+      const isExpanded = window.wifiMindmapExpanded.has(node.id);
+      indicator = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      indicator.setAttribute("x", node.x + node.r - 2);
+      indicator.setAttribute("y", node.y - node.r + 3);
+      indicator.setAttribute("fill", "#a5b4fc");
+      indicator.setAttribute("style", "font-family: monospace; font-size: 10px; font-weight: bold; pointer-events: none;");
+      indicator.textContent = isExpanded ? "−" : "+";
+    }
+
+    // Text Label (Offsets vertically based on radius)
     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
     text.setAttribute("x", node.x);
-    text.setAttribute("y", node.y + (node.r > 20 ? 4 : 3));
+    text.setAttribute("y", node.y + (node.r > 15 ? 4 : 3));
     text.setAttribute("text-anchor", "middle");
     text.setAttribute("fill", "#ffffff");
-    text.setAttribute("style", `font-family: 'Outfit', sans-serif; font-size: ${node.r > 20 ? 9 : 7}px; font-weight: 600; pointer-events: none;`);
+    text.setAttribute("style", `font-family: 'Outfit', sans-serif; font-size: ${node.r > 18 ? 9 : (node.r > 14 ? 8 : 7)}px; font-weight: 600; pointer-events: none;`);
     text.textContent = node.label;
 
     group.appendChild(glow);
     group.appendChild(circle);
     group.appendChild(text);
+    if (indicator) group.appendChild(indicator);
 
-    // Event listeners
+    // Hover actions
     group.onmouseenter = () => {
-      // Highlight glow
-      glow.setAttribute("opacity", "0.4");
+      glow.setAttribute("opacity", "0.5");
       glow.setAttribute("stroke-width", "3");
       circle.setAttribute("r", node.r + 2);
-      
-      // Highlight lines connected to parent or children
-      wifiMindmapNodes.forEach(other => {
+
+      // Highlight connections
+      nodes.forEach(other => {
         if (other.parent === node.id || node.parent === other.id) {
-          const lId = other.parent === node.id ? `link-${other.id}-${node.id}` : `link-${node.id}-${other.id}`;
+          const lId = other.parent === node.id ? `link-${node.id}-${other.id}` : `link-${other.id}-${node.id}`;
           const lineElement = document.getElementById(lId);
           if (lineElement) {
-            lineElement.setAttribute("stroke", "rgba(99, 102, 241, 0.8)");
+            lineElement.setAttribute("stroke", "rgba(99, 102, 241, 0.85)");
             lineElement.setAttribute("stroke-width", "3");
           }
         }
       });
-
-      // Update sidebar
-      updateMindmapSidebar(node);
     };
 
     group.onmouseleave = () => {
@@ -4379,24 +4736,24 @@ window.initWifiMindmap = function() {
       glow.setAttribute("stroke-width", "1");
       circle.setAttribute("r", node.r);
 
-      // Restore lines
-      wifiMindmapNodes.forEach(other => {
+      // Restore connections
+      nodes.forEach(other => {
         if (other.parent === node.id || node.parent === other.id) {
-          const lId = other.parent === node.id ? `link-${other.id}-${node.id}` : `link-${node.id}-${other.id}`;
+          const lId = other.parent === node.id ? `link-${node.id}-${other.id}` : `link-${other.id}-${node.id}`;
           const lineElement = document.getElementById(lId);
           if (lineElement) {
-            lineElement.setAttribute("stroke", "rgba(99, 102, 241, 0.2)");
+            lineElement.setAttribute("stroke", "rgba(99, 102, 241, 0.25)");
             lineElement.setAttribute("stroke-width", "2");
           }
         }
       });
     };
 
-    group.onclick = () => {
-      // Sticky focus on click
-      updateMindmapSidebar(node);
-      
-      // Temporarily ripple background
+    // Click handler: Toggle expand/collapse or update sidebar
+    group.onclick = (e) => {
+      e.stopPropagation();
+
+      // Trigger ripple animation
       const ripple = document.createElementNS("http://www.w3.org/2000/svg", "circle");
       ripple.setAttribute("cx", node.x);
       ripple.setAttribute("cy", node.y);
@@ -4417,6 +4774,20 @@ window.initWifiMindmap = function() {
           svg.removeChild(ripple);
         }
       }, 15);
+
+      // Toggle expanded state if it has children
+      if (node.children && node.children.length > 0) {
+        if (window.wifiMindmapExpanded.has(node.id)) {
+          window.wifiMindmapExpanded.delete(node.id);
+        } else {
+          window.wifiMindmapExpanded.add(node.id);
+        }
+        // Recalculate layout and redraw
+        window.initWifiMindmap();
+      }
+
+      // Update the details panel regardless
+      updateMindmapSidebar(node);
     };
 
     svg.appendChild(group);
@@ -4431,20 +4802,49 @@ function updateMindmapSidebar(node) {
   emptyState.style.display = 'none';
   contentState.style.display = 'block';
 
+  // Update elements
   document.getElementById('mindmap-badge').innerText = node.category;
   document.getElementById('mindmap-node-name').innerText = node.label;
-  document.getElementById('mindmap-node-header').innerText = `#include "${node.header}"`;
+  
+  if (node.header) {
+    document.getElementById('mindmap-node-header').style.display = 'block';
+    document.getElementById('mindmap-node-header').innerText = `#include "${node.header}"`;
+  } else {
+    document.getElementById('mindmap-node-header').style.display = 'none';
+  }
+  
   document.getElementById('mindmap-node-desc').innerText = node.desc;
 
-  const methodsList = document.getElementById('mindmap-node-methods');
-  methodsList.innerHTML = '';
-  node.methods.forEach(method => {
-    const li = document.createElement('li');
-    li.style.display = 'flex';
-    li.style.alignItems = 'start';
-    li.style.gap = '6px';
-    li.style.marginBottom = '4px';
-    li.innerHTML = `<span style="color:#a5b4fc; font-weight:bold;">•</span> <code style="font-family:monospace; color:#cbd5e1; word-break:break-all;">${method}</code>`;
-    methodsList.appendChild(li);
-  });
+  const typeLabel = document.getElementById('mindmap-node-type-label');
+  const methodBlock = document.getElementById('mindmap-method-details');
+  const classBlock = document.getElementById('mindmap-class-details');
+
+  if (node.category === 'Method') {
+    typeLabel.innerText = 'Method Function';
+    classBlock.style.display = 'none';
+    methodBlock.style.display = 'block';
+
+    document.getElementById('mindmap-method-proto').innerText = node.prototype || '';
+    document.getElementById('mindmap-method-example').innerText = node.example || '';
+  } else {
+    typeLabel.innerText = 'Class Module';
+    methodBlock.style.display = 'none';
+    classBlock.style.display = 'block';
+
+    const listElement = document.getElementById('mindmap-node-methods');
+    listElement.innerHTML = '';
+    
+    if (node.methods && node.methods.length > 0) {
+      node.methods.forEach(method => {
+        const li = document.createElement('li');
+        li.style.display = 'flex';
+        li.style.alignItems = 'start';
+        li.style.gap = '6px';
+        li.innerHTML = `<span style="color:#a5b4fc; font-weight:bold;">•</span> <code style="font-family:monospace; color:#cbd5e1; word-break:break-all;">${method}</code>`;
+        listElement.appendChild(li);
+      });
+    } else {
+      listElement.innerHTML = `<li style="color:var(--text-muted); font-style:italic;">No children methods defined</li>`;
+    }
+  }
 }

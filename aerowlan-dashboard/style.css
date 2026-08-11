@@ -1663,7 +1663,7 @@ body.light-theme .assignment-cmd-box {
 }
 
 /* WiFi Mind Map Animations & Styles */
-#wifi-mindmap-svg line {
+#wifi-mindmap-svg path {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 #wifi-mindmap-svg g circle {
