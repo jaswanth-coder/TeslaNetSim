@@ -3,6 +3,7 @@ import json
 import os
 import sys
 import subprocess
+import re
 
 PORT = 8000
 DIRECTORY = "aerowlan-dashboard"
@@ -92,9 +93,103 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 response = {'status': 'error', 'message': str(e)}
                 self.wfile.write(json.dumps(response).encode('utf-8'))
+        elif self.path == '/api/multiagent/analyze':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            try:
+                data = json.loads(post_data.decode('utf-8'))
+                class_name = data.get('class_name')
+                if not class_name:
+                    raise ValueError("class_name is a required field")
+                
+                analysis = self.analyze_cpp_class(class_name)
+                
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps(analysis).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({'status': 'error', 'message': str(e)}).encode('utf-8'))
         else:
             self.send_response(404)
             self.end_headers()
+
+    def analyze_cpp_class(self, class_name):
+        clean_name = class_name.replace("ns3::", "")
+        header_file = None
+        class_pattern = re.compile(r'\bclass\s+' + re.escape(clean_name) + r'\b[^;]*\{')
+        
+        project_root = os.path.abspath(os.path.dirname(__file__))
+        src_wifi_dir = os.path.join(project_root, 'src', 'wifi')
+
+        for root, dirs, files in os.walk(src_wifi_dir):
+            for file in files:
+                if file.endswith(".h"):
+                    filepath = os.path.join(root, file)
+                    try:
+                        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                            content = f.read()
+                            if class_pattern.search(content):
+                                header_file = filepath
+                                break
+                    except Exception:
+                        pass
+            if header_file:
+                break
+
+        if not header_file:
+            return {"error": f"Class {class_name} not found"}
+
+        cc_file = header_file.replace(".h", ".cc")
+        if not os.path.exists(cc_file):
+            return {"error": f"Source file {cc_file} not found"}
+
+        try:
+            with open(cc_file, "r", encoding="utf-8", errors="ignore") as f:
+                cc_content = f.read()
+        except Exception as e:
+            return {"error": f"Failed to read source file: {str(e)}"}
+
+        attributes = []
+        attr_matches = re.finditer(r'\.AddAttribute\s*\(\s*"([^"]+)"', cc_content)
+        for match in attr_matches:
+            attr_name = match.group(1)
+            start_pos = match.end()
+            desc_matches = re.findall(r'"([^"]*)"', cc_content[start_pos:start_pos+1000])
+            desc = desc_matches[0] if desc_matches else ""
+            attributes.append({
+                "name": attr_name,
+                "description": desc.strip()
+            })
+
+        trace_sources = []
+        trace_matches = re.finditer(r'\.AddTraceSource\s*\(\s*"([^"]+)"', cc_content)
+        for match in trace_matches:
+            trace_name = match.group(1)
+            start_pos = match.end()
+            desc_matches = re.findall(r'"([^"]*)"', cc_content[start_pos:start_pos+1000])
+            desc = desc_matches[0] if desc_matches else ""
+            trace_sources.append({
+                "name": trace_name,
+                "description": desc.strip()
+            })
+
+        rel_header = os.path.relpath(header_file, project_root)
+        rel_cc = os.path.relpath(cc_file, project_root)
+
+        return {
+            "class": class_name,
+            "header": rel_header,
+            "cc": rel_cc,
+            "attributes": attributes,
+            "trace_sources": trace_sources
+        }
+
 
     def do_OPTIONS(self):
         self.send_response(200)

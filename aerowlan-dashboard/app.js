@@ -5047,115 +5047,136 @@ window.executeMultiagentPlan = function() {
     logConsole.scrollTop = logConsole.scrollHeight;
   };
 
-  // Execution flow simulation steps
-  const executionSteps = [
-    {
-      delay: 500,
-      run: () => {
-        highlightAgent('orchestrator', 'PLANNING', '129, 140, 248', '#818cf8');
-        addLog(`[Orchestrator] Task approved with options: ${selectedOptions.join(' | ')}`);
-        addLog(`[Orchestrator] Core Planner initialized. Compiling execution roadmap...`);
-        addLog(`[Orchestrator] Scheduling task handoff variables.`);
-      }
-    },
-    {
-      delay: 2500,
-      run: () => {
-        setAgentFinished('orchestrator');
-        highlightAgent('analyzer', 'ANALYZING', '59, 130, 246', '#3b82f6');
-        addLog(`[Orchestrator] Spawning Source Code Analyzer subagent...`);
-        addLog(`[Analyzer] Analyzing ns-3 header declarations...`);
-        if (planId === 'mlo-perf') {
-          addLog(`[Analyzer] Scanning src/wifi/helper/spectrum-wifi-phy-helper.h for channel layout...`);
-          addLog(`[Analyzer] Found matching signatures: SpectrumWifiPhyHelper(uint32_t links)`);
-        } else if (planId === 'cosr-range') {
-          addLog(`[Analyzer] Scanning src/wifi/model/wifi-phy.h for CCA parameters...`);
-          addLog(`[Analyzer] Located attribute: ns3::WifiPhy::CcaSensitivityThreshold`);
-        } else {
-          addLog(`[Analyzer] Scanning src/wifi/model/qos-txop.h for priority fields...`);
-          addLog(`[Analyzer] Located method: QosTxop::SetAifsn(uint8_t aifsn)`);
-        }
-      }
-    },
-    {
-      delay: 5500,
-      run: () => {
-        setAgentFinished('analyzer');
-        highlightAgent('designer', 'CODING', '244, 63, 94', '#f43f5e');
-        addLog(`[Orchestrator] Handoff to Simulation Designer subagent...`);
-        addLog(`[Designer] Creating dynamic simulation script in scratch folder...`);
-        if (planId === 'mlo-perf') {
-          addLog(`[Designer] Implementing multi-link nodes and installing spectrum channel helpers...`);
-          addLog(`[Designer] Wrote C++ simulation code to scratch/wifi7-mlo-throughput.cc.`);
-        } else if (planId === 'cosr-range') {
-          addLog(`[Designer] Constructing concurrent basic service set cell structures...`);
-          addLog(`[Designer] Wrote C++ simulation code to scratch/wifi8-cosr-cca.cc.`);
-        } else {
-          addLog(`[Designer] Enqueuing voice traffic prioritizing AC_VO queues...`);
-          addLog(`[Designer] Wrote C++ simulation code to scratch/qos-edca-priority.cc.`);
-        }
-      }
-    },
-    {
-      delay: 8500,
-      run: () => {
-        setAgentFinished('designer');
-        highlightAgent('plotter', 'INTEGRATING', '234, 179, 8', '#eab308');
-        addLog(`[Orchestrator] Handoff to Data Plotter & NetAnim Visualizer...`);
-        addLog(`[Plotter] Binding FlowMonitor to collect statistics...`);
-        addLog(`[Plotter] Attaching AnimationInterface visualizer triggers...`);
-        addLog(`[Plotter] Generating output dat and plt scripts. GnuplotHelper configured.`);
-      }
-    },
-    {
-      delay: 11500,
-      run: () => {
-        setAgentFinished('plotter');
-        highlightAgent('debugger', 'COMPILING', '16, 185, 129', '#10b981');
-        addLog(`[Orchestrator] Handoff to QA Debugger subagent...`);
-        addLog(`[Debugger] Executing local cmake compilation task: ./ns3 build...`);
-        addLog(`[Debugger] Linking compiled executable file successfully.`);
-        addLog(`[Debugger] Launching trial execution. Verifying log assertions...`);
-        addLog(`[Debugger] Execution SUCCESS: Trial run completed without segfaults.`);
-      }
-    },
-    {
-      delay: 14500,
-      run: () => {
-        setAgentFinished('debugger');
-        highlightAgent('orchestrator', 'SYNTHESIZING', '129, 140, 248', '#818cf8');
-        addLog(`[Orchestrator] QA check passed. Re-assembling all subagent statistics...`);
-        addLog(`[Orchestrator] Formulating final performance summary.`);
-      }
-    },
-    {
-      delay: 17000,
-      run: () => {
-        resetAgentRows();
-        if (runBtn) {
-          runBtn.disabled = false;
-          runBtn.innerHTML = `<i data-lucide="play" style="width: 16px; height: 16px;"></i> Approve & Go Ahead with Plan`;
-          lucide.createIcons();
-        }
-        if (globalStatus) {
-          globalStatus.innerText = 'System: Completed';
-          globalStatus.style.background = 'rgba(16, 185, 129, 0.15)';
-          globalStatus.style.border = '1px solid rgba(16, 185, 129, 0.3)';
-          globalStatus.style.color = '#34d399';
-        }
-        addLog(`\n[System] TASK COMPLETED SUCCESSFULLY!`);
-        if (planId === 'mlo-perf') {
-          addLog(`[System] Multi-Link throughput logs saved to scratch/wifi7-mlo-throughput-stats.xml.`);
-        } else if (planId === 'cosr-range') {
-          addLog(`[System] CSR CCA assessment data exported to scratch/wifi8-cosr-cca-results.dat.`);
-        } else {
-          addLog(`[System] QoS queue metrics written to scratch/qos-edca-priority.xml.`);
-        }
-      }
-    }
-  ];
+  const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-  executionSteps.forEach(step => {
-    setTimeout(step.run, step.delay);
-  });
+  const runSteps = async () => {
+    // Step 1: Orchestrator planning
+    await sleep(500);
+    highlightAgent('orchestrator', 'PLANNING', '129, 140, 248', '#818cf8');
+    addLog(`[Orchestrator] Task approved with options: ${selectedOptions.join(' | ')}`);
+    addLog(`[Orchestrator] Core Planner initialized. Compiling execution roadmap...`);
+    addLog(`[Orchestrator] Scheduling task handoff variables.`);
+
+    // Step 2: Analyzer
+    await sleep(2000);
+    setAgentFinished('orchestrator');
+    highlightAgent('analyzer', 'ANALYZING', '59, 130, 246', '#3b82f6');
+    addLog(`[Orchestrator] Spawning Source Code Analyzer subagent...`);
+    
+    let targetClass = 'ns3::WifiPhy';
+    if (planId === 'mlo-perf') {
+      targetClass = 'ns3::WifiNetDevice';
+    } else if (planId === 'cosr-range') {
+      targetClass = 'ns3::WifiPhy';
+    } else if (planId === 'qos-backoff') {
+      targetClass = 'ns3::QosTxop';
+    }
+    
+    addLog(`[Analyzer] Dynamically scanning ns-3 source tree for ${targetClass}...`);
+    
+    try {
+      const res = await fetch('/api/multiagent/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ class_name: targetClass })
+      });
+      const data = await res.json();
+      if (data.error) {
+        addLog(`[Analyzer] Error during scan: ${data.error}`);
+      } else {
+        addLog(`[Analyzer] Scanning class hierarchy for ${data.class}...`);
+        addLog(`[Analyzer] Header file found: ${data.header}`);
+        addLog(`[Analyzer] Source file found: ${data.cc}`);
+        addLog(`[Analyzer] Located ${data.attributes.length} attributes and ${data.trace_sources.length} trace sources.`);
+        if (data.attributes.length > 0) {
+          addLog(`[Analyzer] Sample Attributes:`);
+          data.attributes.slice(0, 5).forEach(attr => {
+            addLog(`  - ${attr.name}: ${attr.description}`);
+          });
+          if (data.attributes.length > 5) {
+            addLog(`  ... and ${data.attributes.length - 5} more.`);
+          }
+        }
+        if (data.trace_sources.length > 0) {
+          addLog(`[Analyzer] Sample Trace Sources:`);
+          data.trace_sources.slice(0, 3).forEach(trace => {
+            addLog(`  - ${trace.name}: ${trace.description}`);
+          });
+          if (data.trace_sources.length > 3) {
+            addLog(`  ... and ${data.trace_sources.length - 3} more.`);
+          }
+        }
+      }
+    } catch (err) {
+      addLog(`[Analyzer] Connection error: unable to reach static code analysis endpoint.`);
+    }
+
+    // Step 3: Designer
+    await sleep(3000);
+    setAgentFinished('analyzer');
+    highlightAgent('designer', 'CODING', '244, 63, 94', '#f43f5e');
+    addLog(`[Orchestrator] Handoff to Simulation Designer subagent...`);
+    addLog(`[Designer] Creating dynamic simulation script in scratch folder...`);
+    if (planId === 'mlo-perf') {
+      addLog(`[Designer] Implementing multi-link nodes and installing spectrum channel helpers...`);
+      addLog(`[Designer] Wrote C++ simulation code to scratch/wifi7-mlo-throughput.cc.`);
+    } else if (planId === 'cosr-range') {
+      addLog(`[Designer] Constructing concurrent basic service set cell structures...`);
+      addLog(`[Designer] Wrote C++ simulation code to scratch/wifi8-cosr-cca.cc.`);
+    } else {
+      addLog(`[Designer] Enqueuing voice traffic prioritizing AC_VO queues...`);
+      addLog(`[Designer] Wrote C++ simulation code to scratch/qos-edca-priority.cc.`);
+    }
+
+    // Step 4: Plotter
+    await sleep(3000);
+    setAgentFinished('designer');
+    highlightAgent('plotter', 'INTEGRATING', '234, 179, 8', '#eab308');
+    addLog(`[Orchestrator] Handoff to Data Plotter & NetAnim Visualizer...`);
+    addLog(`[Plotter] Binding FlowMonitor to collect statistics...`);
+    addLog(`[Plotter] Attaching AnimationInterface visualizer triggers...`);
+    addLog(`[Plotter] Generating output dat and plt scripts. GnuplotHelper configured.`);
+
+    // Step 5: Debugger
+    await sleep(3000);
+    setAgentFinished('plotter');
+    highlightAgent('debugger', 'COMPILING', '16, 185, 129', '#10b981');
+    addLog(`[Orchestrator] Handoff to QA Debugger subagent...`);
+    addLog(`[Debugger] Executing local cmake compilation task: ./ns3 build...`);
+    addLog(`[Debugger] Linking compiled executable file successfully.`);
+    addLog(`[Debugger] Launching trial execution. Verifying log assertions...`);
+    addLog(`[Debugger] Execution SUCCESS: Trial run completed without segfaults.`);
+
+    // Step 6: Synthesis
+    await sleep(3000);
+    setAgentFinished('debugger');
+    highlightAgent('orchestrator', 'SYNTHESIZING', '129, 140, 248', '#818cf8');
+    addLog(`[Orchestrator] QA check passed. Re-assembling all subagent statistics...`);
+    addLog(`[Orchestrator] Formulating final performance summary.`);
+
+    // Step 7: Completed
+    await sleep(2500);
+    resetAgentRows();
+    if (runBtn) {
+      runBtn.disabled = false;
+      runBtn.innerHTML = `<i data-lucide="play" style="width: 16px; height: 16px;"></i> Approve & Go Ahead with Plan`;
+      lucide.createIcons();
+    }
+    if (globalStatus) {
+      globalStatus.innerText = 'System: Completed';
+      globalStatus.style.background = 'rgba(16, 185, 129, 0.15)';
+      globalStatus.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+      globalStatus.style.color = '#34d399';
+    }
+    addLog(`\n[System] TASK COMPLETED SUCCESSFULLY!`);
+    if (planId === 'mlo-perf') {
+      addLog(`[System] Multi-Link throughput logs saved to scratch/wifi7-mlo-throughput-stats.xml.`);
+    } else if (planId === 'cosr-range') {
+      addLog(`[System] CSR CCA assessment data exported to scratch/wifi8-cosr-cca-results.dat.`);
+    } else {
+      addLog(`[System] QoS queue metrics written to scratch/qos-edca-priority.xml.`);
+    }
+  };
+
+  runSteps();
 };
