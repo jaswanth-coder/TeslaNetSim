@@ -1676,3 +1676,15 @@ body.light-theme .assignment-cmd-box {
   box-shadow: 0 4px 15px rgba(99, 102, 241, 0.05);
 }
 
+/* Live Code Canvas Styling */
+.blinking-cursor {
+  font-weight: bold;
+  color: #3b82f6;
+  animation: blink-caret 0.8s step-end infinite;
+}
+
+@keyframes blink-caret {
+  from, to { color: transparent }
+  50% { color: #3b82f6 }
+}
+

@@ -52,5 +52,5 @@ All submissions written in the dashboard Coding Lab are saved in:
 
 ## 🧑‍🏫 Tutoring Status
 - **Current Module:** Track 1 • Layman Analogies & PDF Extractions.
-- **Active Task:** Developed dynamic static analysis capability for the Source Code Analyzer subagent inside the Multi-Agent Web Console. Added `/api/multiagent/analyze` endpoint to server.py and integrated it with app.js to scan real C++ header and source files dynamically for attributes and trace sources.
-- **Git Push Status:** All updates committed and pushed.
+- **Active Task:** Developed custom prompt parsing for user constraints and integrated the live-streaming C++ editor canvas in the Multi-Agent console. The Simulation Designer subagent now dynamically writes and highlights C++ simulation scripts in real-time according to natural language requirements.
+- **Git Push Status:** Pending push of new changes to GitHub.

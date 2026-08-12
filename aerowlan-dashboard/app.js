@@ -5000,6 +5000,16 @@ window.executeMultiagentPlan = function() {
 
   // Clear logs and start simulated orchestration stream
   logConsole.innerHTML = `[System] Initiating Multi-Agent task planning...\n`;
+
+  // Reset Live Code Canvas
+  const codeTextArea = document.getElementById('code-text-area');
+  const codeLineNumbers = document.getElementById('code-line-numbers');
+  if (codeTextArea) {
+    codeTextArea.innerHTML = '<span style="color: #6a9955;">// Waiting for Simulation Designer subagent to begin coding...</span><span class="blinking-cursor">|</span>';
+  }
+  if (codeLineNumbers) {
+    codeLineNumbers.innerHTML = '1';
+  }
   
   const resetAgentRows = () => {
     ['orchestrator', 'analyzer', 'designer', 'plotter', 'debugger'].forEach(id => {
@@ -5112,20 +5122,301 @@ window.executeMultiagentPlan = function() {
     }
 
     // Step 3: Designer
-    await sleep(3000);
+    await sleep(2000);
     setAgentFinished('analyzer');
     highlightAgent('designer', 'CODING', '244, 63, 94', '#f43f5e');
     addLog(`[Orchestrator] Handoff to Simulation Designer subagent...`);
-    addLog(`[Designer] Creating dynamic simulation script in scratch folder...`);
-    if (planId === 'mlo-perf') {
-      addLog(`[Designer] Implementing multi-link nodes and installing spectrum channel helpers...`);
-      addLog(`[Designer] Wrote C++ simulation code to scratch/wifi7-mlo-throughput.cc.`);
-    } else if (planId === 'cosr-range') {
-      addLog(`[Designer] Constructing concurrent basic service set cell structures...`);
-      addLog(`[Designer] Wrote C++ simulation code to scratch/wifi8-cosr-cca.cc.`);
+    addLog(`[Designer] Parsing user configurations and design requirements...`);
+
+    // Prepare template variables based on checkboxes & custom prompt overrides
+    let stdVal = planId === 'cosr-range' ? '802.11be' : (planId === 'qos-backoff' ? '802.11ax' : '802.11be');
+    let nodesVal = planId === 'cosr-range' ? 2 : (planId === 'qos-backoff' ? 4 : 2);
+    let durationVal = 10.0;
+    let ccaVal = -72.0;
+    let voAifsnVal = 2;
+    let bkAifsnVal = 9;
+
+    // Check defaults from GUI choices
+    const inputsChecked = document.querySelectorAll('#multiagent-mcq-choices input:checked');
+    inputsChecked.forEach(inp => {
+      const text = inp.parentElement.innerText.trim().toLowerCase();
+      if (text.includes('802.11be')) stdVal = '802.11be';
+      if (text.includes('802.11ax')) stdVal = '802.11ax';
+      if (text.includes('2 aps')) nodesVal = 2;
+      if (text.includes('4 aps')) nodesVal = 4;
+      if (text.includes('-72.0 dbm')) ccaVal = -72.0;
+      if (text.includes('-82.0 dbm')) ccaVal = -82.0;
+      if (text.includes('aifsn = 2')) voAifsnVal = 2;
+      if (text.includes('aifsn = 4')) voAifsnVal = 4;
+      if (text.includes('aifsn = 7')) bkAifsnVal = 7;
+      if (text.includes('aifsn = 9')) bkAifsnVal = 9;
+    });
+
+    // Check custom prompt constraints
+    const promptText = document.getElementById('multiagent-user-prompt')?.value || '';
+    if (promptText) {
+      addLog(`[Designer] Custom objectives found. Overriding plan parameters...`);
+      const lowerPrompt = promptText.toLowerCase();
+      
+      // Parse Standard
+      if (lowerPrompt.includes('802.11ax') || lowerPrompt.includes(' 11ax') || lowerPrompt.includes(' ax')) {
+        stdVal = '802.11ax';
+        addLog(`  - Overriding standard to WIFI_STANDARD_80211ax`);
+      } else if (lowerPrompt.includes('802.11be') || lowerPrompt.includes(' 11be') || lowerPrompt.includes(' be') || lowerPrompt.includes('wifi 7')) {
+        stdVal = '802.11be';
+        addLog(`  - Overriding standard to WIFI_STANDARD_80211be`);
+      }
+
+      // Parse Node count
+      const nodeMatch = promptText.match(/(\d+)\s*(?:sta|ap|node|device|client)/i);
+      if (nodeMatch) {
+        nodesVal = parseInt(nodeMatch[1]);
+        addLog(`  - Overriding node count to ${nodesVal}`);
+      }
+
+      // Parse Duration
+      const durationMatch = promptText.match(/(\d+(?:\.\d+)?)\s*(?:sec|second|s\b)/i);
+      if (durationMatch) {
+        durationVal = parseFloat(durationMatch[1]);
+        addLog(`  - Overriding simulation duration to ${durationVal} seconds`);
+      }
+
+      // Parse CCA sensitivity for wifi8
+      const ccaMatch = promptText.match(/(-\d+(?:\.\d+)?)\s*(?:dbm|cca)/i);
+      if (ccaMatch) {
+        ccaVal = parseFloat(ccaMatch[1]);
+        addLog(`  - Overriding CSR CCA Threshold to ${ccaVal} dBm`);
+      }
+
+      // Parse Aifsn priorities
+      if (lowerPrompt.includes('voice priority') || lowerPrompt.includes('high priority')) {
+        voAifsnVal = 1;
+        bkAifsnVal = 12;
+        addLog(`  - Overriding QoS EDCA Backoffs: VO = 1, BK = 12`);
+      }
     } else {
-      addLog(`[Designer] Enqueuing voice traffic prioritizing AC_VO queues...`);
-      addLog(`[Designer] Wrote C++ simulation code to scratch/qos-edca-priority.cc.`);
+      addLog(`[Designer] No custom overrides. Using defaults.`);
+    }
+
+    // Generate specific C++ code content
+    let finalCode = '';
+    if (planId === 'mlo-perf') {
+      finalCode = `#include "ns3/core-module.h"
+#include "ns3/wifi-module.h"
+#include "ns3/mobility-module.h"
+#include "ns3/internet-module.h"
+
+using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE ("Wifi7MultiLinkThroughput");
+
+int main (int argc, char *argv[])
+{
+  uint32_t nWifi = ${nodesVal};
+  double simTime = ${durationVal.toFixed(1)};
+  std::string standard = "${stdVal}";
+
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  NodeContainer wifiApNode;
+  wifiApNode.Create (1);
+  NodeContainer wifiStaNodes;
+  wifiStaNodes.Create (nWifi);
+
+  WifiHelper wifi;
+  if (standard == "802.11be") {
+    wifi.SetStandard (WIFI_STANDARD_80211be);
+  } else {
+    wifi.SetStandard (WIFI_STANDARD_80211ax);
+  }
+  wifi.SetMultiLinkType (WifiHelper::DEFAULT_MLD);
+
+  YansWifiChannelHelper channel = YansWifiChannelHelper::Default ();
+  YansWifiPhyHelper phy;
+  phy.SetChannel (channel.Create ());
+
+  WifiMacHelper mac;
+  Ssid ssid = Ssid ("ns3-mlo-throughput");
+
+  mac.SetType ("ns3::ApWifiMac", "Ssid", SsidValue (ssid));
+  NetDeviceContainer apDevice = wifi.Install (phy, mac, wifiApNode);
+
+  mac.SetType ("ns3::StaWifiMac", "Ssid", SsidValue (ssid));
+  NetDeviceContainer staDevices = wifi.Install (phy, mac, wifiStaNodes);
+
+  MobilityHelper mobility;
+  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  mobility.Install (wifiApNode);
+  mobility.Install (wifiStaNodes);
+
+  InternetStackHelper stack;
+  stack.Install (wifiApNode);
+  stack.Install (wifiStaNodes);
+
+  Simulator::Stop (Seconds (simTime));
+  Simulator::Run ();
+  Simulator::Destroy ();
+  return 0;
+}`;
+    } else if (planId === 'cosr-range') {
+      finalCode = `#include "ns3/core-module.h"
+#include "ns3/wifi-module.h"
+#include "ns3/mobility-module.h"
+#include "ns3/internet-module.h"
+
+using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE ("Wifi8CoordinatedSpatialReuse");
+
+int main (int argc, char *argv[])
+{
+  uint32_t nAPs = ${nodesVal};
+  double simTime = ${durationVal.toFixed(1)};
+  double ccaThreshold = ${ccaVal.toFixed(1)};
+
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  NodeContainer apNodes;
+  apNodes.Create (nAPs);
+  NodeContainer staNodes;
+  staNodes.Create (nAPs);
+
+  WifiHelper wifi;
+  wifi.SetStandard (WIFI_STANDARD_80211be);
+
+  YansWifiChannelHelper channel = YansWifiChannelHelper::Default ();
+  YansWifiPhyHelper phy;
+  phy.SetChannel (channel.Create ());
+  
+  phy.Set ("CcaSensitivityThreshold", DoubleValue (ccaThreshold));
+
+  WifiMacHelper mac;
+  Ssid ssid = Ssid ("wifi8-cosr");
+  mac.SetType ("ns3::ApWifiMac", "Ssid", SsidValue (ssid));
+  NetDeviceContainer apDevices = wifi.Install (phy, mac, apNodes);
+
+  mac.SetType ("ns3::StaWifiMac", "Ssid", SsidValue (ssid));
+  NetDeviceContainer staDevices = wifi.Install (phy, mac, staNodes);
+
+  MobilityHelper mobility;
+  mobility.SetPositionAllocator ("ns3::GridPositionAllocator",
+                                 "MinX", DoubleValue (0.0),
+                                 "MinY", DoubleValue (0.0),
+                                 "DeltaX", DoubleValue (35.0),
+                                 "GridWidth", UintegerValue (nAPs));
+  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  mobility.Install (apNodes);
+  mobility.Install (staNodes);
+
+  Simulator::Stop (Seconds (simTime));
+  Simulator::Run ();
+  Simulator::Destroy ();
+  return 0;
+}`;
+    } else {
+      finalCode = `#include "ns3/core-module.h"
+#include "ns3/wifi-module.h"
+#include "ns3/mobility-module.h"
+#include "ns3/internet-module.h"
+
+using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE ("WifiQosVoicePriority");
+
+int main (int argc, char *argv[])
+{
+  uint32_t nWifi = ${nodesVal};
+  double simTime = ${durationVal.toFixed(1)};
+  uint32_t voAifsn = ${voAifsnVal};
+  uint32_t bkAifsn = ${bkAifsnVal};
+
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  NodeContainer wifiApNode;
+  wifiApNode.Create (1);
+  NodeContainer wifiStaNodes;
+  wifiStaNodes.Create (nWifi);
+
+  WifiHelper wifi;
+  wifi.SetStandard (WIFI_STANDARD_80211ax);
+
+  YansWifiChannelHelper channel = YansWifiChannelHelper::Default ();
+  YansWifiPhyHelper phy;
+  phy.SetChannel (channel.Create ());
+
+  WifiMacHelper mac;
+  Ssid ssid = Ssid ("qos-priority");
+  
+  mac.SetType ("ns3::ApWifiMac", "Ssid", SsidValue (ssid));
+  NetDeviceContainer apDevice = wifi.Install (phy, mac, wifiApNode);
+
+  mac.SetType ("ns3::StaWifiMac", "Ssid", SsidValue (ssid));
+  NetDeviceContainer staDevices = wifi.Install (phy, mac, wifiStaNodes);
+
+  Ptr<NetDevice> dev = staDevices.Get (0);
+  Ptr<WifiNetDevice> wifiDev = DynamicCast<WifiNetDevice> (dev);
+  Ptr<WifiMac> wifiMac = wifiDev->GetMac ();
+  
+  PointerValue ptr;
+  wifiMac->GetAttribute ("Txop", ptr);
+  Ptr<QosTxop> voTxop = DynamicCast<QosTxop> (ptr.Get<Object> ());
+  voTxop->SetAifsn (voAifsn);
+
+  wifiMac->GetAttribute ("BkTxop", ptr);
+  Ptr<QosTxop> bkTxop = DynamicCast<QosTxop> (ptr.Get<Object> ());
+  bkTxop->SetAifsn (bkAifsn);
+
+  Simulator::Stop (Seconds (simTime));
+  Simulator::Run ();
+  Simulator::Destroy ();
+  return 0;
+}`;
+    }
+
+    addLog(`[Designer] Streaming C++ code simulation to workspace canvas...`);
+    
+    // Animate streaming/typing code to code-text-area
+    const codeTextAreaVal = document.getElementById('code-text-area');
+    const codeLineNumbersVal = document.getElementById('code-line-numbers');
+    
+    if (codeTextAreaVal && codeLineNumbersVal) {
+      codeTextAreaVal.innerHTML = '';
+      codeLineNumbersVal.innerHTML = '';
+      
+      const codeLines = finalCode.split('\n');
+      for (let i = 0; i < codeLines.length; i++) {
+        // Append line numbers
+        codeLineNumbersVal.innerHTML += `${i + 1}<br>`;
+        
+        // Color lines based on some basic keywords for premium look
+        let coloredLine = codeLines[i]
+          .replace(/(#include\s+<[^>]+>|#include\s+"[^"]+")/g, '<span style="color:#ce9178;">$1</span>')
+          .replace(/\b(using\s+namespace|int|double|uint32_t|char|std::string|if|else|return|void|class|struct)\b/g, '<span style="color:#569cd6;">$1</span>')
+          .replace(/\b(CommandLine|NodeContainer|WifiHelper|YansWifiChannelHelper|YansWifiPhyHelper|WifiMacHelper|Ssid|NetDeviceContainer|MobilityHelper|InternetStackHelper|Ipv4AddressHelper|Ipv4InterfaceContainer|Simulator|Ptr|PointerValue|QosTxop|DoubleValue|SsidValue|UintegerValue|StringValue|Seconds|DynamicCast)\b/g, '<span style="color:#4ec9b0;">$1</span>')
+          .replace(/(".*?")/g, '<span style="color:#ce9178;">$1</span>')
+          .replace(/(\/\/.*)/g, '<span style="color:#6a9955;">$1</span>');
+
+        codeTextAreaVal.innerHTML += coloredLine + '\n';
+        codeTextAreaVal.scrollTop = codeTextAreaVal.scrollHeight;
+        
+        // Add a delay to simulate streaming / typing behaviour
+        await sleep(35);
+      }
+      
+      // Add a blinking cursor at the end
+      codeTextAreaVal.innerHTML += '<span class="blinking-cursor">|</span>';
+    }
+
+    addLog(`[Designer] Dynamic code script configured successfully.`);
+    if (planId === 'mlo-perf') {
+      addLog(`[Designer] Wrote C++ simulation code to scratch/aerowlan_exercises/submissions/multiagent_mlo.cc.`);
+    } else if (planId === 'cosr-range') {
+      addLog(`[Designer] Wrote C++ simulation code to scratch/aerowlan_exercises/submissions/multiagent_cosr.cc.`);
+    } else {
+      addLog(`[Designer] Wrote C++ simulation code to scratch/aerowlan_exercises/submissions/multiagent_qos.cc.`);
     }
 
     // Step 4: Plotter
