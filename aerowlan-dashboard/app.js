@@ -2699,6 +2699,7 @@ function init() {
   updateProgressBar();
   initCodingLab();
   initWifiMindmap();
+  loadMultiagentPlan();
   lucide.createIcons();
 }
 
@@ -4848,3 +4849,313 @@ function updateMindmapSidebar(node) {
     }
   }
 }
+
+// Multi-Agent Execution Plans Data
+const multiagentPlans = {
+  "mlo-perf": {
+    mcqTitle: "WiFi 7 MLO Configuration Parameters",
+    choices: [
+      { id: "opt-std", label: "IEEE 802.11 Standard", type: "radio", group: "standard", options: ["WIFI_STANDARD_80211be (Recommended)", "WIFI_STANDARD_80211ax"], selected: 0 },
+      { id: "opt-bands", label: "Multi-Link Frequency Bands", type: "checkbox", group: "bands", options: ["5 GHz Band Link (80 MHz)", "6 GHz Band Link (160 MHz)"], selected: [0, 1] },
+      { id: "opt-rate", label: "Rate Control Manager", type: "radio", group: "rate", options: ["ConstantRateWifiManager (EhtMcs9)", "IdealWifiManager"], selected: 0 }
+    ],
+    steps: [
+      { phase: "Analysis", desc: "Static scans of spectrum-wifi-phy-helper.h for links allocation attributes." },
+      { phase: "Code Design", desc: "Instantiate Multi-Link Device (MLD) nodes and configure Spectrum channels." },
+      { phase: "Data & Animation", desc: "Install FlowMonitor and NetAnim tracers tracking delay metrics." },
+      { phase: "QA & Compilation", desc: "Execute ./ns3 build and confirm clean C++ executable links." }
+    ]
+  },
+  "cosr-range": {
+    mcqTitle: "WiFi 8 CSR CCA Threshold Assessment",
+    choices: [
+      { id: "opt-cca", label: "Target CSR CCA Sensitivity Threshold", type: "radio", group: "cca", options: ["-72.0 dBm (Allows overlapping transmission)", "-82.0 dBm (Default conservative)"], selected: 0 },
+      { id: "opt-nodes", label: "BSS Density Layout", type: "radio", group: "density", options: ["2 APs (Dense Spatial Overlap)", "4 APs (High congestion testing)"], selected: 0 }
+    ],
+    steps: [
+      { phase: "Analysis", desc: "Locate WifiPhy default CcaSensitivityThreshold properties." },
+      { phase: "Code Design", desc: "Construct overlapping BSS basic service set topologies." },
+      { phase: "Data & Animation", desc: "Link custom colors to concurrent channels in AnimationInterface." },
+      { phase: "QA & Compilation", desc: "Verify overlapping throughput matches expected CSR performance levels." }
+    ]
+  },
+  "qos-backoff": {
+    mcqTitle: "IEEE 802.11 QoS EDCA Configuration Parameters",
+    choices: [
+      { id: "opt-vo-aifsn", label: "AC_VO Voice Queue Priority", type: "radio", group: "voaifsn", options: ["Aifsn = 2 (High voice priority)", "Aifsn = 4 (Best effort default)"], selected: 0 },
+      { id: "opt-bk-aifsn", label: "AC_BK Background Queue Priority", type: "radio", group: "bkaifsn", options: ["Aifsn = 7", "Aifsn = 9 (Deep backoff delay)"], selected: 1 }
+    ],
+    steps: [
+      { phase: "Analysis", desc: "Scan qos-txop.h for Aifsn, MinCw, and MaxCw attribute setters." },
+      { phase: "Code Design", desc: "Generate parallel traffic flows enqueuing to Voice and Background slots." },
+      { phase: "Data & Animation", desc: "Monitor flow statistics verifying priority delay differentials." },
+      { phase: "QA & Compilation", desc: "Confirm compilation output registers correct EDCA configurations." }
+    ]
+  }
+};
+
+window.loadMultiagentPlan = function() {
+  const select = document.getElementById('multiagent-project-selector');
+  if (!select) return;
+  const planId = select.value;
+  const plan = multiagentPlans[planId];
+  if (!plan) return;
+
+  // 1. Render steps
+  const stepsList = document.getElementById('multiagent-steps-list');
+  stepsList.innerHTML = '';
+  plan.steps.forEach((step, idx) => {
+    const item = document.createElement('div');
+    item.style.display = 'flex';
+    item.style.alignItems = 'start';
+    item.style.gap = '8px';
+    item.style.fontSize = '12.5px';
+    item.style.color = '#cbd5e1';
+    item.innerHTML = `
+      <span style="color:#818cf8; font-weight:bold; min-width:80px;">[${step.phase}]</span>
+      <span>${step.desc}</span>
+    `;
+    stepsList.appendChild(item);
+  });
+
+  // 2. Render MCQ Configuration Choices
+  document.getElementById('multiagent-mcq-title').innerText = plan.mcqTitle;
+  const choicesContainer = document.getElementById('multiagent-mcq-choices');
+  choicesContainer.innerHTML = '';
+  
+  plan.choices.forEach(choice => {
+    const box = document.createElement('div');
+    box.style.display = 'flex';
+    box.style.flexDirection = 'column';
+    box.style.gap = '6px';
+    
+    const label = document.createElement('span');
+    label.style.fontSize = '12px';
+    label.style.fontWeight = '600';
+    label.style.color = '#a5b4fc';
+    label.innerText = choice.label;
+    box.appendChild(label);
+
+    choice.options.forEach((opt, oIdx) => {
+      const row = document.createElement('label');
+      row.style.display = 'flex';
+      row.style.alignItems = 'center';
+      row.style.gap = '8px';
+      row.style.fontSize = '11.5px';
+      row.style.color = '#cbd5e1';
+      row.style.cursor = 'pointer';
+
+      const input = document.createElement('input');
+      input.type = choice.type;
+      input.name = choice.group;
+      input.value = oIdx;
+      
+      if (choice.type === 'radio') {
+        input.checked = oIdx === choice.selected;
+      } else {
+        input.checked = choice.selected.includes(oIdx);
+      }
+      
+      row.appendChild(input);
+      
+      const textSpan = document.createElement('span');
+      textSpan.innerText = opt;
+      row.appendChild(textSpan);
+      
+      box.appendChild(row);
+    });
+
+    choicesContainer.appendChild(box);
+  });
+};
+
+window.executeMultiagentPlan = function() {
+  const select = document.getElementById('multiagent-project-selector');
+  if (!select) return;
+  const planId = select.value;
+  const plan = multiagentPlans[planId];
+  if (!plan) return;
+
+  const runBtn = document.getElementById('btn-multiagent-execute');
+  const globalStatus = document.getElementById('orchestration-global-status');
+  const logConsole = document.getElementById('multiagent-log-body');
+  
+  if (runBtn) {
+    runBtn.disabled = true;
+    runBtn.innerHTML = `<span style="display:inline-block; border: 2px solid #f3f3f3; border-top: 2px solid #3498db; border-radius: 50%; width: 12px; height: 12px; animation: spin 1s linear infinite; margin-right:6px;"></span> Execution active...`;
+  }
+  if (globalStatus) {
+    globalStatus.innerText = 'System: Executing';
+    globalStatus.style.background = 'rgba(16, 185, 129, 0.15)';
+    globalStatus.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+    globalStatus.style.color = '#34d399';
+  }
+
+  // Get selected options to display in log
+  const selectedOptions = [];
+  const inputs = document.querySelectorAll('#multiagent-mcq-choices input:checked');
+  inputs.forEach(input => {
+    selectedOptions.push(input.parentElement.innerText.trim());
+  });
+
+  // Clear logs and start simulated orchestration stream
+  logConsole.innerHTML = `[System] Initiating Multi-Agent task planning...\n`;
+  
+  const resetAgentRows = () => {
+    ['orchestrator', 'analyzer', 'designer', 'plotter', 'debugger'].forEach(id => {
+      const badge = document.getElementById(`badge-${id}`);
+      const row = document.getElementById(`agent-row-${id}`);
+      if (badge) {
+        badge.innerText = 'IDLE';
+        badge.style.background = 'rgba(255,255,255,0.05)';
+        badge.style.color = '#cbd5e1';
+      }
+      if (row) {
+        row.style.background = 'rgba(255,255,255,0.02)';
+        row.style.border = '1px solid rgba(255,255,255,0.03)';
+      }
+    });
+  };
+
+  const highlightAgent = (id, status, colorClass, textHex) => {
+    resetAgentRows();
+    const badge = document.getElementById(`badge-${id}`);
+    const row = document.getElementById(`agent-row-${id}`);
+    if (badge) {
+      badge.innerText = status;
+      badge.style.background = `rgba(${colorClass}, 0.15)`;
+      badge.style.color = textHex;
+    }
+    if (row) {
+      row.style.background = `rgba(${colorClass}, 0.05)`;
+      row.style.border = `1px solid rgba(${colorClass}, 0.3)`;
+    }
+  };
+
+  const setAgentFinished = (id) => {
+    const badge = document.getElementById(`badge-${id}`);
+    if (badge) {
+      badge.innerText = 'FINISHED';
+      badge.style.background = 'rgba(16, 185, 129, 0.15)';
+      badge.style.color = '#34d399';
+    }
+  };
+
+  // Add scroll to bottom helper
+  const addLog = (text) => {
+    logConsole.innerHTML += text + '\n';
+    logConsole.scrollTop = logConsole.scrollHeight;
+  };
+
+  // Execution flow simulation steps
+  const executionSteps = [
+    {
+      delay: 500,
+      run: () => {
+        highlightAgent('orchestrator', 'PLANNING', '129, 140, 248', '#818cf8');
+        addLog(`[Orchestrator] Task approved with options: ${selectedOptions.join(' | ')}`);
+        addLog(`[Orchestrator] Core Planner initialized. Compiling execution roadmap...`);
+        addLog(`[Orchestrator] Scheduling task handoff variables.`);
+      }
+    },
+    {
+      delay: 2500,
+      run: () => {
+        setAgentFinished('orchestrator');
+        highlightAgent('analyzer', 'ANALYZING', '59, 130, 246', '#3b82f6');
+        addLog(`[Orchestrator] Spawning Source Code Analyzer subagent...`);
+        addLog(`[Analyzer] Analyzing ns-3 header declarations...`);
+        if (planId === 'mlo-perf') {
+          addLog(`[Analyzer] Scanning src/wifi/helper/spectrum-wifi-phy-helper.h for channel layout...`);
+          addLog(`[Analyzer] Found matching signatures: SpectrumWifiPhyHelper(uint32_t links)`);
+        } else if (planId === 'cosr-range') {
+          addLog(`[Analyzer] Scanning src/wifi/model/wifi-phy.h for CCA parameters...`);
+          addLog(`[Analyzer] Located attribute: ns3::WifiPhy::CcaSensitivityThreshold`);
+        } else {
+          addLog(`[Analyzer] Scanning src/wifi/model/qos-txop.h for priority fields...`);
+          addLog(`[Analyzer] Located method: QosTxop::SetAifsn(uint8_t aifsn)`);
+        }
+      }
+    },
+    {
+      delay: 5500,
+      run: () => {
+        setAgentFinished('analyzer');
+        highlightAgent('designer', 'CODING', '244, 63, 94', '#f43f5e');
+        addLog(`[Orchestrator] Handoff to Simulation Designer subagent...`);
+        addLog(`[Designer] Creating dynamic simulation script in scratch folder...`);
+        if (planId === 'mlo-perf') {
+          addLog(`[Designer] Implementing multi-link nodes and installing spectrum channel helpers...`);
+          addLog(`[Designer] Wrote C++ simulation code to scratch/wifi7-mlo-throughput.cc.`);
+        } else if (planId === 'cosr-range') {
+          addLog(`[Designer] Constructing concurrent basic service set cell structures...`);
+          addLog(`[Designer] Wrote C++ simulation code to scratch/wifi8-cosr-cca.cc.`);
+        } else {
+          addLog(`[Designer] Enqueuing voice traffic prioritizing AC_VO queues...`);
+          addLog(`[Designer] Wrote C++ simulation code to scratch/qos-edca-priority.cc.`);
+        }
+      }
+    },
+    {
+      delay: 8500,
+      run: () => {
+        setAgentFinished('designer');
+        highlightAgent('plotter', 'INTEGRATING', '234, 179, 8', '#eab308');
+        addLog(`[Orchestrator] Handoff to Data Plotter & NetAnim Visualizer...`);
+        addLog(`[Plotter] Binding FlowMonitor to collect statistics...`);
+        addLog(`[Plotter] Attaching AnimationInterface visualizer triggers...`);
+        addLog(`[Plotter] Generating output dat and plt scripts. GnuplotHelper configured.`);
+      }
+    },
+    {
+      delay: 11500,
+      run: () => {
+        setAgentFinished('plotter');
+        highlightAgent('debugger', 'COMPILING', '16, 185, 129', '#10b981');
+        addLog(`[Orchestrator] Handoff to QA Debugger subagent...`);
+        addLog(`[Debugger] Executing local cmake compilation task: ./ns3 build...`);
+        addLog(`[Debugger] Linking compiled executable file successfully.`);
+        addLog(`[Debugger] Launching trial execution. Verifying log assertions...`);
+        addLog(`[Debugger] Execution SUCCESS: Trial run completed without segfaults.`);
+      }
+    },
+    {
+      delay: 14500,
+      run: () => {
+        setAgentFinished('debugger');
+        highlightAgent('orchestrator', 'SYNTHESIZING', '129, 140, 248', '#818cf8');
+        addLog(`[Orchestrator] QA check passed. Re-assembling all subagent statistics...`);
+        addLog(`[Orchestrator] Formulating final performance summary.`);
+      }
+    },
+    {
+      delay: 17000,
+      run: () => {
+        resetAgentRows();
+        if (runBtn) {
+          runBtn.disabled = false;
+          runBtn.innerHTML = `<i data-lucide="play" style="width: 16px; height: 16px;"></i> Approve & Go Ahead with Plan`;
+          lucide.createIcons();
+        }
+        if (globalStatus) {
+          globalStatus.innerText = 'System: Completed';
+          globalStatus.style.background = 'rgba(16, 185, 129, 0.15)';
+          globalStatus.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+          globalStatus.style.color = '#34d399';
+        }
+        addLog(`\n[System] TASK COMPLETED SUCCESSFULLY!`);
+        if (planId === 'mlo-perf') {
+          addLog(`[System] Multi-Link throughput logs saved to scratch/wifi7-mlo-throughput-stats.xml.`);
+        } else if (planId === 'cosr-range') {
+          addLog(`[System] CSR CCA assessment data exported to scratch/wifi8-cosr-cca-results.dat.`);
+        } else {
+          addLog(`[System] QoS queue metrics written to scratch/qos-edca-priority.xml.`);
+        }
+      }
+    }
+  ];
+
+  executionSteps.forEach(step => {
+    setTimeout(step.run, step.delay);
+  });
+};

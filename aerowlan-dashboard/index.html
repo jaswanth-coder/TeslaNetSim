@@ -46,6 +46,10 @@
           <i data-lucide="network"></i>
           <span>WiFi Architecture Map</span>
         </a>
+        <a href="#" class="nav-item" data-tab="multiagent">
+          <i data-lucide="bot"></i>
+          <span>Multi-Agent Console</span>
+        </a>
       </nav>
 
       <div class="sidebar-footer">
@@ -501,6 +505,134 @@
                   <button class="btn-console-clear" onclick="clearConsole()">Clear</button>
                 </div>
                 <pre class="console-body" id="console-body"></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Multi-Agent Orchestration Tab -->
+      <section id="multiagent-tab" class="tab-content">
+        <div class="multiagent-console-container" style="padding: 24px; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px;">
+          <!-- Header and Overview Banner -->
+          <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(244, 63, 94, 0.05) 100%); border: 1px solid var(--border-glow); border-radius: 12px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <h2 style="font-family: 'Outfit', sans-serif; font-size: 24px; color: #f8fafc; display: flex; align-items: center; gap: 10px; margin: 0;">
+                <span>🤖</span> Multi-Agent Orchestration Web Console
+              </h2>
+              <span id="orchestration-global-status" style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); padding: 4px 12px; border-radius: 100px; font-size: 11px; font-weight: 600; text-transform: uppercase; color: #a5b4fc;">System: Standby</span>
+            </div>
+            <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6; margin: 0;">
+              Configure a research task, review the Orchestrator's execution plan, modify simulation settings via interactive checkboxes, and authorize execution. Watch subagents collaborate in real-time, displaying live steps, vtables analysis, coding writes, and QA compilation.
+            </p>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 450px; gap: 24px; align-items: start;">
+            <!-- Left Side: Live Activity & Execution Trace -->
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+              <!-- 1. Live Subagent Status Board -->
+              <div style="background: var(--bg-secondary); border: 1px solid var(--border-glow); border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+                <h3 style="font-family: 'Outfit', sans-serif; font-size: 15px; color: #cbd5e1; margin-top: 0; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
+                  👥 Agent Team Status Board
+                </h3>
+                <div style="display: flex; flex-direction: column; gap: 14px;">
+                  <!-- Orchestrator -->
+                  <div id="agent-row-orchestrator" style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.03); border-radius: 8px; transition: all 0.3s ease;">
+                    <div style="font-size: 18px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: rgba(129, 140, 248, 0.1); border-radius: 6px; border: 1px solid rgba(129, 140, 248, 0.2); color: #818cf8;">👑</div>
+                    <div style="flex: 1;">
+                      <strong style="font-size: 13px; color: #f8fafc; font-family: 'Outfit', sans-serif;">Lead Orchestrator</strong>
+                      <span style="display: block; font-size: 11px; color: var(--text-muted);">Main Planner, Scheduler & Synthesizer</span>
+                    </div>
+                    <span class="agent-badge" id="badge-orchestrator" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 3px 10px; border-radius: 6px; font-size: 10px; color: #cbd5e1;">IDLE</span>
+                  </div>
+                  <!-- Analyzer -->
+                  <div id="agent-row-analyzer" style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.03); border-radius: 8px; transition: all 0.3s ease;">
+                    <div style="font-size: 18px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: rgba(59, 130, 246, 0.1); border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.2); color: #3b82f6;">🔍</div>
+                    <div style="flex: 1;">
+                      <strong style="font-size: 13px; color: #f8fafc; font-family: 'Outfit', sans-serif;">Source Code Analyzer</strong>
+                      <span style="display: block; font-size: 11px; color: var(--text-muted);">Inspects Class APIs & Attribute Paths</span>
+                    </div>
+                    <span class="agent-badge" id="badge-analyzer" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 3px 10px; border-radius: 6px; font-size: 10px; color: #cbd5e1;">IDLE</span>
+                  </div>
+                  <!-- Designer -->
+                  <div id="agent-row-designer" style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.03); border-radius: 8px; transition: all 0.3s ease;">
+                    <div style="font-size: 18px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: rgba(244, 63, 94, 0.1); border-radius: 6px; border: 1px solid rgba(244, 63, 94, 0.2); color: #f43f5e;">💻</div>
+                    <div style="flex: 1;">
+                      <strong style="font-size: 13px; color: #f8fafc; font-family: 'Outfit', sans-serif;">Simulation Designer</strong>
+                      <span style="display: block; font-size: 11px; color: var(--text-muted);">Writes C++ Simulation Topologies</span>
+                    </div>
+                    <span class="agent-badge" id="badge-designer" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 3px 10px; border-radius: 6px; font-size: 10px; color: #cbd5e1;">IDLE</span>
+                  </div>
+                  <!-- Plotter -->
+                  <div id="agent-row-plotter" style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.03); border-radius: 8px; transition: all 0.3s ease;">
+                    <div style="font-size: 18px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: rgba(234, 179, 8, 0.1); border-radius: 6px; border: 1px solid rgba(234, 179, 8, 0.2); color: #eab308;">📊</div>
+                    <div style="flex: 1;">
+                      <strong style="font-size: 13px; color: #f8fafc; font-family: 'Outfit', sans-serif;">Data Plotter & Animator</strong>
+                      <span style="display: block; font-size: 11px; color: var(--text-muted);">Configures FlowMonitor & NetAnim Tracing</span>
+                    </div>
+                    <span class="agent-badge" id="badge-plotter" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 3px 10px; border-radius: 6px; font-size: 10px; color: #cbd5e1;">IDLE</span>
+                  </div>
+                  <!-- Debugger -->
+                  <div id="agent-row-debugger" style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.03); border-radius: 8px; transition: all 0.3s ease;">
+                    <div style="font-size: 18px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: rgba(16, 185, 129, 0.1); border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.2); color: #10b981;">🛠️</div>
+                    <div style="flex: 1;">
+                      <strong style="font-size: 13px; color: #f8fafc; font-family: 'Outfit', sans-serif;">QA Debugger</strong>
+                      <span style="display: block; font-size: 11px; color: var(--text-muted);">Triggers ns-3 Builds & Resolves Compiles</span>
+                    </div>
+                    <span class="agent-badge" id="badge-debugger" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 3px 10px; border-radius: 6px; font-size: 10px; color: #cbd5e1;">IDLE</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. Live Agent Steps Terminal Output -->
+              <div style="background: #05070c; border: 1px solid var(--border-glow); border-radius: 12px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); display: flex; flex-direction: column; gap: 10px; height: 300px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
+                  <span style="font-family: monospace; font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+                    <span style="width: 8px; height: 8px; border-radius: 50%; background: #eab308; display: inline-block;" id="console-pulse-indicator"></span> 
+                    Agent Activity & Process Output
+                  </span>
+                  <button class="btn-console-clear" style="font-size: 10px;" onclick="document.getElementById('multiagent-log-body').innerHTML = ''">Clear</button>
+                </div>
+                <pre id="multiagent-log-body" style="font-family: monospace; font-size: 12px; color: #34d399; overflow-y: auto; flex: 1; margin: 0; line-height: 1.6; white-space: pre-wrap; word-break: break-all;">[System] Web Console active. Select a target simulation task on the right to compile plans...</pre>
+              </div>
+            </div>
+
+            <!-- Right Side: Plan Setup & Approval MCQ -->
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+              <!-- Task Selection Selector -->
+              <div style="background: var(--bg-secondary); border: 1px solid var(--border-glow); border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+                <h3 style="font-family: 'Outfit', sans-serif; font-size: 15px; color: #cbd5e1; margin-top: 0; margin-bottom: 12px;">🎯 Select Target Simulation Project</h3>
+                <select id="multiagent-project-selector" class="premium-select" onchange="loadMultiagentPlan()" style="margin-bottom: 0; width: 100%;">
+                  <option value="mlo-perf">WiFi 7 Multi-Link Throughput Verification</option>
+                  <option value="cosr-range">WiFi 8 CSR CCA Threshold Assessment</option>
+                  <option value="qos-backoff">IEEE 802.11 QoS Voice Priority Simulation</option>
+                </select>
+              </div>
+
+              <!-- Interactive Planning & MCQ Card -->
+              <div style="background: var(--bg-secondary); border: 1px solid var(--border-glow); border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); display: flex; flex-direction: column; gap: 16px;">
+                <h3 style="font-family: 'Outfit', sans-serif; font-size: 16px; color: #cbd5e1; margin-top: 0; margin-bottom: 0; display: flex; align-items: center; justify-content: space-between;">
+                  <span>📋 Orchestrator Execution Plan</span>
+                  <span style="font-size: 10px; font-weight: normal; color: var(--text-muted);">Click options to customize</span>
+                </h3>
+
+                <!-- Visual Execution steps list -->
+                <div id="multiagent-steps-list" style="display: flex; flex-direction: column; gap: 8px; border-left: 2px solid rgba(99, 102, 241, 0.2); padding-left: 12px; margin-left: 6px;">
+                  <!-- Dynamic plan list -->
+                </div>
+
+                <!-- MCQ Configuration Choices Card -->
+                <div style="background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 14px;">
+                  <h4 style="font-size: 12px; color: #cbd5e1; margin-top: 0; margin-bottom: 10px; font-family: 'Outfit', sans-serif;" id="multiagent-mcq-title">Simulation Configurations</h4>
+                  <div id="multiagent-mcq-choices" style="display: flex; flex-direction: column; gap: 10px;">
+                    <!-- MCQ Options go here -->
+                  </div>
+                </div>
+
+                <!-- Submit / Go ahead Button -->
+                <button class="btn btn-primary btn-block" id="btn-multiagent-execute" onclick="executeMultiagentPlan()" style="padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600;">
+                  <i data-lucide="play" style="width: 16px; height: 16px;"></i> Approve & Go Ahead with Plan
+                </button>
               </div>
             </div>
           </div>
