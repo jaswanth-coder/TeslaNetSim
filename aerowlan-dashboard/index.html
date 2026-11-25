@@ -34,6 +34,10 @@
           <i data-lucide="book-open"></i>
           <span>Learning Hub</span>
         </a>
+        <a href="https://jaswanth-coder.github.io/TeslaNetSim/" target="_blank" class="nav-item" style="border-left: 2px solid #ba3925;">
+          <i data-lucide="external-link"></i>
+          <span>Course Notes (GitHub Pages)</span>
+        </a>
         <a href="#" class="nav-item" data-tab="codinglab">
           <i data-lucide="code-2"></i>
           <span>Coding Lab</span>
@@ -221,6 +225,34 @@
               <div class="quiz-feedback" id="assignment-feedback" style="display: none;">
                 <!-- Feedback alert -->
               </div>
+            </div>
+
+            <!-- Interactive AI Mentor & Knowledge Check (In-Webpage) -->
+            <div class="mentor-interactive-container" id="mentor-interactive-container">
+              <div class="mentor-header">
+                <div class="mentor-title">
+                  <i data-lucide="sparkles"></i>
+                  <span>Live Interactive Checkpoint & Mentor Q&A</span>
+                </div>
+                <span style="font-size: 12px; color: #94a3b8;">Direct Webpage Interaction</span>
+              </div>
+              <div class="mentor-q-box" id="mentor-q-box">
+                <p id="mentor-question-text">
+                  <strong>Question 1:</strong> If you write <code>Simulator::Stop(Seconds(10.0)); Simulator::Run();</code> without scheduling any applications or packets, will the simulation take 10 seconds of real-world wall-clock time? What actually happens under the hood?
+                </p>
+              </div>
+              <div class="mentor-input-wrapper">
+                <textarea id="mentor-user-input" class="mentor-textarea" placeholder="Type your answer to the question above, or ask your doubts about this lesson here directly..."></textarea>
+                <div class="mentor-action-row">
+                  <button class="btn btn-secondary btn-sm" onclick="askMentorDoubt()">
+                    <i data-lucide="help-circle"></i> Ask Mentor a Question
+                  </button>
+                  <button class="btn btn-primary btn-sm" onclick="submitMentorAnswer()">
+                    <i data-lucide="send"></i> Check Answer
+                  </button>
+                </div>
+              </div>
+              <div class="mentor-response-area" id="mentor-response-area"></div>
             </div>
 
             <!-- Navigation Buttons -->
@@ -520,7 +552,14 @@
               <h2 style="font-family: 'Outfit', sans-serif; font-size: 24px; color: #f8fafc; display: flex; align-items: center; gap: 10px; margin: 0;">
                 <span>🤖</span> Multi-Agent Orchestration Web Console
               </h2>
-              <span id="orchestration-global-status" style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); padding: 4px 12px; border-radius: 100px; font-size: 11px; font-weight: 600; text-transform: uppercase; color: #a5b4fc;">System: Standby</span>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <!-- API Key Input -->
+                <div style="display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 5px 10px;">
+                  <span style="font-size: 11px; color: var(--text-muted); font-weight: 600; font-family: sans-serif;">Gemini API Key:</span>
+                  <input type="password" id="multiagent-api-key" placeholder="Paste Key..." style="background: transparent; border: none; outline: none; color: #fff; font-size: 11px; width: 140px; font-family: monospace;" />
+                </div>
+                <span id="orchestration-global-status" style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); padding: 4px 12px; border-radius: 100px; font-size: 11px; font-weight: 600; text-transform: uppercase; color: #a5b4fc;">System: Standby</span>
+              </div>
             </div>
             <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6; margin: 0;">
               Configure a research task, review the Orchestrator's execution plan, modify simulation settings via interactive checkboxes, and authorize execution. Watch subagents collaborate in real-time, displaying live steps, vtables analysis, coding writes, and QA compilation.
@@ -613,6 +652,7 @@
                   <option value="mlo-perf">WiFi 7 Multi-Link Throughput Verification</option>
                   <option value="cosr-range">WiFi 8 CSR CCA Threshold Assessment</option>
                   <option value="qos-backoff">IEEE 802.11 QoS Voice Priority Simulation</option>
+                  <option value="custom-spec">Custom ns-3 Wifi / Network Simulation</option>
                 </select>
               </div>
 

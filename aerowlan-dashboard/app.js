@@ -66,95 +66,151 @@ const tracks = [
           },
           {
             id: "T1-M1-L2",
-            title: "1.2 Anatomy of a Basic Simulation Script (first.cc)",
+            title: "1.2 Anatomy of a Basic Simulation Script & The 7-Step Recipe",
             moduleTitle: "Track 1 • Module 1 • Lesson 2",
             body: `
-              <p>Here is a complete, fully functional C++ simulation code representing the standard <code>first.cc</code> from the ns-3 tutorial, which sets up a point-to-point link between two nodes. Let's study the code:</p>
+              <p>Every single ns-3 simulation script follows a structured, universal <strong>7-Step Recipe</strong>. Whether simulating a 2-node point-to-point link or a 100-node IEEE 802.11be WiFi 7 Multi-Link network, mastering these 7 steps is the key to writing correct ns-3 simulations.</p>
               
               <div class="topology-diagram" style="display: flex; align-items: center; justify-content: center; gap: 16px; margin: 20px 0; padding: 20px; background: rgba(15, 23, 42, 0.6); border-radius: 8px; border: 1px solid rgba(99, 102, 241, 0.2); box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
                 <div style="display: flex; flex-direction: column; align-items: center;">
                   <div style="width: 48px; height: 48px; border-radius: 50%; background: #3b82f6; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; border: 2px solid #60a5fa; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);">Node 0</div>
-                  <span style="font-size: 11px; margin-top: 6px; color: #94a3b8;">Sender</span>
+                  <span style="font-size: 11px; margin-top: 6px; color: #94a3b8;">Sender (10.1.1.1)</span>
                 </div>
                 <div style="flex-grow: 1; height: 4px; background: #64748b; position: relative; max-width: 150px; min-width: 80px;">
                   <span style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 11px; color: #a5b4fc; white-space: nowrap; font-weight: 500;">P2P Channel</span>
-                  <span style="position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #94a3b8; white-space: nowrap;">5Mbps / 2ms</span>
+                  <span style="position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #94a3b8; white-space: nowrap;">5Mbps / 2ms Delay</span>
                 </div>
                 <div style="display: flex; flex-direction: column; align-items: center;">
                   <div style="width: 48px; height: 48px; border-radius: 50%; background: #10b981; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; border: 2px solid #34d399; box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);">Node 1</div>
-                  <span style="font-size: 11px; margin-top: 6px; color: #94a3b8;">Receiver</span>
+                  <span style="font-size: 11px; margin-top: 6px; color: #94a3b8;">Receiver (10.1.1.2)</span>
                 </div>
               </div>
 
+              <h4>The Standard 7-Step Simulation Pipeline:</h4>
+              <div style="overflow-x: auto; margin: 16px 0;">
+                <table class="academic-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                  <thead>
+                    <tr style="background: rgba(99, 102, 241, 0.2); color: #c7d2fe;">
+                      <th style="padding: 8px 12px; text-align: left;">Step</th>
+                      <th style="padding: 8px 12px; text-align: left;">Name</th>
+                      <th style="padding: 8px 12px; text-align: left;">Core Class / Helper</th>
+                      <th style="padding: 8px 12px; text-align: left;">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                      <td style="padding: 8px 12px; font-weight: bold; color: #60a5fa;">1</td>
+                      <td style="padding: 8px 12px;">CLI Parsing</td>
+                      <td style="padding: 8px 12px;"><code>CommandLine cmd;</code></td>
+                      <td style="padding: 8px 12px;">Parse command-line arguments dynamically without recompiling.</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                      <td style="padding: 8px 12px; font-weight: bold; color: #60a5fa;">2</td>
+                      <td style="padding: 8px 12px;">Node Creation</td>
+                      <td style="padding: 8px 12px;"><code>NodeContainer nodes;</code></td>
+                      <td style="padding: 8px 12px;">Allocate reference-counted host entities (<code>Ptr&lt;Node&gt;</code>).</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                      <td style="padding: 8px 12px; font-weight: bold; color: #60a5fa;">3</td>
+                      <td style="padding: 8px 12px;">Device & Channel</td>
+                      <td style="padding: 8px 12px;"><code>PointToPointHelper / WifiHelper</code></td>
+                      <td style="padding: 8px 12px;">Install Layer 1/2 NICs (<code>NetDevice</code>) and connect to <code>Channel</code>.</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                      <td style="padding: 8px 12px; font-weight: bold; color: #60a5fa;">4</td>
+                      <td style="padding: 8px 12px;">Protocol Stack</td>
+                      <td style="padding: 8px 12px;"><code>InternetStackHelper stack;</code></td>
+                      <td style="padding: 8px 12px;">Install ARP, IPv4/IPv6, TCP, UDP and loopback on nodes.</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                      <td style="padding: 8px 12px; font-weight: bold; color: #60a5fa;">5</td>
+                      <td style="padding: 8px 12px;">IP Addressing</td>
+                      <td style="padding: 8px 12px;"><code>Ipv4AddressHelper ip;</code></td>
+                      <td style="padding: 8px 12px;">Assign IP subnet ranges and build device IP interfaces.</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                      <td style="padding: 8px 12px; font-weight: bold; color: #60a5fa;">6</td>
+                      <td style="padding: 8px 12px;">Applications</td>
+                      <td style="padding: 8px 12px;"><code>UdpEchoServerHelper / Client</code></td>
+                      <td style="padding: 8px 12px;">Install and schedule traffic generators and listeners.</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 12px; font-weight: bold; color: #60a5fa;">7</td>
+                      <td style="padding: 8px 12px;">Run & Cleanup</td>
+                      <td style="padding: 8px 12px;"><code>Simulator::Run(); Simulator::Destroy();</code></td>
+                      <td style="padding: 8px 12px;">Execute DES event calendar and deallocate all objects cleanly.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <h4>Full Canonical C++ Code (<code>first.cc</code> with all 7 Steps):</h4>
               <pre><code>#include "ns3/core-module.h"
 #include "ns3/network-module.h"
+#include "ns3/internet-module.h"
 #include "ns3/point-to-point-module.h"
-#include &lt;iostream&gt;
- 
+#include "ns3/applications-module.h"
+
 using namespace ns3;
- 
-NS_LOG_COMPONENT_DEFINE ("AeroWlanHelloP2p");
- 
+
+NS_LOG_COMPONENT_DEFINE ("AeroWlanFirstScript");
+
 int main (int argc, char *argv[])
 {
+  // STEP 1: Command line parsing
   CommandLine cmd (__FILE__);
   cmd.Parse (argc, argv);
- 
+
+  Time::SetResolution (Time::NS);
+  LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
+  LogComponentEnable ("UdpEchoServerApplication", LOG_LEVEL_INFO);
+
+  // STEP 2: Create nodes
   NodeContainer nodes;
   nodes.Create (2);
- 
+
+  // STEP 3: Setup Channel & NetDevices
   PointToPointHelper pointToPoint;
   pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));
   pointToPoint.SetChannelAttribute ("Delay", StringValue ("2ms"));
- 
-  NetDeviceContainer devices;
-  devices = pointToPoint.Install (nodes);
- 
-  std::cout &lt;&lt; "Simulation topology built successfully!" &lt;&lt; std::endl;
+  NetDeviceContainer devices = pointToPoint.Install (nodes);
+
+  // STEP 4: Install Internet Protocol Stack
+  InternetStackHelper stack;
+  stack.Install (nodes);
+
+  // STEP 5: Assign IP Addresses
+  Ipv4AddressHelper address;
+  address.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfaces = address.Assign (devices);
+
+  // STEP 6: Configure & Install Applications
+  UdpEchoServerHelper echoServer (9);
+  ApplicationContainer serverApps = echoServer.Install (nodes.Get (1));
+  serverApps.Start (Seconds (1.0));
+  serverApps.Stop (Seconds (10.0));
+
+  UdpEchoClientHelper echoClient (interfaces.GetAddress (1), 9);
+  echoClient.SetAttribute ("MaxPackets", UintegerValue (3));
+  echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+  echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
+
+  ApplicationContainer clientApps = echoClient.Install (nodes.Get (0));
+  clientApps.Start (Seconds (2.0));
+  clientApps.Stop (Seconds (10.0));
+
+  // STEP 7: Run Simulation & Clean Memory
+  Simulator::Run ();
+  Simulator::Destroy ();
+
   return 0;
 }</code></pre>
-              <h4>Detailed Architectural Walkthrough:</h4>
-              <ol style="padding-left:18px; margin-top:10px;">
-                <li style="margin-bottom:10px;"><strong>Headers (Lines 1-4)</strong>:
-                  <ul>
-                    <li><code>#include "ns3/core-module.h"</code>: Resolves compiler dependencies for foundational utilities like timers, event schedulers, logging streams, and shell commands.</li>
-                    <li><code>#include "ns3/network-module.h"</code>: Contains basic data structures that represent network packets, node hardware interfaces, and collection helpers like [[NodeContainer]].</li>
-                    <li><code>#include "ns3/point-to-point-module.h"</code>: Provides classes representing physical ethernet cables and simple point-to-point physical transmission links.</li>
-                  </ul>
-                </li>
-                <li style="margin-bottom:10px;"><strong>The ns3 Namespace (Line 6)</strong>:
-                  <ul>
-                    <li>All ns-3 components are scoped under the <code>ns3</code> namespace. This isolates the simulator classes from other standard C++ or third-party libraries (like standard <code>std::</code> structures) to avoid name clashes.</li>
-                  </ul>
-                </li>
-                <li style="margin-bottom:10px;"><strong>Logging Identifiers (Line 8)</strong>:
-                  <ul>
-                    <li><code>NS_LOG_COMPONENT_DEFINE ("AeroWlanHelloP2p");</code>: Registers a unique console log module. By registering this identifier, you can filter and enable/disable console outputs from this specific script dynamically at runtime via the environment variable <code>NS_LOG</code>.</li>
-                  </ul>
-                </li>
-                <li style="margin-bottom:10px;"><strong>Main loop & Parameter Parsing (Lines 10-14)</strong>:
-                  <ul>
-                    <li>The simulator execution starts in the standard C++ <code>main()</code>. The <code>CommandLine cmd</code> object binds to your shell terminal interface, allowing you to pass variables to the simulator when running it in the shell, bypassing hardcoded re-compilation.</li>
-                  </ul>
-                </li>
-                <li style="margin-bottom:10px;"><strong>Node Containers (Lines 16-17)</strong>:
-                  <ul>
-                    <li><code>NodeContainer nodes; nodes.Create(2);</code>: Creates the logical nodes (hosts) inside the system. Under the hood, this instantiates two <code>Node</code> objects, tracks them using C++ smart pointers, and registers their metadata with the system scheduler.</li>
-                  </ul>
-                </li>
-                <li style="margin-bottom:10px;"><strong>Helper Abstractions (Lines 19-21)</strong>:
-                  <ul>
-                    <li>Configuring network hardware is complex. The helper class <code>[[PointToPointHelper]]</code> hides the complexity of manually creating a <code>PointToPointNetDevice</code> and a <code>PointToPointChannel</code>.</li>
-                    <li><code>SetDeviceAttribute ("DataRate", ...)</code> maps directly to the link speed of the simulated NIC (Network Interface Card).</li>
-                    <li><code>SetChannelAttribute ("Delay", ...)</code> dictates the propagation speed of signals traversing the virtual cable (transmission medium delay).</li>
-                  </ul>
-                </li>
-                <li style="margin-bottom:10px;"><strong>Device Installation (Lines 23-24)</strong>:
-                  <ul>
-                    <li><code>pointToPoint.Install (nodes)</code>: Tells the helper to loop through your nodes, instantiate two simulated network interface cards, connect them with a channel model, and return their references inside a <code>NetDeviceContainer</code>.</li>
-                  </ul>
-                </li>
-              </ol>
+              <h4>Key Insights & Common Pitfalls:</h4>
+              <ul style="padding-left:18px; margin-top:10px;">
+                <li style="margin-bottom:8px;"><strong>Order matters:</strong> You cannot assign IP addresses (Step 5) before installing the Internet Stack (Step 4), because nodes do not have an <code>Ipv4</code> protocol object attached yet.</li>
+                <li style="margin-bottom:8px;"><strong>Port 9:</strong> The UDP Echo Server listens on port 9. The client must be pointed to <code>interfaces.GetAddress(1)</code> with destination port 9.</li>
+                <li style="margin-bottom:8px;"><strong>Always Destroy:</strong> <code>Simulator::Destroy()</code> breaks circular references between event handlers and models, ensuring zero memory leaks.</li>
+              </ul>
             `
           },
           {
@@ -2894,6 +2950,11 @@ function loadLesson(mIdx, lIdx) {
   document.getElementById('btn-prev-lesson').disabled = (mIdx === 0 && lIdx === 0);
   const isLastLesson = (mIdx === activeTrack.modules.length - 1 && lIdx === activeTrack.modules[mIdx].lessons.length - 1);
   document.getElementById('btn-next-lesson').disabled = isLastLesson;
+
+  // Update In-Webpage Interactive Mentor Question
+  if (typeof updateMentorWidget === 'function') {
+    updateMentorWidget(mIdx, lIdx);
+  }
 }
 
 // Load a specific question from quiz
@@ -4891,6 +4952,19 @@ const multiagentPlans = {
       { phase: "Data & Animation", desc: "Monitor flow statistics verifying priority delay differentials." },
       { phase: "QA & Compilation", desc: "Confirm compilation output registers correct EDCA configurations." }
     ]
+  },
+  "custom-spec": {
+    mcqTitle: "Custom Simulation Specifications",
+    choices: [
+      { id: "opt-cust-std", label: "Preferred Wifi Standard", type: "radio", group: "standard", options: ["WIFI_STANDARD_80211be (Wifi 7 MLO)", "WIFI_STANDARD_80211ax (Wifi 6)", "WIFI_STANDARD_80211n (Wifi 4)"], selected: 0 },
+      { id: "opt-cust-anim", label: "Enable NetAnim Export", type: "radio", group: "anim", options: ["Yes (Enable AnimationInterface xml traces)", "No (Only trace statistics)"], selected: 0 }
+    ],
+    steps: [
+      { phase: "Analysis", desc: "Analyze the custom objectives requirements and parameters." },
+      { phase: "Code Design", desc: "Generate the customized ns-3 C++ code (via Gemini if key is provided)." },
+      { phase: "Data & Animation", desc: "Configure custom tracing helpers and animation trackers." },
+      { phase: "QA & Compilation", desc: "Build C++ executable, capture compiler output, and auto-repair errors if build fails." }
+    ]
   }
 };
 
@@ -5198,10 +5272,93 @@ window.executeMultiagentPlan = function() {
       addLog(`[Designer] No custom overrides. Using defaults.`);
     }
 
-    // Generate specific C++ code content
+    const apiKey = document.getElementById('multiagent-api-key')?.value || '';
     let finalCode = '';
-    if (planId === 'mlo-perf') {
-      finalCode = `#include "ns3/core-module.h"
+
+    if (apiKey) {
+      addLog(`[Designer] API Key detected. Requesting custom C++ generation from Gemini LLM...`);
+      addLog(`[Designer] Contacting Gemini for custom script design...`);
+      try {
+        const userPrompt = promptText || `Generate an ns-3.45 C++ script for simulation project: ${planId}. Select standard ${stdVal}, node count ${nodesVal}, duration ${durationVal}s. Ensure it has correct wifi setup and AnimationInterface visualizer.`;
+        const genRes = await fetch('/api/multiagent/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: userPrompt, api_key: apiKey })
+        });
+        const genData = await genRes.json();
+        if (genData.status === 'success' && genData.code) {
+          finalCode = genData.code;
+          addLog(`[Designer] Custom C++ code successfully generated by Gemini!`);
+        } else {
+          addLog(`[Designer] LLM API Error: ${genData.message || 'Unknown error'}. Falling back to templates.`);
+        }
+      } catch (err) {
+        addLog(`[Designer] Connection error to Gemini API. Falling back to templates.`);
+      }
+    }
+
+    if (!finalCode) {
+      addLog(`[Designer] Using local C++ code template library...`);
+      if (planId === 'custom-spec') {
+        finalCode = `#include "ns3/core-module.h"
+#include "ns3/wifi-module.h"
+#include "ns3/mobility-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/netanim-module.h"
+
+using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE ("CustomWifiSimulation");
+
+int main (int argc, char *argv[])
+{
+  uint32_t nNodes = ${nodesVal};
+  double simTime = ${durationVal.toFixed(1)};
+
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  NodeContainer wifiNodes;
+  wifiNodes.Create (nNodes);
+
+  WifiHelper wifi;
+  if ("${stdVal}" == "802.11be") {
+    wifi.SetStandard (WIFI_STANDARD_80211be);
+  } else {
+    wifi.SetStandard (WIFI_STANDARD_80211ax);
+  }
+
+  YansWifiChannelHelper channel = YansWifiChannelHelper::Default ();
+  YansWifiPhyHelper phy;
+  phy.SetChannel (channel.Create ());
+
+  WifiMacHelper mac;
+  Ssid ssid = Ssid ("ns3-custom");
+  mac.SetType ("ns3::ApWifiMac", "Ssid", SsidValue (ssid));
+  NetDeviceContainer apDevice = wifi.Install (phy, mac, wifiNodes.Get (0));
+
+  mac.SetType ("ns3::StaWifiMac", "Ssid", SsidValue (ssid));
+  NetDeviceContainer staDevices = wifi.Install (phy, mac, NodeContainer (wifiNodes.Get (1), wifiNodes.Get (2)));
+
+  MobilityHelper mobility;
+  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  mobility.Install (wifiNodes);
+
+  InternetStackHelper stack;
+  stack.Install (wifiNodes);
+
+  AnimationInterface anim ("scratch/aerowlan_exercises/submissions/custom_animation.xml");
+  for (uint32_t i = 0; i < nNodes; ++i) {
+    anim.SetConstantPosition (wifiNodes.Get (i), i * 15.0, 0.0);
+  }
+
+  Simulator::Stop (Seconds (simTime));
+  Simulator::Run ();
+  Simulator::Destroy ();
+  return 0;
+}`;
+      } else if (planId === 'mlo-perf') {
+        finalCode = `#include "ns3/core-module.h"
 #include "ns3/wifi-module.h"
 #include "ns3/mobility-module.h"
 #include "ns3/internet-module.h"
@@ -5259,8 +5416,8 @@ int main (int argc, char *argv[])
   Simulator::Destroy ();
   return 0;
 }`;
-    } else if (planId === 'cosr-range') {
-      finalCode = `#include "ns3/core-module.h"
+      } else if (planId === 'cosr-range') {
+        finalCode = `#include "ns3/core-module.h"
 #include "ns3/wifi-module.h"
 #include "ns3/mobility-module.h"
 #include "ns3/internet-module.h"
@@ -5315,8 +5472,8 @@ int main (int argc, char *argv[])
   Simulator::Destroy ();
   return 0;
 }`;
-    } else {
-      finalCode = `#include "ns3/core-module.h"
+      } else {
+        finalCode = `#include "ns3/core-module.h"
 #include "ns3/wifi-module.h"
 #include "ns3/mobility-module.h"
 #include "ns3/internet-module.h"
@@ -5374,53 +5531,57 @@ int main (int argc, char *argv[])
   Simulator::Destroy ();
   return 0;
 }`;
+      }
     }
 
     addLog(`[Designer] Streaming C++ code simulation to workspace canvas...`);
-    
-    // Animate streaming/typing code to code-text-area
-    const codeTextAreaVal = document.getElementById('code-text-area');
-    const codeLineNumbersVal = document.getElementById('code-line-numbers');
-    
-    if (codeTextAreaVal && codeLineNumbersVal) {
-      codeTextAreaVal.innerHTML = '';
-      codeLineNumbersVal.innerHTML = '';
-      
-      const codeLines = finalCode.split('\n');
-      for (let i = 0; i < codeLines.length; i++) {
-        // Append line numbers
-        codeLineNumbersVal.innerHTML += `${i + 1}<br>`;
-        
-        // Color lines based on some basic keywords for premium look
-        let coloredLine = codeLines[i]
-          .replace(/(#include\s+<[^>]+>|#include\s+"[^"]+")/g, '<span style="color:#ce9178;">$1</span>')
-          .replace(/\b(using\s+namespace|int|double|uint32_t|char|std::string|if|else|return|void|class|struct)\b/g, '<span style="color:#569cd6;">$1</span>')
-          .replace(/\b(CommandLine|NodeContainer|WifiHelper|YansWifiChannelHelper|YansWifiPhyHelper|WifiMacHelper|Ssid|NetDeviceContainer|MobilityHelper|InternetStackHelper|Ipv4AddressHelper|Ipv4InterfaceContainer|Simulator|Ptr|PointerValue|QosTxop|DoubleValue|SsidValue|UintegerValue|StringValue|Seconds|DynamicCast)\b/g, '<span style="color:#4ec9b0;">$1</span>')
-          .replace(/(".*?")/g, '<span style="color:#ce9178;">$1</span>')
-          .replace(/(\/\/.*)/g, '<span style="color:#6a9955;">$1</span>');
 
-        codeTextAreaVal.innerHTML += coloredLine + '\n';
-        codeTextAreaVal.scrollTop = codeTextAreaVal.scrollHeight;
-        
-        // Add a delay to simulate streaming / typing behaviour
-        await sleep(35);
-      }
+    const streamCode = async (codeToStream) => {
+      const codeTextAreaVal = document.getElementById('code-text-area');
+      const codeLineNumbersVal = document.getElementById('code-line-numbers');
       
-      // Add a blinking cursor at the end
-      codeTextAreaVal.innerHTML += '<span class="blinking-cursor">|</span>';
-    }
+      if (codeTextAreaVal && codeLineNumbersVal) {
+        codeTextAreaVal.innerHTML = '';
+        codeLineNumbersVal.innerHTML = '';
+        
+        const codeLines = codeToStream.split('\n');
+        for (let i = 0; i < codeLines.length; i++) {
+          // Append line numbers
+          codeLineNumbersVal.innerHTML += `${i + 1}<br>`;
+          
+          // Color lines based on some basic keywords for premium look
+          let coloredLine = codeLines[i]
+            .replace(/(#include\s+<[^>]+>|#include\s+"[^"]+")/g, '<span style="color:#ce9178;">$1</span>')
+            .replace(/\b(using\s+namespace|int|double|uint32_t|char|std::string|if|else|return|void|class|struct)\b/g, '<span style="color:#569cd6;">$1</span>')
+            .replace(/\b(CommandLine|NodeContainer|WifiHelper|YansWifiChannelHelper|YansWifiPhyHelper|WifiMacHelper|Ssid|NetDeviceContainer|MobilityHelper|InternetStackHelper|Ipv4AddressHelper|Ipv4InterfaceContainer|Simulator|Ptr|PointerValue|QosTxop|DoubleValue|SsidValue|UintegerValue|StringValue|Seconds|DynamicCast|AnimationInterface)\b/g, '<span style="color:#4ec9b0;">$1</span>')
+            .replace(/(".*?")/g, '<span style="color:#ce9178;">$1</span>')
+            .replace(/(\/\/.*)/g, '<span style="color:#6a9955;">$1</span>');
+
+          codeTextAreaVal.innerHTML += coloredLine + '\n';
+          codeTextAreaVal.scrollTop = codeTextAreaVal.scrollHeight;
+          
+          await sleep(20);
+        }
+        
+        codeTextAreaVal.innerHTML += '<span class="blinking-cursor">|</span>';
+      }
+    };
+
+    await streamCode(finalCode);
 
     addLog(`[Designer] Dynamic code script configured successfully.`);
     if (planId === 'mlo-perf') {
       addLog(`[Designer] Wrote C++ simulation code to scratch/aerowlan_exercises/submissions/multiagent_mlo.cc.`);
     } else if (planId === 'cosr-range') {
       addLog(`[Designer] Wrote C++ simulation code to scratch/aerowlan_exercises/submissions/multiagent_cosr.cc.`);
-    } else {
+    } else if (planId === 'qos-backoff') {
       addLog(`[Designer] Wrote C++ simulation code to scratch/aerowlan_exercises/submissions/multiagent_qos.cc.`);
+    } else {
+      addLog(`[Designer] Wrote C++ simulation code to scratch/aerowlan_exercises/submissions/multiagent_custom.cc.`);
     }
 
     // Step 4: Plotter
-    await sleep(3000);
+    await sleep(2000);
     setAgentFinished('designer');
     highlightAgent('plotter', 'INTEGRATING', '234, 179, 8', '#eab308');
     addLog(`[Orchestrator] Handoff to Data Plotter & NetAnim Visualizer...`);
@@ -5429,20 +5590,96 @@ int main (int argc, char *argv[])
     addLog(`[Plotter] Generating output dat and plt scripts. GnuplotHelper configured.`);
 
     // Step 5: Debugger
-    await sleep(3000);
+    await sleep(2000);
     setAgentFinished('plotter');
     highlightAgent('debugger', 'COMPILING', '16, 185, 129', '#10b981');
     addLog(`[Orchestrator] Handoff to QA Debugger subagent...`);
-    addLog(`[Debugger] Executing local cmake compilation task: ./ns3 build...`);
-    addLog(`[Debugger] Linking compiled executable file successfully.`);
-    addLog(`[Debugger] Launching trial execution. Verifying log assertions...`);
-    addLog(`[Debugger] Execution SUCCESS: Trial run completed without segfaults.`);
+    addLog(`[Debugger] Initiating local ns-3 compilation build task: ./ns3 build...`);
+
+    let compileRes;
+    let buildSuccess = false;
+    let currentCode = finalCode;
+    
+    try {
+      const cmpRes = await fetch('/api/multiagent/compile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: currentCode, plan_id: planId })
+      });
+      compileRes = await cmpRes.json();
+      
+      if (compileRes.status === 'success') {
+        buildSuccess = true;
+      } else if (compileRes.status === 'compile_error') {
+        addLog(`[Debugger] BUILD FAILURE! Capturing compiler warning/error messages:`);
+        addLog(`--------------------------------------------------------------------------------`);
+        addLog(compileRes.output);
+        addLog(`--------------------------------------------------------------------------------`);
+        
+        if (apiKey) {
+          addLog(`[Debugger] Active API Key detected. Spawning Auto-Repair LLM process...`);
+          highlightAgent('debugger', 'REPAIRING', '234, 88, 12', '#ea580c');
+          
+          const repRes = await fetch('/api/multiagent/repair', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: currentCode, error: compileRes.output, api_key: apiKey })
+          });
+          const repData = await repRes.json();
+          
+          if (repData.status === 'success' && repData.code) {
+            addLog(`[Debugger] Gemini LLM proposed a C++ repair patch!`);
+            addLog(`[Debugger] Streaming repaired code back into workspace editor...`);
+            currentCode = repData.code;
+            
+            await streamCode(currentCode);
+            
+            addLog(`[Debugger] Retrying ns-3 build compilation with repaired code...`);
+            highlightAgent('debugger', 'COMPILING', '16, 185, 129', '#10b981');
+            
+            const retryRes = await fetch('/api/multiagent/compile', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code: currentCode, plan_id: planId })
+            });
+            compileRes = await retryRes.json();
+            
+            if (compileRes.status === 'success') {
+              buildSuccess = true;
+              addLog(`[Debugger] Auto-repair SUCCESSFUL! Code compiled and linked cleanly.`);
+            } else {
+              addLog(`[Debugger] Auto-repair failed on retry. Manual debugging required.`);
+              addLog(compileRes.output);
+            }
+          } else {
+            addLog(`[Debugger] Auto-repair agent could not formulate a repair patch: ${repData.message || 'Unknown error'}`);
+          }
+        } else {
+          addLog(`[Debugger] Enter a Gemini API Key to enable the autonomous auto-repair/debugging agent.`);
+        }
+      }
+    } catch (err) {
+      addLog(`[Debugger] Connection error during compile request.`);
+    }
+
+    if (buildSuccess) {
+      addLog(`[Debugger] Linking compiled C++ executables successfully.`);
+      addLog(`[Debugger] Executing ns-3 simulation workspace. Parsing outputs...`);
+      addLog(`\n--- [SIMULATION RUN OUTPUT] ---`);
+      addLog(compileRes.output || '(No stdout logged)');
+      if (compileRes.errors && compileRes.errors.trim()) {
+        addLog(compileRes.errors);
+      }
+      addLog(`--- [SIMULATION COMPLETE] ---\n`);
+    } else {
+      addLog(`\n[Debugger] Execution halted due to compile errors.`);
+    }
 
     // Step 6: Synthesis
-    await sleep(3000);
+    await sleep(2000);
     setAgentFinished('debugger');
     highlightAgent('orchestrator', 'SYNTHESIZING', '129, 140, 248', '#818cf8');
-    addLog(`[Orchestrator] QA check passed. Re-assembling all subagent statistics...`);
+    addLog(`[Orchestrator] Task steps completed. Re-assembling all subagent statistics...`);
     addLog(`[Orchestrator] Formulating final performance summary.`);
 
     // Step 7: Completed
@@ -5460,14 +5697,161 @@ int main (int argc, char *argv[])
       globalStatus.style.color = '#34d399';
     }
     addLog(`\n[System] TASK COMPLETED SUCCESSFULLY!`);
-    if (planId === 'mlo-perf') {
-      addLog(`[System] Multi-Link throughput logs saved to scratch/wifi7-mlo-throughput-stats.xml.`);
-    } else if (planId === 'cosr-range') {
-      addLog(`[System] CSR CCA assessment data exported to scratch/wifi8-cosr-cca-results.dat.`);
-    } else {
-      addLog(`[System] QoS queue metrics written to scratch/qos-edca-priority.xml.`);
-    }
   };
 
   runSteps();
 };
+
+// ========================================================
+// Interactive AI Mentor & Academic Hub Functions
+// ========================================================
+
+const mentorQuestions = {
+  "0-0": {
+    q: "<strong>Question 1:</strong> If you write <code>Simulator::Stop(Seconds(10.0)); Simulator::Run();</code> without scheduling any applications or packets, will the simulation take 10 seconds of real-world wall-clock time? What actually happens under the hood?",
+    keywords: ["instant", "immediately", "jump", "fast", "ms", "millisecond", "discrete", "priority", "no event", "zero"],
+    correctFeedback: "🎉 <strong>Spot on!</strong> Exactly right. In a Discrete Event Simulator (DES), the clock only moves forward when events execute on the priority queue. Since no packets or timers are scheduled between 0s and 10s, the simulator leaps directly to the 10s stop event and exits in a few milliseconds of real wall-clock time!",
+    hint: "Think about how Discrete Event Simulation differs from a real-world stopwatch. Does the simulation clock need to wait if nothing is happening between events?"
+  },
+  "0-1": {
+    q: "<strong>Question 2:</strong> In the 7-Step Recipe, why is Step 4 (<code>InternetStackHelper::Install</code>) required before Step 5 (<code>Ipv4AddressHelper::Assign</code>)? What happens if you invert them?",
+    keywords: ["stack", "ip", "ipv4", "layer 3", "interface", "protocol", "attach", "aggregate", "fail", "assert"],
+    correctFeedback: "🎯 <strong>Brilliant!</strong> You have the ns-3 object model down. An empty <code>Node</code> begins with no networking protocols. <code>InternetStackHelper</code> aggregates the <code>Ipv4</code> protocol object to the node. If you invert them and call <code>Ipv4AddressHelper::Assign()</code> first, ns-3 cannot find the <code>Ipv4</code> object and aborts with a fatal runtime assertion failure!",
+    hint: "Consider what protocols exist on a bare Node right after NodeContainer::Create(2). Does it have an IPv4 protocol object attached yet?"
+  },
+  "0-2": {
+    q: "<strong>Question 3:</strong> What is the key functional difference between configuring ns-3 with <code>--build-profile=debug</code> versus <code>--build-profile=optimized</code>?",
+    keywords: ["debug", "assert", "symbol", "optimized", "fast", "speed", "sweep", "o3", "time"],
+    correctFeedback: "✅ <strong>Correct!</strong> Debug mode enables symbol tables (<code>-g</code>) and activates <code>NS_ASSERT</code> validation macros to detect logic errors early. Optimized mode compiles with <code>-O3</code> optimizations and disables assertion checks, making large WiFi simulation parameter sweeps execute 5x to 10x faster!",
+    hint: "Think about compilation flags (-g vs -O3) and runtime assertion checks (NS_ASSERT) used when debugging code versus running heavy parameter sweeps."
+  }
+};
+
+function updateMentorWidget(mIdx, lIdx) {
+  const container = document.getElementById('mentor-interactive-container');
+  if (!container) return;
+
+  const key = `${mIdx}-${lIdx}`;
+  const qData = mentorQuestions[key];
+  const qTextEl = document.getElementById('mentor-question-text');
+  const inputEl = document.getElementById('mentor-user-input');
+  const respEl = document.getElementById('mentor-response-area');
+
+  if (respEl) {
+    respEl.style.display = 'none';
+    respEl.innerHTML = '';
+  }
+  if (inputEl) {
+    inputEl.value = '';
+  }
+
+  if (qData && qTextEl) {
+    qTextEl.innerHTML = qData.q;
+    container.style.display = 'block';
+  } else if (qTextEl) {
+    qTextEl.innerHTML = `<strong>Lesson Concept Check:</strong> Review this topic and ask any doubts or submit your understanding of the concepts covered in this lesson.`;
+    container.style.display = 'block';
+  }
+}
+
+function submitMentorAnswer() {
+  const inputEl = document.getElementById('mentor-user-input');
+  const respEl = document.getElementById('mentor-response-area');
+  if (!inputEl || !respEl) return;
+
+  const userText = inputEl.value.trim();
+  if (!userText) {
+    respEl.className = 'mentor-response-area info';
+    respEl.innerHTML = '⚠️ Please enter an answer or note before submitting!';
+    respEl.style.display = 'block';
+    return;
+  }
+
+  const key = `${currentModuleIndex}-${currentLessonIndex}`;
+  const qData = mentorQuestions[key];
+
+  if (qData) {
+    const lower = userText.toLowerCase();
+    const isCorrect = qData.keywords.some(kw => lower.includes(kw));
+
+    if (isCorrect) {
+      respEl.className = 'mentor-response-area success';
+      respEl.innerHTML = qData.correctFeedback;
+    } else {
+      respEl.className = 'mentor-response-area info';
+      respEl.innerHTML = `<strong>Mentor Feedback:</strong> You're on the right track! Here is a hint: ${qData.hint}<br><br><em>Your Answer:</em> "${userText}"`;
+    }
+  } else {
+    respEl.className = 'mentor-response-area success';
+    respEl.innerHTML = `🎉 <strong>Great exploration!</strong> Your answer demonstrates a strong grasp of the concept. Keep experimenting with the ns-3 simulation scripts to see these dynamics in action!`;
+  }
+  respEl.style.display = 'block';
+}
+
+function askMentorDoubt() {
+  const inputEl = document.getElementById('mentor-user-input');
+  const respEl = document.getElementById('mentor-response-area');
+  if (!inputEl || !respEl) return;
+
+  const doubt = inputEl.value.trim();
+  if (!doubt) {
+    respEl.className = 'mentor-response-area info';
+    respEl.innerHTML = '💡 Please type your question or doubt in the box above, then click "Ask Mentor a Question".';
+    respEl.style.display = 'block';
+    return;
+  }
+
+  const lower = doubt.toLowerCase();
+  let answer = "";
+
+  if (lower.includes("ptr") || lower.includes("smart pointer") || lower.includes("pointer") || lower.includes("memory")) {
+    answer = `<strong>Mentor Explanation (Memory & Ptr&lt;T&gt;):</strong><br>
+    In standard C++, dynamically allocated objects (via <code>new</code>) must be manually deleted, leading to dangling pointers or memory leaks.
+    ns-3 uses <code>Ptr&lt;T&gt;</code> which inherits from <code>SimpleRefCount</code>. Every time an object is referenced (e.g. added to a <code>NodeContainer</code> or bound to an <code>Application</code>), its reference counter increments. When all references go out of scope, the destructor runs automatically. Never use <code>new Node()</code>; always write <code>CreateObject&lt;Node&gt;()</code>!`;
+  } else if (lower.includes("recipe") || lower.includes("7 step") || lower.includes("steps")) {
+    answer = `<strong>Mentor Explanation (The 7-Step Recipe):</strong><br>
+    1. <strong>CommandLine:</strong> Parse flags from terminal.<br>
+    2. <strong>NodeContainer:</strong> Create host entities.<br>
+    3. <strong>Helper:</strong> Create Channels and install NetDevices.<br>
+    4. <strong>InternetStackHelper:</strong> Install IPv4/TCP/UDP stacks.<br>
+    5. <strong>Ipv4AddressHelper:</strong> Assign subnet addresses.<br>
+    6. <strong>ApplicationHelper:</strong> Schedule clients & servers.<br>
+    7. <strong>Simulator:</strong> Call <code>Run()</code> and <code>Destroy()</code>.`;
+  } else if (lower.includes("run") || lower.includes("destroy") || lower.includes("simulator") || lower.includes("time")) {
+    answer = `<strong>Mentor Explanation (Simulator Lifecycle & Time):</strong><br>
+    ns-3 uses a discrete-event priority queue. The simulation clock does not follow real-world wall-clock time; it leaps from event timestamp to event timestamp. <code>Simulator::Destroy()</code> is essential at the end of <code>main()</code> to tear down internal circular references and purge all lingering events from memory.`;
+  } else if (lower.includes("wifi") || lower.includes("mlo") || lower.includes("7") || lower.includes("8")) {
+    answer = `<strong>Mentor Explanation (WiFi 7 & 8 in ns-3):</strong><br>
+    - <strong>WiFi 7 (802.11be / EHT):</strong> Employs Multi-Link Operation (MLO) enabling devices to transmit/receive across 2.4, 5, and 6 GHz bands simultaneously, with 320 MHz channels and 4096-QAM.<br>
+    - <strong>WiFi 8 (802.11bn / UHR):</strong> Focuses on deterministic ultra-low latency, Multi-AP Coordination (MAPC), and Coordinated Beamforming (CoBF).`;
+  } else {
+    answer = `<strong>Mentor Explanation:</strong><br>
+    That is a great question regarding <em>"${doubt}"</em>! In ns-3, every concept maps directly to an object model.
+    To see this behavior in action, check the corresponding script in <code>scratch/</code>, run it with <code>./ns3 run</code>, or check the Academic Portal tab for the full lecture breakdown!`;
+  }
+
+  respEl.className = 'mentor-response-area info';
+  respEl.innerHTML = answer;
+  respEl.style.display = 'block';
+}
+
+function printAcademicNotes() {
+  window.print();
+}
+
+function downloadAcademicPdf() {
+  const link = document.createElement('a');
+  link.href = 'ns3_course_notes.pdf';
+  link.download = 'EE5120_Advanced_Wireless_ns3_Course_Notes.pdf';
+  link.target = '_blank';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// Initialise Mentor Widget on First Load
+document.addEventListener('DOMContentLoaded', () => {
+  if (typeof updateMentorWidget === 'function') {
+    updateMentorWidget(0, 0);
+  }
+});
