@@ -1733,38 +1733,458 @@ pointToPoint.SetQueue ("ns3::DropTailQueue&lt;Packet&gt;", "MaxSize", QueueSizeV
   </div>
 </details>
 
-<!-- MODULE 5 -->
-<details class="module-card" id="_mod8_tracing">
+<!-- MODULE 5 (EXPANDED MASTER MODULE) -->
+<details class="module-card" open id="_mod8_tracing">
   <summary class="module-summary">
-    <div><span class="module-badge">Module 5</span> Tracing, PCAP & Packet Sniffing</div>
+    <div><span class="module-badge">Module 5</span> Tracing Subsystems, PCAP Sniffing & The Observer Pattern</div>
     <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
   <div class="module-body">
-    <h3>5.1 PCAP Wireshark Captures & Ascii Traces</h3>
-    <p>Simulation results must be verified at the packet level. ns-3 can output industry-standard <code>.pcap</code> captures that open directly in <strong>Wireshark</strong>:</p>
-    <pre><code class="language-cpp">PointToPointHelper p2p;
-// Generates first-0-0.pcap and first-1-0.pcap
-p2p.EnablePcapAll ("first");
 
-AsciiTraceHelper ascii;
-p2p.EnableAsciiAll (ascii.CreateFileStream ("first.tr"));</code></pre>
-    <p>In Wireshark, you can inspect UDP source/destination ports, IP TTL, packet sizes, and round-trip times down to the nanosecond.</p>
+    <h3>5.1 The ns-3 Tracing Subsystem & The Observer Pattern</h3>
+    <p>
+      In many network simulators, extracting metrics requires littering core protocol C++ code with <code>printf</code> or file writing statements. ns-3 avoids this architectural anti-pattern by strictly enforcing the <strong>Observer Pattern</strong>.
+    </p>
+    <p>
+      Core simulation models provide <strong>Trace Sources</strong> (signals that fire when an internal event happens, such as packet dropped or queue full). Independent user code registers <strong>Trace Sinks</strong> (custom callback functions). The simulator connects them via <strong>Config Paths</strong>, meaning simulation models remain 100% decoupled from data logging!
+    </p>
+
+    <div class="flow-diagram-container">
+      <div class="flow-diagram-title">🔭 Visual Architecture: The Decoupled Tracing Observer Pattern</div>
+      <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 18px;">
+        <svg viewBox="0 0 760 170" style="width: 100%; height: auto; font-family: 'Noto Sans', sans-serif;">
+          <!-- Core Model Box -->
+          <rect x="20" y="25" width="220" height="110" rx="6" fill="#f8fafc" stroke="#2c3e50" stroke-width="2"/>
+          <text x="130" y="50" text-anchor="middle" font-size="12" font-weight="bold" fill="#2c3e50">Core Simulation Model</text>
+          <text x="130" y="68" text-anchor="middle" font-size="10" fill="#64748b">Queue / NetDevice / MAC</text>
+          <rect x="35" y="80" width="190" height="40" rx="4" fill="#fee2e2" stroke="#ef4444"/>
+          <text x="130" y="100" text-anchor="middle" font-size="11" font-weight="bold" fill="#b91c1c">Trace Source: Drop</text>
+          <text x="130" y="113" text-anchor="middle" font-size="9" fill="#ef4444">Fires when buffer is full</text>
+
+          <!-- Arrow connecting -->
+          <path d="M 240 100 L 320 100" stroke="#ba3925" stroke-width="3" marker-end="url(#arrow)"/>
+          <text x="280" y="90" text-anchor="middle" font-size="10" font-weight="bold" fill="#ba3925">Callback</text>
+
+          <!-- Config Path Registry -->
+          <rect x="320" y="35" width="180" height="90" rx="6" fill="#fefce8" stroke="#eab308" stroke-width="1.5"/>
+          <text x="410" y="60" text-anchor="middle" font-size="11" font-weight="bold" fill="#854d0e">Config Path Matcher</text>
+          <text x="410" y="80" text-anchor="middle" font-size="9" fill="#713f12">/NodeList/*/DeviceList/*/</text>
+          <text x="410" y="94" text-anchor="middle" font-size="9" fill="#713f12">$ns3::PointToPointNetDevice/</text>
+          <text x="410" y="108" text-anchor="middle" font-size="9" fill="#713f12">TxQueue/Drop</text>
+
+          <!-- Arrow to Sink -->
+          <path d="M 500 100 L 560 100" stroke="#16a34a" stroke-width="3"/>
+
+          <!-- User Trace Sink -->
+          <rect x="560" y="25" width="180" height="110" rx="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
+          <text x="650" y="50" text-anchor="middle" font-size="12" font-weight="bold" fill="#15803d">User Trace Sink</text>
+          <text x="650" y="68" text-anchor="middle" font-size="10" fill="#64748b">Custom Analyst Logic</text>
+          <rect x="575" y="80" width="150" height="40" rx="4" fill="#dcfce7" stroke="#16a34a"/>
+          <text x="650" y="98" text-anchor="middle" font-size="10" font-weight="bold" fill="#166534">SinkPacketDrop()</text>
+          <text x="650" y="112" text-anchor="middle" font-size="9" fill="#15803d">Logs timestamp & bytes</text>
+        </svg>
+      </div>
+      <p style="font-size: 12.5px; color: #64748b; margin-top: 8px;">
+        <em>Figure 5.1:</em> The Observer Pattern. The core queue fires a <code>TracedCallback</code> when a drop occurs. Through the Config Path, ns-3 invokes the user's sink function without modifying any queue source code.
+      </p>
+    </div>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 28px 0;">
+
+    <h3>5.2 Dissecting an ASCII Trace Record</h3>
+    <p>
+      When you enable ASCII tracing via <code>AsciiTraceHelper</code>, ns-3 produces human-readable text logs capturing the exact lifecycle of every packet.
+    </p>
+
+    <div class="flow-diagram-container">
+      <div class="flow-diagram-title">🔍 Visual Anatomy: Dissecting an ASCII Trace Line</div>
+      <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 18px; overflow-x: auto;">
+        <svg viewBox="0 0 760 150" style="width: 100%; height: auto; font-family: 'Droid Sans Mono', monospace;">
+          <!-- Field 1: Op -->
+          <rect x="10" y="20" width="40" height="40" rx="4" fill="#fee2e2" stroke="#dc2626"/>
+          <text x="30" y="45" text-anchor="middle" font-size="16" font-weight="bold" fill="#b91c1c">+</text>
+          <text x="30" y="80" text-anchor="middle" font-family="'Noto Sans'" font-size="10" fill="#dc2626">Enqueue</text>
+
+          <!-- Field 2: Timestamp -->
+          <rect x="60" y="20" width="130" height="40" rx="4" fill="#e0f2fe" stroke="#0284c7"/>
+          <text x="125" y="45" text-anchor="middle" font-size="11" font-weight="bold" fill="#0369a1">2.000000000</text>
+          <text x="125" y="80" text-anchor="middle" font-family="'Noto Sans'" font-size="10" fill="#0284c7">Nanosecond Time</text>
+
+          <!-- Field 3: Path -->
+          <rect x="200" y="20" width="220" height="40" rx="4" fill="#fef3c7" stroke="#d97706"/>
+          <text x="310" y="45" text-anchor="middle" font-size="9" fill="#b45309">/NodeList/0/DeviceList/0/...</text>
+          <text x="310" y="80" text-anchor="middle" font-family="'Noto Sans'" font-size="10" fill="#d97706">Device / Queue Context</text>
+
+          <!-- Field 4: Headers -->
+          <rect x="430" y="20" width="200" height="40" rx="4" fill="#f3e8ff" stroke="#9333ea"/>
+          <text x="530" y="45" text-anchor="middle" font-size="10" fill="#7e22ce">IPv4(10.1.1.1 &gt; 10.1.1.2)</text>
+          <text x="530" y="80" text-anchor="middle" font-family="'Noto Sans'" font-size="10" fill="#9333ea">Serialized Headers</text>
+
+          <!-- Field 5: Payload -->
+          <rect x="640" y="20" width="110" height="40" rx="4" fill="#dcfce7" stroke="#16a34a"/>
+          <text x="695" y="45" text-anchor="middle" font-size="11" font-weight="bold" fill="#15803d">Payload (1024)</text>
+          <text x="695" y="80" text-anchor="middle" font-family="'Noto Sans'" font-size="10" fill="#16a34a">Payload Size</text>
+        </svg>
+      </div>
+      <p style="font-size: 12.5px; color: #64748b; margin-top: 8px;">
+        <em>Figure 5.2:</em> The 4 core ASCII event symbols: <strong><code>+</code></strong> (packet enqueued in transmission buffer), <strong><code>-</code></strong> (packet dequeued for transmission onto channel), <strong><code>d</code></strong> (packet dropped due to buffer overflow or corrupted CRC), and <strong><code>r</code></strong> (packet successfully received at destination NIC).
+      </p>
+    </div>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 28px 0;">
+
+    <h3>5.3 Complete Canonical Tracing Script (tracing-demo.cc)</h3>
+
+    <pre><code class="language-cpp">#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/applications-module.h"
+
+using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE ("AeroWlanTracingDemo");
+
+// Custom Trace Sink Callback: Invoked automatically whenever a queue drops a packet
+static void
+SinkPacketDrop (std::string context, Ptr&lt;const Packet&gt; packet)
+{
+  NS_LOG_WARN ("TRACED DROP at " &lt;&lt; Simulator::Now ().GetSeconds ()
+               &lt;&lt; "s | Context: " &lt;&lt; context
+               &lt;&lt; " | Packet Size: " &lt;&lt; packet-&gt;GetSize () &lt;&lt; " bytes");
+}
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  NodeContainer nodes;
+  nodes.Create (2);
+
+  PointToPointHelper p2p;
+  p2p.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));
+  p2p.SetChannelAttribute ("Delay", StringValue ("2ms"));
+
+  // Restrict queue size to 2 packets to trigger intentional drops for testing
+  p2p.SetQueue ("ns3::DropTailQueue&lt;Packet&gt;", "MaxSize", QueueSizeValue (QueueSize ("2p")));
+
+  NetDeviceContainer devices = p2p.Install (nodes);
+
+  InternetStackHelper stack;
+  stack.Install (nodes);
+
+  Ipv4AddressHelper address;
+  address.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfaces = address.Assign (devices);
+
+  // Hooking the Trace Sink to queue drop events via the Config subsystem
+  Config::Connect ("/NodeList/*/DeviceList/*/$ns3::PointToPointNetDevice/TxQueue/Drop",
+                   MakeCallback (&amp;SinkPacketDrop));
+
+  // STEP: Configure high-rate UDP client to saturate the 2-packet queue
+  UdpEchoServerHelper echoServer (9);
+  ApplicationContainer serverApps = echoServer.Install (nodes.Get (1));
+  serverApps.Start (Seconds (1.0));
+  serverApps.Stop (Seconds (10.0));
+
+  UdpEchoClientHelper echoClient (interfaces.GetAddress (1), 9);
+  echoClient.SetAttribute ("MaxPackets", UintegerValue (20));
+  echoClient.SetAttribute ("Interval", TimeValue (MilliSeconds (5))); // Fast transmission
+  echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
+
+  ApplicationContainer clientApps = echoClient.Install (nodes.Get (0));
+  clientApps.Start (Seconds (2.0));
+  clientApps.Stop (Seconds (10.0));
+
+  // Generate ASCII trace log file
+  AsciiTraceHelper ascii;
+  p2p.EnableAsciiAll (ascii.CreateFileStream ("tracing-demo.tr"));
+
+  // Generate PCAP packet dumps for Wireshark inspection
+  p2p.EnablePcapAll ("tracing-demo");
+
+  Simulator::Run ();
+  Simulator::Destroy ();
+  return 0;
+}</code></pre>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 28px 0;">
+
+    <h3>5.4 Line-by-Line Architectural Dissection of tracing-demo.cc</h3>
+
+    <table class="code-explanation-table">
+      <thead>
+        <tr>
+          <th class="code-col">Code Statement</th>
+          <th class="desc-col">Exhaustive Architectural Breakdown (What, Why & Memory Model)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="code-col">static void SinkPacketDrop (std::string context, Ptr&lt;const Packet&gt; packet)</td>
+          <td class="desc-col">
+            <strong>What:</strong> Defines a Trace Sink function signature matching ns-3's <code>TracedCallback&lt;Ptr&lt;const Packet&gt;&gt;</code>.<br>
+            <strong>Why:</strong> Receives notification whenever a queue overflows. The <code>context</code> string identifies which specific node and device dropped the packet.<br>
+            <strong>Under the Hood:</strong> Pass-by-pointer <code>Ptr&lt;const Packet&gt;</code> avoids expensive heap copying of packet buffers.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">p2p.SetQueue ("ns3::DropTailQueue&lt;Packet&gt;", "MaxSize", QueueSizeValue (QueueSize ("2p")));</td>
+          <td class="desc-col">
+            <strong>What:</strong> Constrains the transmission buffer to a maximum of 2 packets.<br>
+            <strong>Why:</strong> Used here to deliberately induce packet drops for testing and validating our trace sink callbacks.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">Config::Connect ("/NodeList/*/DeviceList/*/.../Drop", MakeCallback (&amp;SinkPacketDrop));</td>
+          <td class="desc-col">
+            <strong>What:</strong> Resolves a wildcard path string across all nodes and binds our sink callback.<br>
+            <strong>Why:</strong> <strong>Zero Source Code Modification!</strong> You do not need to edit <code>drop-tail-queue.cc</code>; the Config engine traverses the object hierarchy and connects your callback dynamically.<br>
+            <strong>Under the Hood:</strong> Uses <code>MakeCallback</code> to generate a type-safe C++ function pointer object and registers it inside the queue's <code>m_dropTrace</code> callback list.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">p2p.EnablePcapAll ("tracing-demo");</td>
+          <td class="desc-col">
+            <strong>What:</strong> Writes raw binary packet captures for every interface into <code>.pcap</code> files.<br>
+            <strong>Why:</strong> Allows opening <code>tracing-demo-0-0.pcap</code> in <strong>Wireshark</strong> to inspect Ethernet framing, IPv4 TTL, UDP checksums, and inter-packet arrival gaps.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
   </div>
 </details>
 
-<!-- MODULE 6 -->
-<details class="module-card" id="_mod9_datacollection">
+<!-- MODULE 6 (EXPANDED MASTER MODULE) -->
+<details class="module-card" open id="_mod9_datacollection">
   <summary class="module-summary">
-    <div><span class="module-badge">Module 6</span> Data Collection & Performance Analytics</div>
+    <div><span class="module-badge">Module 6</span> Data Collection Framework & Performance Analytics (Gnuplot & SQLite)</div>
     <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
   <div class="module-body">
-    <h3>6.1 Gnuplot Output & SQLite Metric Logging</h3>
-    <p>To analyze throughput and latency trends across parameter sweeps, ns-3 provides the <code>DataCollection</code> framework:</p>
-    <ul>
-      <li><strong><code>GnuplotHelper</code>:</strong> Automatically outputs <code>.plt</code> scripts that render publication-ready throughput curves.</li>
-      <li><strong><code>SQLiteHelper</code>:</strong> Logs packet delivery ratios and drop events directly into an SQLite database table for Python Pandas analysis.</li>
-    </ul>
+
+    <h3>6.1 The Data Collection Framework (DCF) Pipeline</h3>
+    <p>
+      In academic research, simulations must generate quantitative performance metrics: throughput curves, packet delivery ratio (PDR), end-to-end delay, and jitter distributions.
+    </p>
+    <p>
+      Instead of writing manual text-formatting loops, ns-3 provides the <strong>Data Collection Framework (DCF)</strong> structured into three decoupled stages:
+    </p>
+
+    <div class="flow-diagram-container">
+      <div class="flow-diagram-title">📊 Visual Pipeline: Data Collection Framework (DCF) Architecture</div>
+      <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 18px;">
+        <svg viewBox="0 0 760 160" style="width: 100%; height: auto; font-family: 'Noto Sans', sans-serif;">
+          <!-- Stage 1: Probe -->
+          <rect x="20" y="30" width="160" height="55" rx="6" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+          <text x="100" y="52" text-anchor="middle" font-size="11" font-weight="bold" fill="#b45309">1. Probe</text>
+          <text x="100" y="68" text-anchor="middle" font-size="10" fill="#d97706">Hooks into Trace Source</text>
+
+          <path d="M 180 57 L 240 57" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+
+          <!-- Stage 2: Collector -->
+          <rect x="240" y="30" width="200" height="55" rx="6" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/>
+          <text x="340" y="52" text-anchor="middle" font-size="11" font-weight="bold" fill="#0369a1">2. Collector</text>
+          <text x="340" y="68" text-anchor="middle" font-size="10" fill="#0284c7">Calculates Min/Max/Avg/Jitter</text>
+
+          <path d="M 440 57 L 500 57" stroke="#94a3b8" stroke-width="2"/>
+
+          <!-- Stage 3: Aggregator -->
+          <rect x="500" y="30" width="240" height="55" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+          <text x="620" y="52" text-anchor="middle" font-size="11" font-weight="bold" fill="#15803d">3. Aggregator</text>
+          <text x="620" y="68" text-anchor="middle" font-size="10" fill="#16a34a">Gnuplot (.plt) / SQLite (.db)</text>
+
+          <!-- Bottom explanation -->
+          <rect x="120" y="110" width="520" height="35" rx="4" fill="#fafafa" stroke="#e2e8f0"/>
+          <text x="380" y="131" text-anchor="middle" font-size="11" fill="#475569">
+            <strong>Key Benefit:</strong> Decouples statistical computation from physical protocol execution.
+          </text>
+        </svg>
+      </div>
+      <p style="font-size: 12.5px; color: #64748b; margin-top: 8px;">
+        <em>Figure 6.1:</em> The 3-tier Data Collection pipeline. Probes extract numerical metrics, Collectors calculate rolling statistics, and Aggregators format output for Gnuplot plotting or SQL database queries.
+      </p>
+    </div>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 28px 0;">
+
+    <h3>6.2 Automated Gnuplot Curves & SQLite Storage</h3>
+
+    <h4>1. Automated Gnuplot Generation</h4>
+    <p>
+      The <code>Gnuplot</code> helper class outputs a ready-to-run <code>.plt</code> script that compiles directly into PNG or PDF vector graphs:
+    </p>
+    <pre><code class="language-cpp">Gnuplot plot ("throughput-curve.png");
+plot.SetTitle ("UDP Throughput vs Offered Load");
+plot.SetTerminal ("png");
+plot.SetLegend ("Time (s)", "Throughput (Mbps)");
+
+Gnuplot2dDataset dataset;
+dataset.SetTitle ("5 Mbps P2P Link");
+dataset.SetStyle (Gnuplot2dDataset::LINES_POINTS);
+
+// Adding data points inside a callback:
+dataset.Add (Simulator::Now ().GetSeconds (), throughputMbps);
+
+plot.AddDataset (dataset);
+std::ofstream plotFile ("throughput.plt");
+plot.GenerateOutput (plotFile);
+plotFile.close ();</code></pre>
+
+    <h4>2. SQLite Database Logging</h4>
+    <p>
+      For multi-parameter Monte-Carlo sweeps (e.g. running 100 iterations with different random seeds), dumping flat text files becomes unmanageable. ns-3 includes an SQLite aggregator that writes structured rows directly into a database table:
+    </p>
+    <pre><code class="language-bash"># Querying simulation output from bash terminal:
+sqlite3 simulation-results.db "SELECT runId, AVG(throughput) FROM metrics GROUP BY runId;"</code></pre>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 28px 0;">
+
+    <h3>6.3 Canonical Data Collection Script (datacollection-demo.cc)</h3>
+
+    <pre><code class="language-cpp">#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/applications-module.h"
+#include "ns3/gnuplot.h"
+
+using namespace ns3;
+
+static uint64_t g_totalRxBytes = 0;
+static Gnuplot2dDataset g_throughputDataset;
+
+// Trace Sink: Tracks total bytes arriving at destination application
+static void
+PacketRxSink (Ptr&lt;const Packet&gt; packet, const Address &amp;from)
+{
+  g_totalRxBytes += packet-&gt;GetSize ();
+}
+
+// Periodic sampler event: Computes throughput every 1.0 second
+static void
+SampleThroughput (Time interval)
+{
+  double throughputMbps = (g_totalRxBytes * 8.0) / (interval.GetSeconds () * 1e6);
+  g_totalRxBytes = 0; // Reset counter for next window
+
+  double now = Simulator::Now ().GetSeconds ();
+  g_throughputDataset.Add (now, throughputMbps);
+
+  // Re-schedule this sampling function after 'interval'
+  Simulator::Schedule (interval, &amp;SampleThroughput, interval);
+}
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  NodeContainer nodes;
+  nodes.Create (2);
+
+  PointToPointHelper p2p;
+  p2p.SetDeviceAttribute ("DataRate", StringValue ("10Mbps"));
+  p2p.SetChannelAttribute ("Delay", StringValue ("5ms"));
+  NetDeviceContainer devices = p2p.Install (nodes);
+
+  InternetStackHelper stack;
+  stack.Install (nodes);
+
+  Ipv4AddressHelper address;
+  address.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfaces = address.Assign (devices);
+
+  // Setup PacketSink on Node 1 (Receiver)
+  uint16_t port = 8080;
+  PacketSinkHelper sinkHelper ("ns3::UdpSocketFactory",
+                               InetSocketAddress (Ipv4Address::GetAny (), port));
+  ApplicationContainer serverApps = sinkHelper.Install (nodes.Get (1));
+  serverApps.Start (Seconds (1.0));
+  serverApps.Stop (Seconds (10.0));
+
+  // Connect Trace Sink to PacketSink's Rx event
+  Config::ConnectWithoutContext ("/NodeList/1/ApplicationList/*/$ns3::PacketSink/Rx",
+                                MakeCallback (&amp;PacketRxSink));
+
+  // Setup OnOff Traffic Generator on Node 0 (Sender)
+  OnOffHelper onoff ("ns3::UdpSocketFactory",
+                     Address (InetSocketAddress (interfaces.GetAddress (1), port)));
+  onoff.SetConstantRate (DataRate ("8Mbps"));
+  ApplicationContainer clientApps = onoff.Install (nodes.Get (0));
+  clientApps.Start (Seconds (2.0));
+  clientApps.Stop (Seconds (9.0));
+
+  // Initialize Gnuplot Dataset
+  g_throughputDataset.SetTitle ("Throughput (Mbps)");
+  g_throughputDataset.SetStyle (Gnuplot2dDataset::LINES_POINTS);
+
+  // Schedule first throughput sampling event at t = 2.0s
+  Simulator::Schedule (Seconds (2.0), &amp;SampleThroughput, Seconds (1.0));
+
+  Simulator::Run ();
+
+  // Generate Gnuplot plot file at the end of simulation
+  Gnuplot plot ("throughput.png");
+  plot.SetTitle ("Instantaneous UDP Throughput over 10Mbps Link");
+  plot.SetTerminal ("png");
+  plot.SetLegend ("Time (seconds)", "Throughput (Mbps)");
+  plot.AddDataset (g_throughputDataset);
+
+  std::ofstream plotFile ("throughput.plt");
+  plot.GenerateOutput (plotFile);
+  plotFile.close ();
+
+  Simulator::Destroy ();
+  return 0;
+}</code></pre>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 28px 0;">
+
+    <h3>6.4 Line-by-Line Architectural Dissection of datacollection-demo.cc</h3>
+
+    <table class="code-explanation-table">
+      <thead>
+        <tr>
+          <th class="code-col">Code Statement</th>
+          <th class="desc-col">Exhaustive Architectural Breakdown (What, Why & Memory Model)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="code-col">SampleThroughput (Time interval)<br>...<br>Simulator::Schedule (interval, &amp;SampleThroughput, interval);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Implements a recursive periodic timer that samples metrics every 1.0 second.<br>
+            <strong>Why:</strong> Instantaneous metrics fluctuate. Sampling windows allow calculating rolling throughput ($\text{Mbps} = \frac{\text{Bytes} \times 8}{\Delta t \times 10^6}$).<br>
+            <strong>Under the Hood:</strong> Inserts a new timer event into the DES event calendar each time it runs, keeping the metric engine alive throughout the simulation.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">PacketSinkHelper sinkHelper ("ns3::UdpSocketFactory", ...);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Installs a standard <code>PacketSink</code> application on Node 1.<br>
+            <strong>Why:</strong> Unlike an Echo server (which sends data back), <code>PacketSink</code> acts as an open receiver that consumes incoming packets and exposes a clean <code>Rx</code> trace source.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">Config::ConnectWithoutContext ("/NodeList/1/.../PacketSink/Rx", MakeCallback (&amp;PacketRxSink));</td>
+          <td class="desc-col">
+            <strong>What:</strong> Connects our byte counter function directly to the sink application's arrival signal.<br>
+            <strong>Why:</strong> Whenever Node 1 absorbs an incoming UDP datagram, <code>PacketRxSink</code> increments <code>g_totalRxBytes</code>.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">Gnuplot plot ("throughput.png");<br>plot.GenerateOutput (plotFile);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Compiles stored data points into a valid Gnuplot script (<code>throughput.plt</code>).<br>
+            <strong>Why:</strong> Eliminates manual CSV plotting in Excel. Running <code>gnuplot throughput.plt</code> in your shell renders a publication-ready image graph instantly!
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
   </div>
 </details>
 
