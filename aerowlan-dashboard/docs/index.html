@@ -847,29 +847,301 @@ int main (int argc, char *argv[])
   </div>
 </details>
 
-<!-- MODULE 2 -->
-<details class="module-card" id="_mod2_abstractions">
+<!-- MODULE 2 (EXPANDED MASTER MODULE) -->
+<details class="module-card" open id="_mod2_abstractions">
   <summary class="module-summary">
-    <div><span class="module-badge">Module 2</span> Conceptual Overview & Core Network Abstractions</div>
+    <div><span class="module-badge">Module 2</span> Conceptual Overview, Object Aggregation & Multi-Subnet Routing</div>
     <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
   <div class="module-body">
-    <h3>2.1 Node, NetDevice, Channel & Object Aggregation</h3>
-    <p>In physical networks, computers plug into network interface cards (NICs), which attach to physical cables. In ns-3, these map directly to C++ abstractions:</p>
+
+    <h3>2.1 The Core Network Abstraction Trifecta: Node, NetDevice & Channel</h3>
+    <p>
+      In physical networking, communication requires three physical entities: a computing computer, a network card interface (NIC), and an interconnecting cable or wireless medium. In ns-3, these map directly to three primary C++ abstractions:
+    </p>
+
     <ul>
-      <li><strong><code>Node</code> (<code>Ptr&lt;Node&gt;</code>):</strong> Represents an empty computing host. It starts completely bare—no IP stack, no MAC layer, no hardware.</li>
-      <li><strong><code>NetDevice</code> (<code>Ptr&lt;NetDevice&gt;</code>):</strong> Models the network interface card (NIC) and Layer 2 framing logic. Examples: <code>PointToPointNetDevice</code>, <code>WifiNetDevice</code>.</li>
-      <li><strong><code>Channel</code> (<code>Ptr&lt;Channel&gt;</code>):</strong> Represents the transmission medium (fiber, twisted-pair cable, or wireless radio propagation environment). A <code>NetDevice</code> plugs into a <code>Channel</code>.</li>
-      <li><strong><code>Application</code> (<code>Ptr&lt;Application&gt;</code>):</strong> Models user-space processes generating and consuming packet traffic (e.g., <code>UdpEchoClient</code>, <code>OnOffApplication</code>).</li>
+      <li><strong>Logical Host (<code>Ptr&lt;Node&gt;</code>):</strong> Represents a network host, router, switch, or mobile station. Crucially, a <code>Node</code> begins as a completely "blank slate" (no NICs, no IP stack, no apps). Layers must be explicitly attached via the object aggregation system.</li>
+      <li><strong>Network Interface Card (<code>Ptr&lt;NetDevice&gt;</code>):</strong> Models the hardware NIC, link-layer drivers, MAC headers, framing logic, and transmission queues (e.g. <code>PointToPointNetDevice</code>, <code>CsmaNetDevice</code>, <code>WifiNetDevice</code>). A single node can hold multiple <code>NetDevice</code>s to connect to multiple networks.</li>
+      <li><strong>Physical Medium (<code>Ptr&lt;Channel&gt;</code>):</strong> Represents the transmission medium (fiber optics, coaxial cable, or wireless radio propagation environment). A <code>NetDevice</code> plugs into a <code>Channel</code> to propagate signals.</li>
     </ul>
-    <div class="admonitionblock tip">
-      <table>
-        <tr>
-          <td class="icon"><div class="title">Tip</div></td>
-          <td class="content"><strong>Object Aggregation:</strong> ns-3 uses dynamic aggregation (<code>GetObject&lt;T&gt;()</code>) rather than multiple inheritance. When you install an Internet stack, an <code>Ipv4</code> protocol engine is aggregated into the bare node.</td>
-        </tr>
-      </table>
+
+    <div class="flow-diagram-container">
+      <div class="flow-diagram-title">🧩 Visual Architecture: Internal Node Object Aggregation System</div>
+      <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 18px;">
+        <svg viewBox="0 0 760 210" style="width: 100%; height: auto; font-family: 'Noto Sans', sans-serif;">
+          <!-- Node Container Box -->
+          <rect x="20" y="20" width="720" height="170" rx="8" fill="#f8fafc" stroke="#2c3e50" stroke-width="2"/>
+          <text x="40" y="45" font-size="14" font-weight="bold" fill="#2c3e50">Ptr&lt;Node&gt; (Host Entity with Object Aggregation)</text>
+
+          <!-- Aggregated Protocol 1: IPv4 -->
+          <rect x="50" y="65" width="200" height="50" rx="6" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/>
+          <text x="150" y="88" text-anchor="middle" font-size="12" font-weight="bold" fill="#0369a1">Ptr&lt;Ipv4&gt;</text>
+          <text x="150" y="104" text-anchor="middle" font-size="10" fill="#0284c7">Layer 3 Routing Engine</text>
+
+          <!-- Aggregated Protocol 2: ARP & Traffic Control -->
+          <rect x="270" y="65" width="200" height="50" rx="6" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+          <text x="370" y="88" text-anchor="middle" font-size="12" font-weight="bold" fill="#b45309">Ptr&lt;ArpL3Protocol&gt;</text>
+          <text x="370" y="104" text-anchor="middle" font-size="10" fill="#d97706">Address Resolution Protocol</text>
+
+          <!-- Aggregated Applications -->
+          <rect x="490" y="65" width="220" height="50" rx="6" fill="#f3e8ff" stroke="#9333ea" stroke-width="1.5"/>
+          <text x="600" y="88" text-anchor="middle" font-size="12" font-weight="bold" fill="#7e22ce">Ptr&lt;Application&gt;</text>
+          <text x="600" y="104" text-anchor="middle" font-size="10" fill="#9333ea">Traffic Generators & Sockets</text>
+
+          <!-- NetDevice 0 -->
+          <rect x="50" y="130" width="310" height="45" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+          <text x="205" y="150" text-anchor="middle" font-size="12" font-weight="bold" fill="#15803d">NetDevice #0 (PointToPointNetDevice)</text>
+          <text x="205" y="165" text-anchor="middle" font-size="10" fill="#16a34a">MAC Framing • Queue • IP: 192.168.1.1</text>
+
+          <!-- NetDevice 1 (Router interface) -->
+          <rect x="400" y="130" width="310" height="45" rx="6" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5"/>
+          <text x="555" y="150" text-anchor="middle" font-size="12" font-weight="bold" fill="#b91c1c">NetDevice #1 (Optional 2nd Interface)</text>
+          <text x="555" y="165" text-anchor="middle" font-size="10" fill="#dc2626">Multi-homed Gateway • IP: 192.168.2.1</text>
+        </svg>
+      </div>
+      <p style="font-size: 12.5px; color: #64748b; margin-top: 8px;">
+        <em>Figure 2.1:</em> The ns-3 Object Aggregation Model. Rather than using rigid multiple inheritance, protocols are aggregated to the Node at runtime. Any component queries them via <code>node-&gt;GetObject&lt;T&gt;()</code>.
+      </p>
     </div>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 28px 0;">
+
+    <h3>2.2 TCP/IP Internet Stack & Packet Encapsulation Flow</h3>
+    <p>
+      When an application generates a payload, it traverses down the network stack. In ns-3, every layer wraps the packet with a serialized protocol header:
+    </p>
+
+    <div class="flow-diagram-container">
+      <div class="flow-diagram-title">📦 Visual Flow: Packet Encapsulation Down the Stack</div>
+      <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 18px;">
+        <svg viewBox="0 0 760 180" style="width: 100%; height: auto; font-family: 'Noto Sans', sans-serif;">
+          <!-- Layer 7 -->
+          <rect x="40" y="20" width="120" height="45" rx="4" fill="#f3e8ff" stroke="#a855f7" stroke-width="1.5"/>
+          <text x="100" y="40" text-anchor="middle" font-size="11" font-weight="bold" fill="#7e22ce">Layer 7</text>
+          <text x="100" y="55" text-anchor="middle" font-size="10" fill="#6b21a8">Payload (1024B)</text>
+
+          <path d="M 160 42 L 200 42" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+
+          <!-- Layer 4: UDP -->
+          <rect x="200" y="20" width="150" height="45" rx="4" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/>
+          <text x="275" y="40" text-anchor="middle" font-size="11" font-weight="bold" fill="#0369a1">+ UDP Header (8B)</text>
+          <text x="275" y="55" text-anchor="middle" font-size="10" fill="#0284c7">Port 9 • Checksum</text>
+
+          <path d="M 350 42 L 390 42" stroke="#94a3b8" stroke-width="2"/>
+
+          <!-- Layer 3: IPv4 -->
+          <rect x="390" y="20" width="160" height="45" rx="4" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+          <text x="470" y="40" text-anchor="middle" font-size="11" font-weight="bold" fill="#b45309">+ IPv4 Header (20B)</text>
+          <text x="470" y="55" text-anchor="middle" font-size="10" fill="#d97706">Src: 10.1.1.1 • Dst: 10.1.1.2</text>
+
+          <path d="M 550 42 L 590 42" stroke="#94a3b8" stroke-width="2"/>
+
+          <!-- Layer 2: NetDevice & Queue -->
+          <rect x="590" y="20" width="140" height="45" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+          <text x="660" y="40" text-anchor="middle" font-size="11" font-weight="bold" fill="#15803d">+ PPP Framing (2B)</text>
+          <text x="660" y="55" text-anchor="middle" font-size="10" fill="#16a34a">Protocol ID: 0x0021</text>
+
+          <!-- Layer 1: Cable -->
+          <rect x="180" y="110" width="400" height="45" rx="6" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+          <text x="380" y="132" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e293b">Physical Channel Transmission (Total: 1054 Bytes)</text>
+          <text x="380" y="146" text-anchor="middle" font-size="10" fill="#64748b">Serialization Delay: (1054 × 8) / 5,000,000 = 1.68 ms • Propagation: 2.0 ms</text>
+        </svg>
+      </div>
+      <p style="font-size: 12.5px; color: #64748b; margin-top: 8px;">
+        <em>Figure 2.2:</em> Packet Encapsulation and Byte Inflation. Each protocol layer appends its header metadata before the NetDevice serializes bits across the wire.
+      </p>
+    </div>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 28px 0;">
+
+    <h3>2.3 Multi-Segment Gateway Routing Topology (3 Nodes, 2 Subnets)</h3>
+    <p>
+      In production networks, hosts do not reside on the same broadcast domain; they communicate through intermediary routers. Below is the canonical 3-node, 2-subnet gateway topology:
+    </p>
+
+    <div class="topology-box" style="margin: 24px 0;">
+      <div class="node-card">
+        <h5>Node 0 (Client)</h5>
+        <span class="node-tag">IP: 192.168.1.1</span>
+        <div class="node-spec">
+          Subnet: 192.168.1.0/24<br>
+          App: UdpEchoClient<br>
+          <em>Dst: 192.168.2.2:9</em>
+        </div>
+      </div>
+
+      <div class="channel-link">
+        <span class="channel-label">Subnet A</span>
+        <div class="channel-line"></div>
+        <span class="channel-sub">10 Mbps • 5 ms delay</span>
+      </div>
+
+      <div class="node-card" style="border-color: #eab308; background: #fefce8;">
+        <h5>Node 1 (Gateway Router)</h5>
+        <span class="node-tag" style="background: #fde047; color: #854d0e;">Dual-Homed Gateway</span>
+        <div class="node-spec">
+          Interface 0: <strong>192.168.1.2</strong><br>
+          Interface 1: <strong>192.168.2.1</strong><br>
+          <em>Ipv4GlobalRouting</em>
+        </div>
+      </div>
+
+      <div class="channel-link">
+        <span class="channel-label">Subnet B</span>
+        <div class="channel-line"></div>
+        <span class="channel-sub">10 Mbps • 5 ms delay</span>
+      </div>
+
+      <div class="node-card server">
+        <h5>Node 2 (Server)</h5>
+        <span class="node-tag" style="background: #d1fae5; color: #065f46;">IP: 192.168.2.2</span>
+        <div class="node-spec">
+          Subnet: 192.168.2.0/24<br>
+          App: UdpEchoServer<br>
+          <em>Listening: Port 9</em>
+        </div>
+      </div>
+    </div>
+
+    <h4>Complete Executable C++ Gateway Script (<code>two-subnet-router.cc</code>)</h4>
+    <pre><code class="language-cpp">#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/applications-module.h"
+
+using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE ("TwoSubnetRouter");
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  Time::SetResolution (Time::NS);
+  LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
+  LogComponentEnable ("UdpEchoServerApplication", LOG_LEVEL_INFO);
+
+  // STEP 1: Allocate 3 Nodes (Node 0 = Client, Node 1 = Router, Node 2 = Server)
+  NodeContainer nodes;
+  nodes.Create (3);
+
+  // Group pairs for two distinct point-to-point links
+  NodeContainer netA = NodeContainer (nodes.Get (0), nodes.Get (1));
+  NodeContainer netB = NodeContainer (nodes.Get (1), nodes.Get (2));
+
+  // STEP 2: Configure Point-to-Point Links
+  PointToPointHelper p2p;
+  p2p.SetDeviceAttribute ("DataRate", StringValue ("10Mbps"));
+  p2p.SetChannelAttribute ("Delay", StringValue ("5ms"));
+
+  NetDeviceContainer devicesA = p2p.Install (netA);
+  NetDeviceContainer devicesB = p2p.Install (netB);
+
+  // STEP 3: Install Internet Protocol Stack on all nodes
+  InternetStackHelper stack;
+  stack.Install (nodes);
+
+  // STEP 4: Assign Subnet 1 (192.168.1.0/24)
+  Ipv4AddressHelper address;
+  address.SetBase ("192.168.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfacesA = address.Assign (devicesA);
+
+  // Assign Subnet 2 (192.168.2.0/24)
+  address.SetBase ("192.168.2.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfacesB = address.Assign (devicesB);
+
+  // STEP 5: Populate Global Routing Tables (CRUCIAL for Gateway Forwarding)
+  Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
+
+  // STEP 6: Configure Server on Node 2 (Listening on Port 9)
+  UdpEchoServerHelper echoServer (9);
+  ApplicationContainer serverApps = echoServer.Install (nodes.Get (2));
+  serverApps.Start (Seconds (1.0));
+  serverApps.Stop (Seconds (10.0));
+
+  // Configure Client on Node 0 targeting Node 2 across the gateway
+  UdpEchoClientHelper echoClient (interfacesB.GetAddress (1), 9); // 192.168.2.2
+  echoClient.SetAttribute ("MaxPackets", UintegerValue (3));
+  echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+  echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
+
+  ApplicationContainer clientApps = echoClient.Install (nodes.Get (0));
+  clientApps.Start (Seconds (2.0));
+  clientApps.Stop (Seconds (10.0));
+
+  // STEP 7: Run Simulation & Clean Up Memory
+  Simulator::Run ();
+  Simulator::Destroy ();
+
+  return 0;
+}</code></pre>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 28px 0;">
+
+    <h3>2.4 Line-by-Line Architectural Dissection of the Gateway Script</h3>
+
+    <table class="code-explanation-table">
+      <thead>
+        <tr>
+          <th class="code-col">Code Statement</th>
+          <th class="desc-col">Exhaustive Architectural Breakdown (What, Why & Memory Model)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="code-col">NodeContainer nodes;<br>nodes.Create (3);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Allocates three bare host computers in memory.<br>
+            <strong>Why:</strong> Models the client (Node 0), the intermediary gateway router (Node 1), and the destination server (Node 2).<br>
+            <strong>Under the Hood:</strong> Three distinct <code>Ptr&lt;Node&gt;</code> smart pointers are instantiated via <code>CreateObject&lt;Node&gt;()</code> with empty aggregation registries.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">NodeContainer netA = NodeContainer (nodes.Get(0), nodes.Get(1));<br>NodeContainer netB = NodeContainer (nodes.Get(1), nodes.Get(2));</td>
+          <td class="desc-col">
+            <strong>What:</strong> Creates two separate sub-containers grouping adjacent nodes into physical links.<br>
+            <strong>Why:</strong> A point-to-point helper can only install across two nodes at a time. Grouping them cleanly isolates Link A from Link B.<br>
+            <strong>Under the Hood:</strong> Notice that <code>nodes.Get(1)</code> is added to <strong>both</strong> containers! This increments Node 1's reference counter, allowing it to bridge the two networks.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">NetDeviceContainer devicesA = p2p.Install(netA);<br>NetDeviceContainer devicesB = p2p.Install(netB);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Installs two separate physical links and four NICs in total.<br>
+            <strong>Why:</strong> Link A creates a <code>PointToPointChannel</code> between Node 0 and Node 1. Link B creates an independent <code>PointToPointChannel</code> between Node 1 and Node 2.<br>
+            <strong>Under the Hood:</strong> <strong>Node 1 now contains two distinct <code>NetDevice</code> objects</strong> inside its internal device array: <code>m_devices[0]</code> connected to Link A and <code>m_devices[1]</code> connected to Link B!
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">address.SetBase ("192.168.1.0", ...);<br>Ipv4InterfaceContainer interfacesA = address.Assign(devicesA);<br>address.SetBase ("192.168.2.0", ...);<br>Ipv4InterfaceContainer interfacesB = address.Assign(devicesB);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Configures two separate IP subnets: <code>192.168.1.0/24</code> and <code>192.168.2.0/24</code>.<br>
+            <strong>Why:</strong> Prevents IP subnet conflicts. Node 0 receives <code>192.168.1.1</code>; Node 1 receives <code>192.168.1.2</code> on Interface A and <code>192.168.2.1</code> on Interface B; Node 2 receives <code>192.168.2.2</code>.<br>
+            <strong>Under the Hood:</strong> Node 1 is now a <strong>multi-homed router</strong> with two entries in its internal <code>Ipv4Interface</code> table.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">Ipv4GlobalRoutingHelper::PopulateRoutingTables ();</td>
+          <td class="desc-col">
+            <strong>What:</strong> Automatically builds routing tables for all nodes in the simulation.<br>
+            <strong>Why:</strong> <strong>MANDATORY FOR MULTI-HOP COMMUNICATION!</strong> Without this call, Node 0 has no idea where subnet <code>192.168.2.0/24</code> lives, and its IP engine will drop all outbound packets as unroutable. <br>
+            <strong>Under the Hood:</strong> Runs Dijkstra's shortest-path algorithm across all channels. It inserts a routing table entry on Node 0 stating: <em>"To reach 192.168.2.0/24, send to gateway 192.168.1.2 via dev 0"</em>, and configures Node 1 to forward packets between Interface 0 and Interface 1.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">UdpEchoClientHelper echoClient (interfacesB.GetAddress (1), 9);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Directs the UDP client on Node 0 to send packets to Node 2's IP address (<code>192.168.2.2</code>).<br>
+            <strong>Why:</strong> <code>interfacesB.GetAddress(1)</code> queries the second device of Link B, which belongs to Node 2.<br>
+            <strong>Packet Path:</strong> Node 0 (192.168.1.1) $\to$ Cable A (5ms) $\to$ Node 1 (Router forwards) $\to$ Cable B (5ms) $\to$ Node 2 (Server responds) $\to$ Round-Trip Time = <strong>20 ms</strong>!
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
   </div>
 </details>
 
