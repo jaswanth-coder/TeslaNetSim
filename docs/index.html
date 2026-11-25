@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 2.0.26">
-<title>ns-3 Network Simulation Master Course • From Foundations to WiFi 7 & 8</title>
+<title>ns-3 Network Simulation Master Course • Foundations to WiFi 7 & 8</title>
 <style>
 /* Asciidoctor default stylesheet | MIT License | https://asciidoctor.org */
 @import url("//fonts.googleapis.com/css?family=Noto+Sans:300,600italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700");
@@ -28,8 +28,8 @@
 h1 { color: var(--primarycolor) !important; font-size: 1.85em; line-height: 1.25; }
 #header > h1 { font-size: 1.85em; }
 h2, h3, h4, h5, h6 { color: var(--secondarycolor) !important; }
-h2 { font-size: 1.35em; line-height: 1.3; margin-top: 1.8em; border-bottom: 2px solid #e1e4e8; padding-bottom: 6px; }
-h3, .sidebarblock > .content > .title { font-size: 1.15em; margin-top: 1.2em; }
+h2 { font-size: 1.4em; line-height: 1.3; margin-top: 1.6em; border-bottom: 2px solid #e1e4e8; padding-bottom: 6px; }
+h3, .sidebarblock > .content > .title { font-size: 1.18em; margin-top: 1.2em; }
 h4, h5 { font-size: 1.05em; }
 h6 { font-size: 1em; }
 #toctitle, #toc.toc2 #toctitle { font-size: 1.1em; color: var(--primarycolor) !important; }
@@ -106,25 +106,25 @@ table.tableblock th {
 .admonitionblock.important > table td.content { border-left-color: #bf0000; background-color: #fdf2f2; }
 .admonitionblock.warning > table td.content { border-left-color: #bf6900; background-color: #fdf8f0; }
 
-/* Click-to-Drop / Collapsible Lecture Box Styles */
-details.lecture-card {
-  margin: 14px 0;
+/* MODULE-LEVEL DROP DOWN CARDS */
+details.module-card {
+  margin: 20px 0;
   border: 1px solid #d0d7de;
-  border-radius: 6px;
+  border-radius: 8px;
   background-color: #ffffff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
   overflow: hidden;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: all 0.2s ease;
 }
-details.lecture-card[open] {
+details.module-card[open] {
   border-color: #ba3925;
-  box-shadow: 0 3px 12px rgba(186, 57, 37, 0.08);
+  box-shadow: 0 4px 16px rgba(186, 57, 37, 0.09);
 }
-details.lecture-card summary {
-  padding: 12px 18px;
+details.module-card summary.module-summary {
+  padding: 14px 20px;
   background-color: #f8fafc;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 700;
   font-family: "Open Sans", "Noto Sans", sans-serif;
   color: #2c3e50;
   display: flex;
@@ -132,38 +132,233 @@ details.lecture-card summary {
   justify-content: space-between;
   user-select: none;
   outline: none;
-  font-size: 14.5px;
+  font-size: 16px;
+  border-bottom: 1px solid transparent;
 }
-details.lecture-card summary:hover {
+details.module-card summary.module-summary:hover {
   background-color: #f1f5f9;
   color: #ba3925;
 }
-details.lecture-card[open] summary {
+details.module-card[open] summary.module-summary {
   background-color: #fff9f8;
-  border-bottom: 1px solid #f3dcd7;
+  border-bottom: 2px solid #f3dcd7;
   color: #ba3925;
 }
-.lecture-badge {
+.module-badge {
   display: inline-block;
-  padding: 2px 8px;
-  font-size: 11px;
+  padding: 3px 10px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border-radius: 4px;
   background: #e2e8f0;
   color: #334155;
-  margin-right: 10px;
+  margin-right: 12px;
 }
-details.lecture-card[open] .lecture-badge {
+details.module-card[open] .module-badge {
   background: #ffedd5;
   color: #c2410c;
 }
-.lecture-content {
-  padding: 20px 24px;
+.module-body {
+  padding: 24px 28px;
   font-size: 14px;
   line-height: 1.65;
   color: #1e293b;
+}
+
+/* FLOWCHARTS & DIAGRAMS STYLING */
+.flow-diagram-container {
+  margin: 24px 0;
+  padding: 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+.flow-diagram-title {
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #475569;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 7-Step Pipeline Grid */
+.pipeline-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pipeline-step {
+  display: flex;
+  align-items: stretch;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.step-num {
+  background: #2c3e50;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 14px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pipeline-step.active .step-num {
+  background: #ba3925;
+}
+.step-info {
+  padding: 10px 14px;
+  flex: 1;
+}
+.step-title {
+  font-weight: 700;
+  font-size: 13.5px;
+  color: #1e293b;
+}
+.step-desc {
+  font-size: 12.5px;
+  color: #64748b;
+  margin-top: 2px;
+}
+.step-code {
+  font-family: "Droid Sans Mono", monospace;
+  font-size: 12px;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: #ba3925;
+}
+
+/* Visual Topology Box */
+.topology-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 20px 0;
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.node-card {
+  flex: 1;
+  background: #f8fafc;
+  border: 2px solid #3b82f6;
+  border-radius: 6px;
+  padding: 14px;
+  text-align: center;
+}
+.node-card.server {
+  border-color: #10b981;
+}
+.node-card h5 {
+  margin: 0 0 6px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+}
+.node-card .node-tag {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 3px;
+  background: #e2e8f0;
+  color: #334155;
+  margin-bottom: 6px;
+}
+.node-card .node-spec {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+}
+.channel-link {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+.channel-line {
+  width: 100%;
+  height: 4px;
+  background: #64748b;
+  position: relative;
+  margin: 12px 0;
+}
+.channel-line::before, .channel-line::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+}
+.channel-line::before {
+  left: 0;
+  border-right: 8px solid #64748b;
+}
+.channel-line::after {
+  right: 0;
+  border-left: 8px solid #64748b;
+}
+.channel-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #ba3925;
+}
+.channel-sub {
+  font-size: 11px;
+  color: #64748b;
+}
+
+/* Line-by-line Code Breakdown Box */
+.code-explanation-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 18px 0;
+  font-size: 13px;
+}
+.code-explanation-table th {
+  background: #2c3e50;
+  color: #ffffff;
+  padding: 10px 14px;
+  text-align: left;
+}
+.code-explanation-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: top;
+}
+.code-explanation-table tr:hover td {
+  background: #f8fafc;
+}
+.code-col {
+  width: 32%;
+  font-family: "Droid Sans Mono", monospace;
+  font-size: 12.5px;
+  color: #0f172a;
+  background: #f8fafc;
+  border-right: 1px solid #e2e8f0;
+}
+.desc-col {
+  width: 68%;
+  line-height: 1.55;
+  color: #334155;
+}
+.desc-col strong {
+  color: #ba3925;
 }
 
 /* Global Controls Toolbar */
@@ -207,22 +402,14 @@ details.lecture-card[open] .lecture-badge {
   color: #ffffff;
 }
 
-/* Wide content scrolling */
-.stemblock > .content,
-.listingblock > .content,
-.MJXc-display,
-.MathJax_Display,
-mjx-container[display="true"] {
-  max-width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-}
-
 @media all and (max-width: 600px) {
-  table.tableblock {
-    display: block;
-    width: 100% !important;
-    overflow-x: auto;
+  .topology-box {
+    flex-direction: column;
+  }
+  .channel-line {
+    width: 4px;
+    height: 40px;
+    margin: 8px 0;
   }
 }
 </style>
@@ -240,10 +427,10 @@ MathJax.Hub.Config({
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-MML-AM_CHTML"></script>
 <script>
 function expandAll() {
-  document.querySelectorAll('details.lecture-card').forEach(d => d.open = true);
+  document.querySelectorAll('details.module-card').forEach(d => d.open = true);
 }
 function collapseAll() {
-  document.querySelectorAll('details.lecture-card').forEach(d => d.open = false);
+  document.querySelectorAll('details.module-card').forEach(d => d.open = false);
 }
 </script>
 </head>
@@ -252,14 +439,14 @@ function collapseAll() {
 <div id="header">
 <h1>ns-3 Network Simulation Master Course</h1>
 <div class="details">
-<span id="author" class="author">Comprehensive Independent Learner Reference • Foundations to WiFi 7 (802.11be) & WiFi 8 (802.11bn)</span><br>
+<span id="author" class="author">Independent Learner Guide • Foundations to WiFi 7 (802.11be) & WiFi 8 (802.11bn)</span><br>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
 <ul class="sectlevel1">
 <li><a href="#_part1_core"><strong>Part I: Simulator Core & Wired Networks</strong></a>
 <ul class="sectlevel2">
-<li><a href="#_mod1_getting_started">Module 1: Getting Started & The 7-Step Recipe</a></li>
+<li><a href="#_mod1_getting_started">Module 1: Getting Started, Architecture & The 7-Step Recipe</a></li>
 <li><a href="#_mod2_abstractions">Module 2: Conceptual Overview & Key Abstractions</a></li>
 <li><a href="#_mod3_tweaking">Module 3: Tweaking, CLI Arguments & Logging</a></li>
 <li><a href="#_mod7_topologies">Module 4: Building Complex Topologies (Bus/CSMA & Star)</a></li>
@@ -290,17 +477,17 @@ function collapseAll() {
 <div id="preamble">
 <div class="sectionbody">
 <div class="paragraph">
-<p>Welcome to the <strong>ns-3 Network Simulation Master Reference</strong>. This curriculum compiles all core concepts, memory models, topology scripts, tracing pipelines, and wireless specifications into a clean, drop-down interactive architecture. Click on any topic below to drop open the detailed technical explanation, analogies, C++ code samples, and common pitfalls.</p>
+<p>Welcome to the <strong>ns-3 Network Simulation Master Reference</strong>. This guide is organized into clean, high-level <strong>Module Dropdowns</strong>. Each module opens to reveal complete, uninterrupted lessons, HTML-based architectural flows, and line-by-line C++ code dissections.</p>
 </div>
 
 <div class="toolbar-container">
   <div style="font-size: 13px; color: #475569; font-weight: 500;">
-    💡 <strong>Interactive Controls:</strong> Click any header to expand its contents.
+    💡 <strong>Module Controls:</strong> Expand or collapse complete modules below.
   </div>
   <div class="toolbar-btn-group">
     <button class="tool-btn" onclick="expandAll()">Expand All Modules</button>
     <button class="tool-btn" onclick="collapseAll()">Collapse All</button>
-    <a href="ns3-module1-complete-notes.pdf" target="_blank" class="tool-btn tool-btn-primary" style="text-decoration: none;">Download Offline PDF</a>
+    <a href="ns3-master-notes.pdf" target="_blank" class="tool-btn tool-btn-primary" style="text-decoration: none;">Download Offline PDF</a>
   </div>
 </div>
 </div>
@@ -311,55 +498,181 @@ function collapseAll() {
 <h2 id="_part1_core">Part I: Simulator Core & Wired Networks</h2>
 <div class="sectionbody">
 
-<!-- MODULE 1 -->
-<h3 id="_mod1_getting_started">Module 1: Getting Started & The 7-Step Recipe</h3>
-
-<details class="lecture-card" open>
-  <summary>
-    <div><span class="lecture-badge">Lesson 1.1</span> Discrete-Event Simulation (DES) & Virtual Time</div>
-    <span style="font-size: 12px; color: #64748b;">▼</span>
+<!-- ======================================================== -->
+<!-- MODULE 1 (EXPANDED BY DEFAULT WITH DEEP EXPLANATIONS)    -->
+<!-- ======================================================== -->
+<details class="module-card" open id="_mod1_getting_started">
+  <summary class="module-summary">
+    <div><span class="module-badge">Module 1</span> Getting Started, DES Architecture & The 7-Step Recipe</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
-  <div class="lecture-content">
-    <p>Unlike real-time hardware emulators or video games that advance in continuous clock ticks ($\Delta t = 16.6\text{ ms}$), ns-3 is a <strong>Discrete-Event Simulator (DES)</strong>.</p>
-    <ul>
-      <li><strong>Event Priority Queue:</strong> The simulator maintains a calendar $Q = \{(t_1, f_1), (t_2, f_2), \dots\}$ sorted strictly by timestamp.</li>
-      <li><strong>Instant Time Leaps:</strong> If an event ends at $t = 1.0\text{ s}$ and the next event occurs at $t = 100.0\text{ s}$, the simulation clock jumps forward $99.0\text{ s}$ in a single CPU instruction without waiting.</li>
-      <li><strong>Layman's Analogy:</strong> Think of ns-3 like a chess match notation book. You do not wait 20 minutes for a player to ponder; you immediately turn the page to the next recorded move.</li>
-    </ul>
-    <div class="admonitionblock important">
-      <table>
-        <tr>
-          <td class="icon"><div class="title">Important</div></td>
-          <td class="content">If you call <code>Simulator::Stop(Seconds(10.0)); Simulator::Run();</code> without scheduling packets or applications, the simulation completes in milliseconds of real wall-clock time!</td>
-        </tr>
-      </table>
+  <div class="module-body">
+
+    <h3>1.1 Discrete-Event Simulation (DES) vs. Real-World Wall-Clock Time</h3>
+    <p>
+      In everyday programming (such as web servers or game engines), time advances continuously according to the CPU wall-clock stopwatch ($\Delta t = 16.6\text{ ms}$ for 60 frames per second). In contrast, <strong>ns-3 is a Discrete-Event Simulator (DES)</strong>.
+    </p>
+
+    <div class="flow-diagram-container">
+      <div class="flow-diagram-title">⏱️ Visual Flow: Discrete Event Priority Queue & Clock Leaps</div>
+      <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 16px;">
+        <svg viewBox="0 0 760 140" style="width: 100%; height: auto; font-family: 'Noto Sans', sans-serif;">
+          <!-- Timeline line -->
+          <line x1="40" y1="70" x2="720" y2="70" stroke="#94a3b8" stroke-width="3" stroke-dasharray="4"/>
+          <!-- Event 0 -->
+          <circle cx="60" cy="70" r="10" fill="#2c3e50"/>
+          <text x="60" y="45" text-anchor="middle" font-size="12" font-weight="bold" fill="#2c3e50">t = 0.0s</text>
+          <text x="60" y="105" text-anchor="middle" font-size="11" fill="#475569">Init / Setup</text>
+
+          <!-- Leap 1 -->
+          <path d="M 70 60 Q 145 10 210 60" fill="none" stroke="#ba3925" stroke-width="2" marker-end="url(#arrow)"/>
+          <text x="145" y="25" text-anchor="middle" font-size="10" font-weight="bold" fill="#ba3925">Instant Leap (+1.0s)</text>
+
+          <!-- Event 1 -->
+          <circle cx="220" cy="70" r="10" fill="#3b82f6"/>
+          <text x="220" y="45" text-anchor="middle" font-size="12" font-weight="bold" fill="#3b82f6">t = 1.0s</text>
+          <text x="220" y="105" text-anchor="middle" font-size="11" fill="#475569">Server Starts (Port 9)</text>
+
+          <!-- Leap 2 -->
+          <path d="M 230 60 Q 305 10 370 60" fill="none" stroke="#ba3925" stroke-width="2"/>
+          <text x="305" y="25" text-anchor="middle" font-size="10" font-weight="bold" fill="#ba3925">Instant Leap (+1.0s)</text>
+
+          <!-- Event 2 -->
+          <circle cx="380" cy="70" r="10" fill="#10b981"/>
+          <text x="380" y="45" text-anchor="middle" font-size="12" font-weight="bold" fill="#10b981">t = 2.0s</text>
+          <text x="380" y="105" text-anchor="middle" font-size="11" fill="#475569">Client Tx Pkt #1</text>
+
+          <!-- Event 3 -->
+          <circle cx="490" cy="70" r="8" fill="#f59e0b"/>
+          <text x="490" y="45" text-anchor="middle" font-size="11" font-weight="bold" fill="#f59e0b">t = 2.002s</text>
+          <text x="490" y="105" text-anchor="middle" font-size="10" fill="#475569">Server Rx (+2ms delay)</text>
+
+          <!-- Leap 3 -->
+          <path d="M 500 60 Q 585 10 660 60" fill="none" stroke="#ba3925" stroke-width="2"/>
+          <text x="585" y="25" text-anchor="middle" font-size="10" font-weight="bold" fill="#ba3925">Leap to Stop (+7.998s)</text>
+
+          <!-- Event 4 -->
+          <circle cx="670" cy="70" r="10" fill="#ef4444"/>
+          <text x="670" y="45" text-anchor="middle" font-size="12" font-weight="bold" fill="#ef4444">t = 10.0s</text>
+          <text x="670" y="105" text-anchor="middle" font-size="11" fill="#475569">Simulator::Stop()</text>
+        </svg>
+      </div>
+      <p style="font-size: 12.5px; color: #64748b; margin-top: 8px;">
+        <em>Figure 1.1:</em> The event priority queue calendar. When the calendar executes $t=2.002\text{s}$, it immediately leaps forward to the next scheduled event without wasting wall-clock CPU instructions.
+      </p>
     </div>
-  </div>
-</details>
 
-<details class="lecture-card" open>
-  <summary>
-    <div><span class="lecture-badge">Lesson 1.2</span> The Standard 7-Step ns-3 Simulation Recipe</div>
-    <span style="font-size: 12px; color: #64748b;">▼</span>
-  </summary>
-  <div class="lecture-content">
-    <p>Every single ns-3 script—whether a simple 2-node wired link or a 100-node WiFi 7 Multi-Link network—follows a rigorous 7-step sequence:</p>
-    <table class="tableblock frame-all grid-all">
-      <thead>
-        <tr><th>Step</th><th>Phase</th><th>Primary Helper / Class</th><th>Underlying Purpose</th></tr>
-      </thead>
-      <tbody>
-        <tr><td><strong>1</strong></td><td>CLI Argument Parsing</td><td><code>CommandLine cmd;</code></td><td>Override simulation variables at runtime from the shell.</td></tr>
-        <tr><td><strong>2</strong></td><td>Node Creation</td><td><code>NodeContainer nodes;</code></td><td>Allocate bare computing entities managed by smart pointers.</td></tr>
-        <tr><td><strong>3</strong></td><td>Devices & Channel</td><td><code>PointToPointHelper / WifiHelper</code></td><td>Create physical links and install Network Interface Cards (NICs).</td></tr>
-        <tr><td><strong>4</strong></td><td>Protocol Stack</td><td><code>InternetStackHelper stack;</code></td><td>Aggregate ARP, IPv4/IPv6, TCP, and UDP to each node.</td></tr>
-        <tr><td><strong>5</strong></td><td>IP Addressing</td><td><code>Ipv4AddressHelper address;</code></td><td>Assign subnets, interfaces, and build routing tables.</td></tr>
-        <tr><td><strong>6</strong></td><td>Applications</td><td><code>UdpEchoServerHelper / Client</code></td><td>Schedule traffic generators, packet sizes, and ports.</td></tr>
-        <tr><td><strong>7</strong></td><td>Run & Teardown</td><td><code>Simulator::Run(); Simulator::Destroy();</code></td><td>Drive the event loop and release cyclic memory references.</td></tr>
-      </tbody>
-    </table>
+    <ul>
+      <li><strong>The Event Calendar:</strong> A priority queue $Q$ sorted strictly by timestamp $t$.</li>
+      <li><strong>Zero Idle Latency:</strong> If no events are scheduled between $2.002\text{s}$ and $10.0\text{s}$, the simulator advances virtual time instantaneously.</li>
+    </ul>
 
-    <h4>Canonical Implementation (<code>first.cc</code>)</h4>
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 28px 0;">
+
+    <h3>1.2 The Standard 7-Step Simulation Pipeline</h3>
+    <p>
+      Whether you are building a simple 2-node point-to-point link or a 100-node IEEE 802.11be WiFi 7 Multi-Link network, every ns-3 simulation follows seven standardized phases.
+    </p>
+
+    <div class="flow-diagram-container">
+      <div class="flow-diagram-title">🔄 Visual Pipeline: The 7-Step Sequence Flow</div>
+      <div class="pipeline-grid">
+        <div class="pipeline-step">
+          <div class="step-num">1</div>
+          <div class="step-info">
+            <div class="step-title">CLI Argument Parsing <span class="step-code">CommandLine cmd; cmd.Parse(argc, argv);</span></div>
+            <div class="step-desc">Allows overriding simulation parameters directly from the shell terminal without re-compiling C++ source.</div>
+          </div>
+        </div>
+        <div class="pipeline-step">
+          <div class="step-num">2</div>
+          <div class="step-info">
+            <div class="step-title">Node Creation <span class="step-code">NodeContainer nodes; nodes.Create(2);</span></div>
+            <div class="step-desc">Instantiates bare virtual computing hosts managed by intrusive reference counting smart pointers (<code>Ptr&lt;Node&gt;</code>).</div>
+          </div>
+        </div>
+        <div class="pipeline-step">
+          <div class="step-num">3</div>
+          <div class="step-info">
+            <div class="step-title">Device & Channel Configuration <span class="step-code">PointToPointHelper p2p; NetDeviceContainer dev = p2p.Install(nodes);</span></div>
+            <div class="step-desc">Models the physical medium (cable/wireless channel) and installs Network Interface Cards (NICs) on nodes.</div>
+          </div>
+        </div>
+        <div class="pipeline-step">
+          <div class="step-num">4</div>
+          <div class="step-info">
+            <div class="step-title">Protocol Stack Installation <span class="step-code">InternetStackHelper stack; stack.Install(nodes);</span></div>
+            <div class="step-desc">Aggregates ARP, IPv4/IPv6, ICMP, UDP, and TCP protocol engines into each bare node object.</div>
+          </div>
+        </div>
+        <div class="pipeline-step">
+          <div class="step-num">5</div>
+          <div class="step-info">
+            <div class="step-title">IP Address Assignment <span class="step-code">Ipv4AddressHelper ip; ip.Assign(dev);</span></div>
+            <div class="step-desc">Allocates network subnets, sets netmasks, binds IP addresses to NIC interfaces, and configures loopbacks.</div>
+          </div>
+        </div>
+        <div class="pipeline-step">
+          <div class="step-num">6</div>
+          <div class="step-info">
+            <div class="step-title">Application Setup & Scheduling <span class="step-code">UdpEchoServerHelper / UdpEchoClientHelper</span></div>
+            <div class="step-desc">Binds listener sockets on destination ports and schedules traffic generation start and stop events.</div>
+          </div>
+        </div>
+        <div class="pipeline-step active">
+          <div class="step-num">7</div>
+          <div class="step-info">
+            <div class="step-title">Execution & Memory Teardown <span class="step-code">Simulator::Run(); Simulator::Destroy();</span></div>
+            <div class="step-desc">Starts the priority queue event calendar loop and cleanly frees cyclic references to prevent memory leaks.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 28px 0;">
+
+    <h3>1.3 Topology & Network Architecture of first.cc</h3>
+    <p>
+      Below is the physical topology diagram of the standard canonical <code>first.cc</code> simulation:
+    </p>
+
+    <div class="topology-box">
+      <div class="node-card">
+        <h5>Node 0 (Sender / Client)</h5>
+        <span class="node-tag">IP: 10.1.1.1</span>
+        <div class="node-spec">
+          <strong>Device:</strong> PointToPointNetDevice<br>
+          <strong>MAC:</strong> dev 0<br>
+          <strong>App:</strong> UdpEchoClient (Port 9)<br>
+          <em>Start: 2.0s | Stop: 10.0s</em>
+        </div>
+      </div>
+
+      <div class="channel-link">
+        <span class="channel-label">PointToPointChannel</span>
+        <div class="channel-line"></div>
+        <span class="channel-sub">DataRate: 5 Mbps • Delay: 2 ms</span>
+      </div>
+
+      <div class="node-card server">
+        <h5>Node 1 (Receiver / Server)</h5>
+        <span class="node-tag" style="background: #d1fae5; color: #065f46;">IP: 10.1.1.2</span>
+        <div class="node-spec">
+          <strong>Device:</strong> PointToPointNetDevice<br>
+          <strong>MAC:</strong> dev 0<br>
+          <strong>App:</strong> UdpEchoServer (Port 9)<br>
+          <em>Start: 1.0s | Stop: 10.0s</em>
+        </div>
+      </div>
+    </div>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 28px 0;">
+
+    <h3>1.4 Exhaustive Line-by-Line Code Breakdown of first.cc</h3>
+    <p>
+      To understand ns-3 properly, every single line of code must be understood from three angles: <strong>what it does</strong>, <strong>why it is necessary</strong>, and <strong>what happens under the hood in memory</strong>.
+    </p>
+
     <pre><code class="language-cpp">#include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/internet-module.h"
@@ -372,7 +685,6 @@ NS_LOG_COMPONENT_DEFINE ("AeroWlanFirstScript");
 
 int main (int argc, char *argv[])
 {
-  // Step 1: CLI Parsing
   CommandLine cmd (__FILE__);
   cmd.Parse (argc, argv);
 
@@ -380,27 +692,26 @@ int main (int argc, char *argv[])
   LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
   LogComponentEnable ("UdpEchoServerApplication", LOG_LEVEL_INFO);
 
-  // Step 2: Node Creation
   NodeContainer nodes;
   nodes.Create (2);
 
-  // Step 3: Device & Channel Configuration
   PointToPointHelper pointToPoint;
   pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));
   pointToPoint.SetChannelAttribute ("Delay", StringValue ("2ms"));
-  NetDeviceContainer devices = pointToPoint.Install (nodes);
 
-  // Step 4: Protocol Stack Installation
+  NetDeviceContainer devices;
+  devices = pointToPoint.Install (nodes);
+
   InternetStackHelper stack;
   stack.Install (nodes);
 
-  // Step 5: IP Addressing
   Ipv4AddressHelper address;
   address.SetBase ("10.1.1.0", "255.255.255.0");
+
   Ipv4InterfaceContainer interfaces = address.Assign (devices);
 
-  // Step 6: Application Setup
   UdpEchoServerHelper echoServer (9);
+
   ApplicationContainer serverApps = echoServer.Install (nodes.Get (1));
   serverApps.Start (Seconds (1.0));
   serverApps.Stop (Seconds (10.0));
@@ -414,41 +725,136 @@ int main (int argc, char *argv[])
   clientApps.Start (Seconds (2.0));
   clientApps.Stop (Seconds (10.0));
 
-  // Step 7: Execution & Teardown
   Simulator::Run ();
   Simulator::Destroy ();
-
   return 0;
 }</code></pre>
-  </div>
-</details>
 
-<details class="lecture-card">
-  <summary>
-    <div><span class="lecture-badge">Lesson 1.3</span> Build Profiles & CMake Mechanics</div>
-    <span style="font-size: 12px; color: #64748b;">▼</span>
-  </summary>
-  <div class="lecture-content">
-    <p>ns-3.45 uses CMake orchestrated via the <code>./ns3</code> Python wrapper:</p>
-    <ul>
-      <li><strong>Debug Profile (<code>--build-profile=debug</code>):</strong> Compiles with <code>-g</code> symbols and enables <code>NS_ASSERT</code> validation macros. Always write new scripts in debug mode so illegal pointer accesses panic immediately with precise error traces!</li>
-      <li><strong>Optimized Profile (<code>--build-profile=optimized</code>):</strong> Strips assertions and compiles with <code>-O3</code> flags. Parameter sweeps and heavy Monte-Carlo wireless simulations run <strong>5x to 10x faster</strong>.</li>
-    </ul>
-    <pre><code class="language-bash">./ns3 configure --build-profile=debug
-./ns3 build
-./ns3 run scratch/first</code></pre>
+    <table class="code-explanation-table">
+      <thead>
+        <tr>
+          <th class="code-col">Code Statement</th>
+          <th class="desc-col">Exhaustive Architectural Breakdown (What, Why & Memory Model)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="code-col">#include "ns3/core-module.h"<br>...<br>#include "ns3/applications-module.h"</td>
+          <td class="desc-col">
+            <strong>What:</strong> Includes the master module umbrella headers.<br>
+            <strong>Why:</strong> ns-3 is composed of modular libraries. <code>core-module.h</code> imports the event scheduler, timers, and logging. <code>network-module.h</code> imports packets and nodes. <code>internet-module.h</code> imports IPv4/TCP/UDP. <code>point-to-point-module.h</code> imports physical wire helpers. <code>applications-module.h</code> imports traffic generator apps.<br>
+            <strong>Under the Hood:</strong> The compiler resolves symbol declarations; during the build phase, CMake links your binary against <code>libns3.45-core-default.so</code>, <code>libns3.45-network-default.so</code>, etc.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">using namespace ns3;</td>
+          <td class="desc-col">
+            <strong>What:</strong> Imports all ns-3 identifiers into the local scope.<br>
+            <strong>Why:</strong> All native ns-3 classes reside inside the <code>ns3</code> namespace. This prevents name collisions between ns-3's <code>Packet</code> and third-party or standard library headers.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">NS_LOG_COMPONENT_DEFINE ("AeroWlanFirstScript");</td>
+          <td class="desc-col">
+            <strong>What:</strong> Defines a unique string identifier for this simulation script.<br>
+            <strong>Why:</strong> Registers this file with the ns-3 logging map. It enables you to activate logging statements (e.g. <code>NS_LOG_INFO("...")</code>) from the terminal at runtime using <code>export NS_LOG="AeroWlanFirstScript=level_all"</code>.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">CommandLine cmd (__FILE__);<br>cmd.Parse (argc, argv);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Binds the shell argument parser to <code>argc</code> and <code>argv</code>.<br>
+            <strong>Why:</strong> Allows users to pass command-line arguments (e.g. <code>--PrintHelp</code> or <code>--nNodes=5</code>) without altering or recompiling C++ source code.<br>
+            <strong>Under the Hood:</strong> Inspects CLI tokens against the registered <code>TypeId</code> attributes of ns-3 classes.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">Time::SetResolution (Time::NS);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Sets the global simulation time resolution to nanoseconds.<br>
+            <strong>Why:</strong> The internal simulation clock stores time as a 64-bit integer. Setting the resolution to nanoseconds means virtual time advances in units of $10^{-9}$ seconds, balancing high precision with overflow avoidance.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Turns on informational console printouts for the UDP client and server.<br>
+            <strong>Why:</strong> Without this, the simulation runs silently in the background and prints nothing to standard output. Enabling <code>LOG_LEVEL_INFO</code> outputs lines like <em>"Sent 1024 bytes to 10.1.1.2"</em> and <em>"Received 1024 bytes from 10.1.1.1"</em>.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">NodeContainer nodes;<br>nodes.Create (2);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Creates two bare computing hosts.<br>
+            <strong>Why:</strong> Every network needs physical hosts. <code>nodes.Create(2)</code> creates <code>Node 0</code> and <code>Node 1</code>.<br>
+            <strong>Under the Hood:</strong> Instantiates two <code>Ptr&lt;Node&gt;</code> objects via <code>CreateObject&lt;Node&gt;()</code>. At this stage, each node is an empty container with an empty object aggregation list—no NIC, no IP, no protocols installed yet.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">PointToPointHelper pointToPoint;<br>pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));<br>pointToPoint.SetChannelAttribute ("Delay", StringValue ("2ms"));</td>
+          <td class="desc-col">
+            <strong>What:</strong> Configures physical layer and link layer parameters.<br>
+            <strong>Why:</strong> Models a physical cable between the nodes with a bandwidth limit of 5 Megabits per second and an electromagnetic signal propagation delay of 2 milliseconds.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">NetDeviceContainer devices;<br>devices = pointToPoint.Install (nodes);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Installs Network Interface Cards (NICs) on Node 0 and Node 1 and connects them.<br>
+            <strong>Why:</strong> Links cannot transmit data without network cards. <code>Install()</code> creates two <code>PointToPointNetDevice</code> objects, plugs one into Node 0, plugs one into Node 1, attaches them both to a single <code>PointToPointChannel</code>, and adds a transmission queue (<code>DropTailQueue</code>).
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">InternetStackHelper stack;<br>stack.Install (nodes);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Installs the Layer 3 and Layer 4 internet protocol stack.<br>
+            <strong>Why:</strong> Bare nodes cannot understand IP addresses or UDP packets. <code>stack.Install(nodes)</code> aggregates instances of <code>Ipv4</code>, <code>ArpL3Protocol</code>, <code>TrafficControlLayer</code>, and UDP/TCP protocol managers to each node.<br>
+            <strong>Under the Hood:</strong> Now, calling <code>node-&gt;GetObject&lt;Ipv4&gt;()</code> will return a valid pointer instead of <code>nullptr</code>!
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">Ipv4AddressHelper address;<br>address.SetBase ("10.1.1.0", "255.255.255.0");<br>Ipv4InterfaceContainer interfaces = address.Assign (devices);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Allocates IP addresses and binds them to network cards.<br>
+            <strong>Why:</strong> Assigns subnet <code>10.1.1.0/24</code>. Device 0 on Node 0 receives <code>10.1.1.1</code>; Device 1 on Node 1 receives <code>10.1.1.2</code>.<br>
+            <strong>Under the Hood:</strong> Creates an <code>Ipv4Interface</code> object for each device and registers it with the node's aggregated <code>Ipv4</code> protocol engine.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">UdpEchoServerHelper echoServer (9);<br>ApplicationContainer serverApps = echoServer.Install (nodes.Get (1));<br>serverApps.Start (Seconds (1.0));<br>serverApps.Stop (Seconds (10.0));</td>
+          <td class="desc-col">
+            <strong>What:</strong> Installs a UDP Echo Server on Node 1 listening on port 9.<br>
+            <strong>Why:</strong> The server acts as the receiver. It begins listening at virtual simulation time $t = 1.0\text{ s}$ and shuts down at $t = 10.0\text{ s}$. Any packet arriving on port 9 is echoed back to the sender.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">UdpEchoClientHelper echoClient (interfaces.GetAddress (1), 9);<br>echoClient.SetAttribute ("MaxPackets", UintegerValue (3));<br>echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));<br>echoClient.SetAttribute ("PacketSize", UintegerValue (1024));<br>ApplicationContainer clientApps = echoClient.Install (nodes.Get (0));<br>clientApps.Start (Seconds (2.0));<br>clientApps.Stop (Seconds (10.0));</td>
+          <td class="desc-col">
+            <strong>What:</strong> Configures and installs a UDP traffic generator on Node 0.<br>
+            <strong>Why:</strong> Points the client toward Node 1's IP (<code>10.1.1.2</code>) on port 9. It schedules 3 packets, each 1024 bytes in payload, spaced 1.0 second apart, starting at $t = 2.0\text{ s}$.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">Simulator::Run ();<br>Simulator::Destroy ();</td>
+          <td class="desc-col">
+            <strong>What:</strong> Executes the simulation event calendar and cleans up memory.<br>
+            <strong>Why:</strong> <code>Simulator::Run()</code> hands execution over to the priority queue loop. Events run until $t = 10.0\text{ s}$. <code>Simulator::Destroy()</code> breaks circular reference loops (e.g. sockets referencing nodes) so that all <code>Ptr&lt;T&gt;</code> counters drop to 0, preventing memory leaks.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
   </div>
 </details>
 
 <!-- MODULE 2 -->
-<h3 id="_mod2_abstractions">Module 2: Conceptual Overview & Key Abstractions</h3>
-
-<details class="lecture-card">
-  <summary>
-    <div><span class="lecture-badge">Lesson 2.1</span> Node, NetDevice, Channel & Application Abstractions</div>
-    <span style="font-size: 12px; color: #64748b;">▼</span>
+<details class="module-card" id="_mod2_abstractions">
+  <summary class="module-summary">
+    <div><span class="module-badge">Module 2</span> Conceptual Overview & Core Network Abstractions</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
-  <div class="lecture-content">
+  <div class="module-body">
+    <h3>2.1 Node, NetDevice, Channel & Object Aggregation</h3>
     <p>In physical networks, computers plug into network interface cards (NICs), which attach to physical cables. In ns-3, these map directly to C++ abstractions:</p>
     <ul>
       <li><strong><code>Node</code> (<code>Ptr&lt;Node&gt;</code>):</strong> Represents an empty computing host. It starts completely bare—no IP stack, no MAC layer, no hardware.</li>
@@ -468,14 +874,13 @@ int main (int argc, char *argv[])
 </details>
 
 <!-- MODULE 3 -->
-<h3 id="_mod3_tweaking">Module 3: Tweaking, CLI Arguments & Logging</h3>
-
-<details class="lecture-card">
-  <summary>
-    <div><span class="lecture-badge">Lesson 3.1</span> The NS_LOG Logging Subsystem & CLI Overrides</div>
-    <span style="font-size: 12px; color: #64748b;">▼</span>
+<details class="module-card" id="_mod3_tweaking">
+  <summary class="module-summary">
+    <div><span class="module-badge">Module 3</span> Tweaking, CLI Arguments & Logging Subsystems</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
-  <div class="lecture-content">
+  <div class="module-body">
+    <h3>3.1 The NS_LOG Logging Subsystem & CLI Overrides</h3>
     <p>Printing debug logs using <code>std::cout</code> clutters code. ns-3 includes a granular logging framework controlled via environment variables:</p>
     <pre><code class="language-bash"># Enable timestamps and function names for UDP echo components:
 export 'NS_LOG=UdpEchoClientApplication=level_all|prefix_time:UdpEchoServerApplication=level_all|prefix_time'
@@ -487,14 +892,13 @@ export 'NS_LOG=UdpEchoClientApplication=level_all|prefix_time:UdpEchoServerAppli
 </details>
 
 <!-- MODULE 4 -->
-<h3 id="_mod7_topologies">Module 4: Building Complex Topologies (Bus/CSMA & Star)</h3>
-
-<details class="lecture-card">
-  <summary>
-    <div><span class="lecture-badge">Lesson 4.1</span> CSMA/Ethernet Bus Topologies (second.cc)</div>
-    <span style="font-size: 12px; color: #64748b;">▼</span>
+<details class="module-card" id="_mod7_topologies">
+  <summary class="module-summary">
+    <div><span class="module-badge">Module 4</span> Building Complex Topologies (Bus/CSMA & Star)</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
-  <div class="lecture-content">
+  <div class="module-body">
+    <h3>4.1 CSMA/Ethernet Bus Topologies (second.cc)</h3>
     <p>Point-to-point links only connect two nodes. To model shared local area networks (LANs), ns-3 provides the <code>CsmaHelper</code>:</p>
     <pre><code class="language-cpp">NodeContainer csmaNodes;
 csmaNodes.Create (4);
@@ -509,14 +913,13 @@ NetDeviceContainer csmaDevices = csma.Install (csmaNodes);</code></pre>
 </details>
 
 <!-- MODULE 5 -->
-<h3 id="_mod8_tracing">Module 5: Tracing, PCAP & Packet Sniffing</h3>
-
-<details class="lecture-card">
-  <summary>
-    <div><span class="lecture-badge">Lesson 5.1</span> PCAP Wireshark Captures & Ascii Traces</div>
-    <span style="font-size: 12px; color: #64748b;">▼</span>
+<details class="module-card" id="_mod8_tracing">
+  <summary class="module-summary">
+    <div><span class="module-badge">Module 5</span> Tracing, PCAP & Packet Sniffing</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
-  <div class="lecture-content">
+  <div class="module-body">
+    <h3>5.1 PCAP Wireshark Captures & Ascii Traces</h3>
     <p>Simulation results must be verified at the packet level. ns-3 can output industry-standard <code>.pcap</code> captures that open directly in <strong>Wireshark</strong>:</p>
     <pre><code class="language-cpp">PointToPointHelper p2p;
 // Generates first-0-0.pcap and first-1-0.pcap
@@ -529,14 +932,13 @@ p2p.EnableAsciiAll (ascii.CreateFileStream ("first.tr"));</code></pre>
 </details>
 
 <!-- MODULE 6 -->
-<h3 id="_mod9_datacollection">Module 6: Data Collection & Performance Analytics</h3>
-
-<details class="lecture-card">
-  <summary>
-    <div><span class="lecture-badge">Lesson 6.1</span> Gnuplot Output & SQLite Metric Logging</div>
-    <span style="font-size: 12px; color: #64748b;">▼</span>
+<details class="module-card" id="_mod9_datacollection">
+  <summary class="module-summary">
+    <div><span class="module-badge">Module 6</span> Data Collection & Performance Analytics</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
-  <div class="lecture-content">
+  <div class="module-body">
+    <h3>6.1 Gnuplot Output & SQLite Metric Logging</h3>
     <p>To analyze throughput and latency trends across parameter sweeps, ns-3 provides the <code>DataCollection</code> framework:</p>
     <ul>
       <li><strong><code>GnuplotHelper</code>:</strong> Automatically outputs <code>.plt</code> scripts that render publication-ready throughput curves.</li>
@@ -554,14 +956,13 @@ p2p.EnableAsciiAll (ascii.CreateFileStream ("first.tr"));</code></pre>
 <div class="sectionbody">
 
 <!-- MODULE 7 -->
-<h3 id="_wifi_mod1_phy">Module 7: Wireless Physical Layer & RF Propagation</h3>
-
-<details class="lecture-card" open>
-  <summary>
-    <div><span class="lecture-badge">Lesson 7.1</span> YansWifiPhy vs. SpectrumWifiPhy & Path Loss Models</div>
-    <span style="font-size: 12px; color: #64748b;">▼</span>
+<details class="module-card" id="_wifi_mod1_phy">
+  <summary class="module-summary">
+    <div><span class="module-badge">Module 7</span> Wireless Physical Layer & RF Propagation</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
-  <div class="lecture-content">
+  <div class="module-body">
+    <h3>7.1 YansWifiPhy vs. SpectrumWifiPhy & Path Loss Models</h3>
     <p>Modeling wireless signals requires calculating physical signal-to-interference-plus-noise ratios (SINR):</p>
     <ul>
       <li><strong><code>YansWifiPhy</code>:</strong> Fast single-carrier physical layer model ideal for basic 802.11a/b/g simulations.</li>
@@ -575,14 +976,13 @@ p2p.EnableAsciiAll (ascii.CreateFileStream ("first.tr"));</code></pre>
 </details>
 
 <!-- MODULE 8 -->
-<h3 id="_wifi_mod2_mac">Module 8: 802.11 MAC Layer & EDCA QoS</h3>
-
-<details class="lecture-card">
-  <summary>
-    <div><span class="lecture-badge">Lesson 8.1</span> FrameExchangeManager, RTS/CTS & A-MPDU Aggregation</div>
-    <span style="font-size: 12px; color: #64748b;">▼</span>
+<details class="module-card" id="_wifi_mod2_mac">
+  <summary class="module-summary">
+    <div><span class="module-badge">Module 8</span> 802.11 MAC Layer & EDCA QoS</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
-  <div class="lecture-content">
+  <div class="module-body">
+    <h3>8.1 FrameExchangeManager, RTS/CTS & A-MPDU Aggregation</h3>
     <p>In ns-3.45, Wi-Fi channel access and handshakes are orchestrated by the <code>FrameExchangeManager</code>:</p>
     <ul>
       <li><strong>EDCA (Enhanced Distributed Channel Access):</strong> Maps packets into 4 Access Categories (AC_VO for Voice, AC_VI for Video, AC_BE for Best Effort, AC_BK for Background) with distinct contention windows ($CW_{\min}, CW_{\max}$) and AIFS timers.</li>
@@ -593,14 +993,13 @@ p2p.EnableAsciiAll (ascii.CreateFileStream ("first.tr"));</code></pre>
 </details>
 
 <!-- MODULE 9 -->
-<h3 id="_wifi_mod3_wifi7">Module 9: WiFi 7 (802.11be) Multi-Link Operation (MLO)</h3>
-
-<details class="lecture-card" open>
-  <summary>
-    <div><span class="lecture-badge">Lesson 9.1</span> Multi-Link Devices (MLD), STR/NSTR & 320 MHz Channels</div>
-    <span style="font-size: 12px; color: #64748b;">▼</span>
+<details class="module-card" id="_wifi_mod3_wifi7">
+  <summary class="module-summary">
+    <div><span class="module-badge">Module 9</span> WiFi 7 (802.11be) Multi-Link Operation (MLO)</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
-  <div class="lecture-content">
+  <div class="module-body">
+    <h3>9.1 Multi-Link Devices (MLD), STR/NSTR & 320 MHz Channels</h3>
     <p>The defining innovation of <strong>IEEE 802.11be (WiFi 7)</strong> is <strong>Multi-Link Operation (MLO)</strong>:</p>
     <ul>
       <li><strong>Multi-Link Device (MLD):</strong> An AP or Station containing multiple physical radios operating simultaneously across 2.4 GHz, 5 GHz, and 6 GHz bands.</li>
@@ -619,14 +1018,13 @@ mac.SetMultiLinkOperation (true);</code></pre>
 </details>
 
 <!-- MODULE 10 -->
-<h3 id="_wifi_mod4_wifi8">Module 10: WiFi 8 (802.11bn) Ultra High Reliability (UHR)</h3>
-
-<details class="lecture-card" open>
-  <summary>
-    <div><span class="lecture-badge">Lesson 10.1</span> Multi-AP Coordination (MAPC) & Deterministic Latency</div>
-    <span style="font-size: 12px; color: #64748b;">▼</span>
+<details class="module-card" id="_wifi_mod4_wifi8">
+  <summary class="module-summary">
+    <div><span class="module-badge">Module 10</span> WiFi 8 (802.11bn) Ultra High Reliability (UHR)</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
-  <div class="lecture-content">
+  <div class="module-body">
+    <h3>10.1 Multi-AP Coordination (MAPC) & Deterministic Latency</h3>
     <p>While WiFi 7 prioritized raw peak data rate (46 Gbps), <strong>IEEE 802.11bn (WiFi 8 UHR)</strong> focuses on <strong>extreme reliability ($99.999\%$) and sub-5ms bounded latency</strong>:</p>
     <ul>
       <li><strong>Multi-AP Coordination (MAPC):</strong> Neighboring Access Points synchronize over wired backhauls to schedule transmissions cooperatively, eliminating uncoordinated collisions in dense enterprise spaces.</li>
@@ -645,14 +1043,13 @@ mac.SetMultiLinkOperation (true);</code></pre>
 <div class="sectionbody">
 
 <!-- MODULE 11 -->
-<h3 id="_cpp_mod1_smart_pointers">Module 11: Memory Management & Ptr&lt;T&gt; Internals</h3>
-
-<details class="lecture-card">
-  <summary>
-    <div><span class="lecture-badge">Lesson 11.1</span> Intrusive Reference Counting (SimpleRefCount)</div>
-    <span style="font-size: 12px; color: #64748b;">▼</span>
+<details class="module-card" id="_cpp_mod1_smart_pointers">
+  <summary class="module-summary">
+    <div><span class="module-badge">Module 11</span> Memory Management & Ptr&lt;T&gt; Internals</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
-  <div class="lecture-content">
+  <div class="module-body">
+    <h3>11.1 Intrusive Reference Counting (SimpleRefCount)</h3>
     <p>ns-3 avoids manual <code>delete</code> using intrusive reference counting:</p>
     <pre><code class="language-cpp">// Create an object with reference count = 1:
 Ptr&lt;Node&gt; n = CreateObject&lt;Node&gt;();
@@ -667,14 +1064,13 @@ c.Add(n); // Ref count = 2
 </details>
 
 <!-- MODULE 12 -->
-<h3 id="_cpp_mod2_callbacks">Module 12: Callbacks, Events & Object Aggregation</h3>
-
-<details class="lecture-card">
-  <summary>
-    <div><span class="lecture-badge">Lesson 12.1</span> The Callback Template & Event Scheduling</div>
-    <span style="font-size: 12px; color: #64748b;">▼</span>
+<details class="module-card" id="_cpp_mod2_callbacks">
+  <summary class="module-summary">
+    <div><span class="module-badge">Module 12</span> Callbacks, Events & Object Aggregation</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
-  <div class="lecture-content">
+  <div class="module-body">
+    <h3>12.1 The Callback Template & Event Scheduling</h3>
     <p>ns-3 implements type-safe function pointers through the <code>Callback</code> template, allowing decoupled event notifications:</p>
     <pre><code class="language-cpp">void PacketDroppedCallback (Ptr&lt;const Packet&gt; p) {
   std::cout &lt;&lt; "Packet dropped: " &lt;&lt; p-&gt;GetSize() &lt;&lt; " bytes" &lt;&lt; std::endl;
@@ -692,7 +1088,7 @@ queue-&gt;TraceConnectWithoutContext ("Drop", MakeCallback (&PacketDroppedCallba
 
 <div id="footer">
 <div id="footer-text">
-ns-3 Network Simulation Master Reference • Generated for Independent Learners • Ready for GitHub Pages
+ns-3 Network Simulation Master Reference • Prepared for Independent Learners • Ready for GitHub Pages
 </div>
 </div>
 
