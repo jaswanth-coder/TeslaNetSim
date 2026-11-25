@@ -1443,24 +1443,293 @@ unset NS_LOG
   </div>
 </details>
 
-<!-- MODULE 4 -->
-<details class="module-card" id="_mod7_topologies">
+<!-- MODULE 4 (EXPANDED MASTER MODULE) -->
+<details class="module-card" open id="_mod7_topologies">
   <summary class="module-summary">
-    <div><span class="module-badge">Module 4</span> Building Complex Topologies (Bus/CSMA & Star)</div>
+    <div><span class="module-badge">Module 4</span> Building Complex Topologies: Hybrid P2P + CSMA Bus LAN</div>
     <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
   <div class="module-body">
-    <h3>4.1 CSMA/Ethernet Bus Topologies (second.cc)</h3>
-    <p>Point-to-point links only connect two nodes. To model shared local area networks (LANs), ns-3 provides the <code>CsmaHelper</code>:</p>
-    <pre><code class="language-cpp">NodeContainer csmaNodes;
-csmaNodes.Create (4);
 
-CsmaHelper csma;
-csma.SetChannelAttribute ("DataRate", StringValue ("100Mbps"));
-csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));
+    <h3>4.1 Shared Bus Architecture & Carrier Sense Multiple Access (CSMA)</h3>
+    <p>
+      Point-to-point links represent dedicated point-to-point physical wires between exactly two endpoints. However, local area networks (LANs) historically relied on shared physical mediums—such as coaxial Ethernet cables or hubs—where multiple nodes tap into a common transmission line.
+    </p>
+    <p>
+      In ns-3, shared wired media are modeled using the <strong><code>CsmaChannel</code></strong> and <strong><code>CsmaNetDevice</code></strong>. Because multiple transmitters share the same cable, nodes implement <strong>Carrier Sense Multiple Access (CSMA)</strong>:
+    </p>
 
-NetDeviceContainer csmaDevices = csma.Install (csmaNodes);</code></pre>
-    <p>This creates a carrier-sense multiple access bus channel where all 4 nodes share bandwidth and handle packet collision avoidance.</p>
+    <div class="flow-diagram-container">
+      <div class="flow-diagram-title">📡 Visual Flow: CSMA Carrier-Sensing & Contention Timeline</div>
+      <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 18px;">
+        <svg viewBox="0 0 760 170" style="width: 100%; height: auto; font-family: 'Noto Sans', sans-serif;">
+          <!-- Stage 1 -->
+          <rect x="20" y="30" width="160" height="55" rx="6" fill="#f1f5f9" stroke="#64748b" stroke-width="1.5"/>
+          <text x="100" y="52" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e293b">1. Packet Ready</text>
+          <text x="100" y="68" text-anchor="middle" font-size="10" fill="#64748b">Tx Queue not empty</text>
+
+          <path d="M 180 57 L 220 57" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+
+          <!-- Stage 2 -->
+          <rect x="220" y="30" width="160" height="55" rx="6" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+          <text x="300" y="52" text-anchor="middle" font-size="11" font-weight="bold" fill="#b45309">2. Carrier Sense</text>
+          <text x="300" y="68" text-anchor="middle" font-size="10" fill="#d97706">Is Bus State IDLE?</text>
+
+          <path d="M 380 57 L 420 57" stroke="#94a3b8" stroke-width="2"/>
+
+          <!-- Stage 3 -->
+          <rect x="420" y="30" width="160" height="55" rx="6" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/>
+          <text x="500" y="52" text-anchor="middle" font-size="11" font-weight="bold" fill="#0369a1">3. Inter-Frame Space</text>
+          <text x="500" y="68" text-anchor="middle" font-size="10" fill="#0284c7">Wait IFS (~96 bit times)</text>
+
+          <path d="M 580 57 L 620 57" stroke="#94a3b8" stroke-width="2"/>
+
+          <!-- Stage 4 -->
+          <rect x="620" y="30" width="120" height="55" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+          <text x="680" y="52" text-anchor="middle" font-size="11" font-weight="bold" fill="#15803d">4. Transmit</text>
+          <text x="680" y="68" text-anchor="middle" font-size="10" fill="#16a34a">Broadcast on Bus</text>
+
+          <!-- Bottom explanation -->
+          <rect x="100" y="115" width="560" height="35" rx="4" fill="#fafafa" stroke="#e2e8f0"/>
+          <text x="380" y="136" text-anchor="middle" font-size="11" fill="#475569">
+            <strong>Physics of Copper:</strong> Default propagation delay is <code>6560 ns</code>, matching speed of light in copper over ~1.3 km!
+          </text>
+        </svg>
+      </div>
+      <p style="font-size: 12.5px; color: #64748b; margin-top: 8px;">
+        <em>Figure 4.1:</em> The CSMA State Machine. Before transmitting, the NetDevice listens to the channel. If busy, it defers; if idle, it waits for an Inter-Frame Space (IFS) before injecting bits onto the shared bus.
+      </p>
+    </div>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 28px 0;">
+
+    <h3>4.2 The Hybrid P2P + CSMA LAN Topology (second.cc)</h3>
+    <p>
+      Real networks combine different transmission technologies (e.g., local workstations sharing an Ethernet bus connected through an edge router across a point-to-point link to a remote server).
+    </p>
+    <p>
+      In ns-3, this is accomplished by <strong>Node Sharing across NodeContainers</strong>. Below is the topology of <code>second.cc</code>:
+    </p>
+
+    <div class="flow-diagram-container">
+      <div class="flow-diagram-title">🌐 Visual Topology: Hybrid P2P + CSMA Bus LAN</div>
+      <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 20px;">
+        <svg viewBox="0 0 760 220" style="width: 100%; height: auto; font-family: 'Noto Sans', sans-serif;">
+          <!-- Node 0: Remote Server -->
+          <rect x="30" y="70" width="130" height="80" rx="6" fill="#f8fafc" stroke="#3b82f6" stroke-width="2"/>
+          <text x="95" y="95" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e293b">Node 0 (Server)</text>
+          <text x="95" y="112" text-anchor="middle" font-size="11" fill="#3b82f6">IP: 10.1.1.1</text>
+          <text x="95" y="128" text-anchor="middle" font-size="10" fill="#64748b">Port 9 UdpServer</text>
+
+          <!-- P2P Link -->
+          <line x1="160" y1="110" x2="260" y2="110" stroke="#64748b" stroke-width="4"/>
+          <text x="210" y="98" text-anchor="middle" font-size="10" font-weight="bold" fill="#ba3925">P2P (5 Mbps / 2 ms)</text>
+          <text x="210" y="128" text-anchor="middle" font-size="9" fill="#64748b">Subnet: 10.1.1.0/24</text>
+
+          <!-- Node 1: Gateway Bridge -->
+          <rect x="260" y="55" width="160" height="110" rx="6" fill="#fefce8" stroke="#eab308" stroke-width="2"/>
+          <text x="340" y="80" text-anchor="middle" font-size="12" font-weight="bold" fill="#854d0e">Node 1 (Gateway)</text>
+          <rect x="275" y="90" width="130" height="30" rx="3" fill="#e0f2fe" stroke="#0284c7"/>
+          <text x="340" y="110" text-anchor="middle" font-size="10" fill="#0369a1">dev 0 (P2P): 10.1.1.2</text>
+          <rect x="275" y="125" width="130" height="30" rx="3" fill="#dcfce7" stroke="#16a34a"/>
+          <text x="340" y="145" text-anchor="middle" font-size="10" fill="#15803d">dev 1 (CSMA): 10.1.2.1</text>
+
+          <!-- Vertical Drop to CSMA Bus -->
+          <line x1="340" y1="165" x2="340" y2="195" stroke="#16a34a" stroke-width="3"/>
+
+          <!-- CSMA Backbone Bus -->
+          <line x1="300" y1="195" x2="720" y2="195" stroke="#16a34a" stroke-width="5"/>
+          <text x="510" y="212" text-anchor="middle" font-size="11" font-weight="bold" fill="#15803d">Shared CSMA Bus Backbone (100 Mbps / 6560 ns) • Subnet: 10.1.2.0/24</text>
+
+          <!-- Drop lines to CSMA LAN Nodes -->
+          <line x1="460" y1="195" x2="460" y2="150" stroke="#16a34a" stroke-width="3"/>
+          <line x1="580" y1="195" x2="580" y2="150" stroke="#16a34a" stroke-width="3"/>
+          <line x1="700" y1="195" x2="700" y2="150" stroke="#16a34a" stroke-width="3"/>
+
+          <!-- Node 2 -->
+          <rect x="410" y="90" width="100" height="60" rx="4" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
+          <text x="460" y="112" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e293b">Node 2</text>
+          <text x="460" y="130" text-anchor="middle" font-size="10" fill="#64748b">10.1.2.2</text>
+
+          <!-- Node 3 -->
+          <rect x="530" y="90" width="100" height="60" rx="4" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
+          <text x="580" y="112" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e293b">Node 3</text>
+          <text x="580" y="130" text-anchor="middle" font-size="10" fill="#64748b">10.1.2.3</text>
+
+          <!-- Node 4: Client -->
+          <rect x="650" y="70" width="100" height="80" rx="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
+          <text x="700" y="95" text-anchor="middle" font-size="12" font-weight="bold" fill="#15803d">Node 4 (Client)</text>
+          <text x="700" y="112" text-anchor="middle" font-size="11" fill="#16a34a">10.1.2.4</text>
+          <text x="700" y="128" text-anchor="middle" font-size="10" fill="#64748b">UdpClient</text>
+        </svg>
+      </div>
+      <p style="font-size: 12.5px; color: #64748b; margin-top: 8px;">
+        <em>Figure 4.2:</em> The canonical <code>second.cc</code> network architecture. Node 1 is a dual-homed gateway bridging the Point-to-Point subnet (<code>10.1.1.0/24</code>) to the CSMA Ethernet bus subnet (<code>10.1.2.0/24</code>).
+      </p>
+    </div>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 28px 0;">
+
+    <h3>4.3 Canonical C++ Script (second.cc)</h3>
+
+    <pre><code class="language-cpp">#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/csma-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/applications-module.h"
+#include "ns3/ipv4-global-routing-helper.h"
+
+using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE ("SecondScriptExample");
+
+int main (int argc, char *argv[])
+{
+  bool verbose = true;
+  uint32_t nCsma = 3;
+
+  CommandLine cmd (__FILE__);
+  cmd.AddValue ("nCsma", "Number of extra CSMA nodes", nCsma);
+  cmd.AddValue ("verbose", "Tell echo applications to log if true", verbose);
+  cmd.Parse (argc, argv);
+
+  if (verbose) {
+    LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
+    LogComponentEnable ("UdpEchoServerApplication", LOG_LEVEL_INFO);
+  }
+
+  // STEP 1: Allocate P2P Nodes (Node 0 and Node 1)
+  NodeContainer p2pNodes;
+  p2pNodes.Create (2);
+
+  // STEP 2: Allocate CSMA Nodes & SHARE Node 1
+  NodeContainer csmaNodes;
+  csmaNodes.Add (p2pNodes.Get (1)); // Node 1 joins the CSMA LAN!
+  csmaNodes.Create (nCsma);          // Creates Node 2, Node 3, and Node 4
+
+  // STEP 3: Setup Point-to-Point Link
+  PointToPointHelper pointToPoint;
+  pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));
+  pointToPoint.SetChannelAttribute ("Delay", StringValue ("2ms"));
+  NetDeviceContainer p2pDevices = pointToPoint.Install (p2pNodes);
+
+  // STEP 4: Setup CSMA Bus Channel
+  CsmaHelper csma;
+  csma.SetChannelAttribute ("DataRate", StringValue ("100Mbps"));
+  csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));
+  NetDeviceContainer csmaDevices = csma.Install (csmaNodes);
+
+  // STEP 5: Install Internet Stack
+  InternetStackHelper stack;
+  stack.Install (p2pNodes.Get (0)); // Install on Node 0
+  stack.Install (csmaNodes);        // Installs on Node 1, 2, 3, 4 (Node 1 only once!)
+
+  // STEP 6: Assign IP Addresses to Both Subnets
+  Ipv4AddressHelper address;
+
+  // Subnet 1 (P2P): 10.1.1.0/24
+  address.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer p2pInterfaces = address.Assign (p2pDevices);
+
+  // Subnet 2 (CSMA): 10.1.2.0/24
+  address.SetBase ("10.1.2.0", "255.255.255.0");
+  Ipv4InterfaceContainer csmaInterfaces = address.Assign (csmaDevices);
+
+  // STEP 7: Populate Global Routing Tables
+  Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
+
+  // STEP 8: Configure Server on Node 0 (Listening on Port 9)
+  UdpEchoServerHelper echoServer (9);
+  ApplicationContainer serverApps = echoServer.Install (p2pNodes.Get (0));
+  serverApps.Start (Seconds (1.0));
+  serverApps.Stop (Seconds (10.0));
+
+  // Configure Client on Node 4 (Last CSMA node) targeting Node 0's IP
+  UdpEchoClientHelper echoClient (p2pInterfaces.GetAddress (0), 9);
+  echoClient.SetAttribute ("MaxPackets", UintegerValue (1));
+  echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+  echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
+
+  ApplicationContainer clientApps = echoClient.Install (csmaNodes.Get (nCsma));
+  clientApps.Start (Seconds (2.0));
+  clientApps.Stop (Seconds (10.0));
+
+  // Enable PCAP Traces on the Gateway to capture packet forwarding
+  pointToPoint.EnablePcapAll ("second");
+  csma.EnablePcap ("second", csmaDevices.Get (1), true);
+
+  Simulator::Run ();
+  Simulator::Destroy ();
+  return 0;
+}</code></pre>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 28px 0;">
+
+    <h3>4.4 Line-by-Line Architectural Dissection of second.cc</h3>
+
+    <table class="code-explanation-table">
+      <thead>
+        <tr>
+          <th class="code-col">Code Statement</th>
+          <th class="desc-col">Exhaustive Architectural Breakdown (What, Why & Memory Model)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="code-col">csmaNodes.Add (p2pNodes.Get (1));<br>csmaNodes.Create (nCsma);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Adds existing Node 1 into the CSMA container, then allocates 3 fresh nodes (Nodes 2, 3, 4).<br>
+            <strong>Why:</strong> <strong>Crucial for Bridging!</strong> Node 1 is the physical bridge connecting the P2P wire to the CSMA bus.<br>
+            <strong>Under the Hood:</strong> <code>csmaNodes.Get(0)</code> references the exact same <code>Ptr&lt;Node&gt;</code> in memory as <code>p2pNodes.Get(1)</code>. Its reference count increases to 2!
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));</td>
+          <td class="desc-col">
+            <strong>What:</strong> Configures propagation delay across the shared bus to 6560 nanoseconds.<br>
+            <strong>Why:</strong> In copper cable, electrical signals propagate at approximately $\frac{2}{3}$ the speed of light ($200,000\text{ km/s}$). A delay of $6560\text{ ns}$ accurately models signal propagation across a standard 1.3 kilometer Ethernet segment!
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">stack.Install (p2pNodes.Get (0));<br>stack.Install (csmaNodes);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Installs the TCP/IP stack across all nodes without duplicating Node 1.<br>
+            <strong>Why:</strong> Calling <code>stack.Install(p2pNodes)</code> followed by <code>stack.Install(csmaNodes)</code> would attempt to install IPv4 onto Node 1 twice, causing a fatal assertion panic. Explicitly targeting <code>p2pNodes.Get(0)</code> first avoids this crash!
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">Ipv4GlobalRoutingHelper::PopulateRoutingTables ();</td>
+          <td class="desc-col">
+            <strong>What:</strong> Calculates multi-hop forwarding paths across both subnets.<br>
+            <strong>Why:</strong> Node 4 resides on <code>10.1.2.0/24</code>, while Node 0 resides on <code>10.1.1.0/24</code>. When Node 4 sends a packet to <code>10.1.1.1</code>, its routing table points to Gateway <code>10.1.2.1</code> (Node 1), which forwards it out its P2P interface.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">csma.EnablePcap ("second", csmaDevices.Get (1), true);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Enables promiscuous PCAP packet capture on the CSMA bus interface.<br>
+            <strong>Why:</strong> The boolean <code>true</code> puts the NIC in promiscuous mode, capturing all frames traversing the shared bus—including packets destined for other nodes!
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 28px 0;">
+
+    <h3>4.5 Queues, Bufferbloat & Active Queue Management (AQM)</h3>
+    <p>
+      Whenever packets arrive faster than a link's transmission rate, they accumulate in a buffer queue inside the <code>NetDevice</code>.
+    </p>
+
+    <ul>
+      <li><strong><code>DropTailQueue</code>:</strong> Standard First-In-First-Out (FIFO) buffer. When the queue reaches capacity (e.g. 100 packets), all new incoming packets are dropped at the tail. This can cause TCP global synchronization.</li>
+      <li><strong><code>CoDel</code> (Controlled Delay):</strong> Modern Active Queue Management (AQM) that monitors packet queuing delay. If packets sit in the queue longer than 5 ms, CoDel drops packets proactively to signal TCP senders to back off, eliminating <strong>bufferbloat</strong>.</li>
+    </ul>
+
+    <pre><code class="language-cpp">// Customizing the transmission queue size on a PointToPoint link:
+pointToPoint.SetQueue ("ns3::DropTailQueue&lt;Packet&gt;", "MaxSize", QueueSizeValue (QueueSize ("50p")));</code></pre>
+
   </div>
 </details>
 
