@@ -1145,21 +1145,301 @@ int main (int argc, char *argv[])
   </div>
 </details>
 
-<!-- MODULE 3 -->
-<details class="module-card" id="_mod3_tweaking">
+<!-- MODULE 3 (EXPANDED MASTER MODULE) -->
+<details class="module-card" open id="_mod3_tweaking">
   <summary class="module-summary">
-    <div><span class="module-badge">Module 3</span> Tweaking, CLI Arguments & Logging Subsystems</div>
+    <div><span class="module-badge">Module 3</span> Tweaking, The Logging Subsystem, CLI Arguments & Attributes</div>
     <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
   <div class="module-body">
-    <h3>3.1 The NS_LOG Logging Subsystem & CLI Overrides</h3>
-    <p>Printing debug logs using <code>std::cout</code> clutters code. ns-3 includes a granular logging framework controlled via environment variables:</p>
-    <pre><code class="language-bash"># Enable timestamps and function names for UDP echo components:
-export 'NS_LOG=UdpEchoClientApplication=level_all|prefix_time:UdpEchoServerApplication=level_all|prefix_time'
-./ns3 run scratch/first</code></pre>
-    <h4>Dynamic Attribute Overrides</h4>
-    <p>Any parameter registered in an ns-3 class <code>TypeId</code> can be overridden directly from the shell without editing source code:</p>
-    <pre><code class="language-bash">./ns3 run "scratch/first --ns3::PointToPointNetDevice::DataRate=10Mbps"</code></pre>
+
+    <h3>3.1 The ns-3 Logging Subsystem & Severity Hierarchy</h3>
+    <p>
+      In production network simulators, writing standard console print statements (such as <code>std::cout &lt;&lt; "..."</code>) is considered bad engineering practice. Console I/O slows down execution, clutters standard output during multi-run parameter sweeps, and cannot be filtered without modifying and recompiling the source code.
+    </p>
+    <p>
+      ns-3 solves this with a robust, granular <strong>Logging Subsystem</strong> organized into seven distinct severity levels.
+    </p>
+
+    <div class="flow-diagram-container">
+      <div class="flow-diagram-title">🔊 Visual Architecture: The ns-3 Logging Severity Pyramid</div>
+      <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 18px;">
+        <svg viewBox="0 0 760 220" style="width: 100%; height: auto; font-family: 'Noto Sans', sans-serif;">
+          <!-- Level 1: LOG_ERROR -->
+          <rect x="230" y="10" width="300" height="26" rx="4" fill="#ef4444"/>
+          <text x="380" y="27" text-anchor="middle" font-size="11" font-weight="bold" fill="#ffffff">LOG_ERROR (Fatal / Halting Errors)</text>
+
+          <!-- Level 2: LOG_WARN -->
+          <rect x="200" y="40" width="360" height="26" rx="4" fill="#f97316"/>
+          <text x="380" y="57" text-anchor="middle" font-size="11" font-weight="bold" fill="#ffffff">LOG_WARN (Potential Anomalous States)</text>
+
+          <!-- Level 3: LOG_DEBUG -->
+          <rect x="170" y="70" width="420" height="26" rx="4" fill="#eab308"/>
+          <text x="380" y="87" text-anchor="middle" font-size="11" font-weight="bold" fill="#ffffff">LOG_DEBUG (Variable States & Memory Pointer Traces)</text>
+
+          <!-- Level 4: LOG_INFO -->
+          <rect x="140" y="100" width="480" height="26" rx="4" fill="#3b82f6"/>
+          <text x="380" y="117" text-anchor="middle" font-size="11" font-weight="bold" fill="#ffffff">LOG_INFO (Packet Sent/Received, Queue Enqueue/Dequeue)</text>
+
+          <!-- Level 5: LOG_FUNCTION -->
+          <rect x="110" y="130" width="540" height="26" rx="4" fill="#6366f1"/>
+          <text x="380" y="147" text-anchor="middle" font-size="11" font-weight="bold" fill="#ffffff">LOG_FUNCTION (Automatic Tracing of Function Invocations & Parameters)</text>
+
+          <!-- Level 6: LOG_LOGIC -->
+          <rect x="80" y="160" width="600" height="26" rx="4" fill="#8b5cf6"/>
+          <text x="380" y="177" text-anchor="middle" font-size="11" font-weight="bold" fill="#ffffff">LOG_LOGIC (Internal Branch Conditionals & Decisions)</text>
+
+          <!-- Level 7: LOG_ALL -->
+          <rect x="50" y="190" width="660" height="26" rx="4" fill="#2c3e50"/>
+          <text x="380" y="207" text-anchor="middle" font-size="11" font-weight="bold" fill="#ffffff">LOG_ALL / LEVEL_ALL (Ultra Verbose: Every Micro-Step Recorded)</text>
+        </svg>
+      </div>
+      <p style="font-size: 12.5px; color: #64748b; margin-top: 8px;">
+        <em>Figure 3.1:</em> The Severity Pyramid. Enabling any level automatically cascades to include all higher-severity messages above it. For example, selecting <code>LOG_LEVEL_INFO</code> includes <code>LOG_INFO</code>, <code>LOG_DEBUG</code>, <code>LOG_WARN</code>, and <code>LOG_ERROR</code>.
+      </p>
+    </div>
+
+    <div class="admonitionblock tip">
+      <table>
+        <tr>
+          <td class="icon"><div class="title">Tip</div></td>
+          <td class="content">
+            <strong>The Volume Switch Analogy:</strong> Think of logging in ns-3 like a volume knob on a receiver. When turned low (<code>LOG_ERROR</code>), you only hear catastrophic sirens (panics). When turned to maximum (<code>LOG_ALL</code>), you hear every footstep, breath, and function call execution. In optimized build profiles, all debug logs are automatically compiled out to guarantee maximum simulation speed.
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 28px 0;">
+
+    <h3>3.2 Dynamic CommandLine Arguments & The Attribute Resolution System</h3>
+    <p>
+      When conducting research sweeps (e.g. testing packet delivery rates across payload sizes from 64 to 1500 bytes), you must never hardcode variables. ns-3 provides a unified pipeline that binds command-line tokens to class attributes:
+    </p>
+
+    <div class="flow-diagram-container">
+      <div class="flow-diagram-title">⚙️ Visual Flow: CLI Attribute Resolution Pipeline</div>
+      <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 18px;">
+        <svg viewBox="0 0 760 170" style="width: 100%; height: auto; font-family: 'Noto Sans', sans-serif;">
+          <!-- Stage 1 -->
+          <rect x="20" y="30" width="160" height="55" rx="6" fill="#f1f5f9" stroke="#64748b" stroke-width="1.5"/>
+          <text x="100" y="52" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e293b">1. Shell Invocation</text>
+          <text x="100" y="68" text-anchor="middle" font-size="10" fill="#64748b">--packetSize=512</text>
+
+          <path d="M 180 57 L 220 57" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+
+          <!-- Stage 2 -->
+          <rect x="220" y="30" width="160" height="55" rx="6" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/>
+          <text x="300" y="52" text-anchor="middle" font-size="11" font-weight="bold" fill="#0369a1">2. CommandLine::Parse</text>
+          <text x="300" y="68" text-anchor="middle" font-size="10" fill="#0284c7">Extracts CLI Tokens</text>
+
+          <path d="M 380 57 L 420 57" stroke="#94a3b8" stroke-width="2"/>
+
+          <!-- Stage 3 -->
+          <rect x="420" y="30" width="160" height="55" rx="6" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+          <text x="500" y="52" text-anchor="middle" font-size="11" font-weight="bold" fill="#b45309">3. Config::SetDefault</text>
+          <text x="500" y="68" text-anchor="middle" font-size="10" fill="#d97706">TypeId Registry Map</text>
+
+          <path d="M 580 57 L 620 57" stroke="#94a3b8" stroke-width="2"/>
+
+          <!-- Stage 4 -->
+          <rect x="620" y="30" width="120" height="55" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+          <text x="680" y="52" text-anchor="middle" font-size="11" font-weight="bold" fill="#15803d">4. Object Instance</text>
+          <text x="680" y="68" text-anchor="middle" font-size="10" fill="#16a34a">m_size = 512</text>
+
+          <!-- Bottom description box -->
+          <rect x="120" y="115" width="520" height="35" rx="4" fill="#fafafa" stroke="#e2e8f0"/>
+          <text x="380" y="136" text-anchor="middle" font-size="11" fill="#475569">
+            Hierarchical Override: <strong>CLI Arguments</strong> &gt; <strong>Helper Attributes</strong> &gt; <strong>Config Defaults</strong>
+          </text>
+        </svg>
+      </div>
+      <p style="font-size: 12.5px; color: #64748b; margin-top: 8px;">
+        <em>Figure 3.2:</em> The Attribute Resolution Order. Command-line flags supersede helper calls, which supersede global configuration defaults.
+      </p>
+    </div>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 28px 0;">
+
+    <h3>3.3 Complete Canonical Tweaking Script (tweaking-demo.cc)</h3>
+    <p>
+      Below is a complete, fully functional script illustrating how to define custom logging identifiers, track function entry/exit points, bind dynamic command-line variables, and tweak attributes:
+    </p>
+
+    <pre><code class="language-cpp">#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/applications-module.h"
+#include &lt;iostream&gt;
+
+using namespace ns3;
+
+// STEP 1: Define unique logging component identifier
+NS_LOG_COMPONENT_DEFINE ("AeroWlanTweakingDemo");
+
+// Helper function demonstrating automatic parameter tracing
+void ComputeSyntheticMetrics (uint32_t packetSize, double delayMs)
+{
+  NS_LOG_FUNCTION (packetSize &lt;&lt; delayMs);
+  NS_LOG_INFO ("Computing transmission time for payload of " &lt;&lt; packetSize &lt;&lt; " bytes");
+  if (packetSize &gt; 1500) {
+    NS_LOG_WARN ("Packet size exceeds standard Ethernet MTU (1500 bytes)! Fragmentation will occur.");
+  }
+}
+
+int main (int argc, char *argv[])
+{
+  // STEP 2: Configure default variable values
+  uint32_t nPackets = 5;
+  uint32_t packetSize = 1024;
+  std::string dataRate = "10Mbps";
+  bool verbose = true;
+
+  // STEP 3: Register variables with the CommandLine parser
+  CommandLine cmd (__FILE__);
+  cmd.AddValue ("nPackets", "Total number of UDP packets to transmit", nPackets);
+  cmd.AddValue ("packetSize", "Size of packet payload in bytes", packetSize);
+  cmd.AddValue ("dataRate", "Bandwidth data rate of the point-to-point link", dataRate);
+  cmd.AddValue ("verbose", "Enable informational console logging", verbose);
+  cmd.Parse (argc, argv);
+
+  // STEP 4: Conditionally configure logging levels
+  if (verbose) {
+    LogComponentEnable ("AeroWlanTweakingDemo", LOG_LEVEL_ALL);
+    LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
+    LogComponentEnable ("UdpEchoServerApplication", LOG_LEVEL_INFO);
+  }
+
+  NS_LOG_INFO ("--- Starting Simulation Initialization ---");
+
+  // Call sample function to see automatic parameter trace
+  ComputeSyntheticMetrics (packetSize, 2.0);
+
+  // STEP 5: Globally tweak defaults via Config subsystem
+  Config::SetDefault ("ns3::PointToPointNetDevice::Mtu", UintegerValue (1500));
+
+  NodeContainer nodes;
+  nodes.Create (2);
+
+  PointToPointHelper p2p;
+  p2p.SetDeviceAttribute ("DataRate", StringValue (dataRate));
+  p2p.SetChannelAttribute ("Delay", StringValue ("2ms"));
+
+  NetDeviceContainer devices = p2p.Install (nodes);
+
+  InternetStackHelper stack;
+  stack.Install (nodes);
+
+  Ipv4AddressHelper address;
+  address.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfaces = address.Assign (devices);
+
+  UdpEchoServerHelper server (9);
+  ApplicationContainer serverApps = server.Install (nodes.Get (1));
+  serverApps.Start (Seconds (1.0));
+  serverApps.Stop (Seconds (10.0));
+
+  UdpEchoClientHelper client (interfaces.GetAddress (1), 9);
+  client.SetAttribute ("MaxPackets", UintegerValue (nPackets));
+  client.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+  client.SetAttribute ("PacketSize", UintegerValue (packetSize));
+
+  ApplicationContainer clientApps = client.Install (nodes.Get (0));
+  clientApps.Start (Seconds (2.0));
+  clientApps.Stop (Seconds (10.0));
+
+  NS_LOG_INFO ("--- Entering Simulator::Run() Event Loop ---");
+  Simulator::Run ();
+  Simulator::Destroy ();
+  NS_LOG_INFO ("--- Simulation Successfully Finished ---");
+
+  return 0;
+}</code></pre>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 28px 0;">
+
+    <h3>3.4 Line-by-Line Architectural Dissection of the Tweaking Script</h3>
+
+    <table class="code-explanation-table">
+      <thead>
+        <tr>
+          <th class="code-col">Code Statement</th>
+          <th class="desc-col">Exhaustive Architectural Breakdown (What, Why & Memory Model)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="code-col">NS_LOG_COMPONENT_DEFINE ("AeroWlanTweakingDemo");</td>
+          <td class="desc-col">
+            <strong>What:</strong> Registers a unique log identifier for this C++ file.<br>
+            <strong>Why:</strong> Enables runtime toggling of this file's log statements from the shell via <code>export NS_LOG="AeroWlanTweakingDemo=level_all"</code> without altering or recompiling source code.<br>
+            <strong>Under the Hood:</strong> Registers an instance of <code>LogComponent</code> inside ns-3's global static logging map.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">NS_LOG_FUNCTION (packetSize &lt;&lt; delayMs);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Automatically prints the function name and its parameter values upon entry.<br>
+            <strong>Why:</strong> Eliminates manual debugging print statements. If <code>LOG_FUNCTION</code> is enabled, it prints: <em>"AeroWlanTweakingDemo:ComputeSyntheticMetrics(1024, 2)"</em>.<br>
+            <strong>Under the Hood:</strong> Evaluates compiler macros (<code>__PRETTY_FUNCTION__</code> on GCC/Clang) and formats argument streams into the log buffer.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">NS_LOG_WARN ("Packet size exceeds MTU...");</td>
+          <td class="desc-col">
+            <strong>What:</strong> Logs a warning condition of medium-high severity.<br>
+            <strong>Why:</strong> Signals anomalous configurations (e.g. payload exceeding 1500 bytes causing IP fragmentation) without halting execution like a fatal assertion would.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">CommandLine cmd (__FILE__);<br>cmd.AddValue ("nPackets", "...", nPackets);<br>cmd.Parse (argc, argv);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Binds user-defined C++ variables to terminal CLI flags.<br>
+            <strong>Why:</strong> Enables conducting parameter sweeps (e.g. testing 5, 10, 50, 100 packets) entirely from bash scripts.<br>
+            <strong>Under the Hood:</strong> <code>AddValue()</code> stores memory addresses of local variables in an internal hash table. When <code>cmd.Parse()</code> runs, it converts shell string tokens into the corresponding types (uint32_t, double, bool) and writes them directly into memory!
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">Config::SetDefault ("ns3::PointToPointNetDevice::Mtu", UintegerValue (1500));</td>
+          <td class="desc-col">
+            <strong>What:</strong> Sets a global default attribute value for all instances of a class.<br>
+            <strong>Why:</strong> Avoids setting the MTU on every individual helper or device instance manually.<br>
+            <strong>Under the Hood:</strong> Updates the <code>TypeId</code> metadata registry. Any future call to <code>CreateObject&lt;PointToPointNetDevice&gt;()</code> will initialize its <code>m_mtu</code> member variable to 1500 bytes by default.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 28px 0;">
+
+    <h3>3.5 Terminal Command Cheatsheet for Tweaking & Inspection</h3>
+
+    <p>Below are essential terminal commands for controlling logging and querying class attributes dynamically:</p>
+
+    <div class="flow-diagram-container">
+      <div class="flow-diagram-title">💻 Terminal Cheatsheet: Logging & CLI Syntax</div>
+      <pre><code class="language-bash"># 1. Inspect all available command-line arguments and descriptions:
+./ns3 run "scratch/tweaking-demo --PrintHelp"
+
+# 2. Inspect all attributes and default values of a specific class:
+./ns3 run "scratch/tweaking-demo --PrintAttributes=ns3::PointToPointNetDevice"
+
+# 3. Inspect all registered global attributes in the simulator:
+./ns3 run "scratch/tweaking-demo --PrintGlobals"
+
+# 4. Run parameter sweep with customized payload and data rate:
+./ns3 run "scratch/tweaking-demo --nPackets=20 --packetSize=512 --dataRate=20Mbps"
+
+# 5. Enable nanosecond timestamps and function prefixes in logs:
+export 'NS_LOG=UdpEchoClientApplication=level_all|prefix_time|prefix_func:AeroWlanTweakingDemo=level_all|prefix_time'
+./ns3 run scratch/tweaking-demo
+
+# 6. Completely silence all logs for ultra-fast execution:
+unset NS_LOG
+./ns3 run scratch/tweaking-demo</code></pre>
+    </div>
+
   </div>
 </details>
 
