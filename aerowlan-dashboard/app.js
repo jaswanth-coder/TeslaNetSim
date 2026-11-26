@@ -2191,27 +2191,221 @@ env.close()</code></pre>
     ]
   },
   {
-    name: "Track 3: Wireless LAN & WiFi 7/8 Research (Pending)",
+    name: "Track 3: Comprehensive Wi-Fi & Wireless Networks",
     modules: [
       {
         id: 1,
-        title: "Module 1: WiFi 7 & WiFi 8 Research Modules (Pending)",
-        description: "Reserved section for upcoming WiFi 7 (802.11be) and WiFi 8 (802.11bn) research content.",
+        title: "Module 1: Foundational Wi-Fi & Peer-to-Peer Ad-hoc Networking",
+        description: "WifiNetDevice, YansWifiChannel, YansWifiPhy, AdhocWifiMac, and spatial coordinates.",
         lessons: [
           {
-            id: "T3-PENDING-L1",
-            title: "WiFi 7 & WiFi 8 Research Updates",
-            moduleTitle: "Track 3 • Module 1 • Reserved",
+            id: "T3-M1-L1",
+            title: "1.1 The Wireless Simulation Architecture",
+            moduleTitle: "Track 3 • Module 1 • Lesson 1",
             body: `
-              <div style="background: rgba(99, 102, 241, 0.08); border: 2px dashed #6366f1; border-radius: 12px; padding: 32px; text-align: center; margin: 20px 0;">
-                <div style="font-size: 36px; margin-bottom: 12px;">📡</div>
-                <h3 style="color: #818cf8; margin-top: 0;">WiFi 7 & WiFi 8 Research Content Reserved</h3>
-                <p style="color: #cbd5e1; max-width: 600px; margin: 0 auto 16px auto; font-size: 14px; line-height: 1.6;">
-                  This track is reserved for upcoming modules covering Multi-Link Operation (MLO), Multi-RU, 320 MHz channels, Multi-AP Coordination (MAPC), and Coordinated Beamforming. Content will be populated here in subsequent updates as requested.
-                </p>
-                <span style="display: inline-block; background: rgba(99, 102, 241, 0.2); color: #a5b4fc; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;">Status: Pending Upcoming Content</span>
-              </div>
+              <p>Simulating Wi-Fi requires understanding the physical radio layer and spatial propagation:</p>
+              <ul>
+                <li><strong>WifiNetDevice:</strong> Coordinates transmission queues and links the MAC sublayer to the PHY.</li>
+                <li><strong>YansWifiChannel:</strong> Models the shared wireless medium, calculating signal propagation delay and attenuation across all in-range nodes.</li>
+                <li><strong>YansWifiPhy:</strong> Computes Signal-to-Interference-plus-Noise Ratio (SINR) and packet error rates based on antenna sensitivity.</li>
+                <li><strong>MobilityHelper:</strong> Assigns spatial $(x, y, z)$ coordinates so channel models can calculate transmission distances.</li>
+              </ul>
             `
+          },
+          {
+            id: "T3-M1-L2",
+            title: "1.2 Peer-to-Peer Ad-hoc Script Walkthrough (wifi-adhoc-basic.cc)",
+            moduleTitle: "Track 3 • Module 1 • Lesson 2",
+            body: `
+              <h4>Full Canonical Code:</h4>
+              <pre><code>#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/mobility-module.h"
+#include "ns3/wifi-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/applications-module.h"
+
+using namespace ns3;
+
+int main (int argc, char *argv[])
+{
+  NodeContainer nodes;
+  nodes.Create (2);
+
+  YansWifiChannelHelper channel = YansWifiChannelHelper::Default ();
+  YansWifiPhyHelper phy;
+  phy.SetChannel (channel.Create ());
+
+  WifiHelper wifi;
+  wifi.SetStandard (WIFI_STANDARD_80211a);
+  wifi.SetRemoteStationManager ("ns3::ConstantRateWifiManager",
+                                "DataMode", StringValue ("OfdmRate6Mbps"));
+
+  WifiMacHelper mac;
+  mac.SetType ("ns3::AdhocWifiMac");
+
+  NetDeviceContainer devices = wifi.Install (phy, mac, nodes);
+
+  MobilityHelper mobility;
+  Ptr&lt;ListPositionAllocator&gt; posAlloc = CreateObject&lt;ListPositionAllocator&gt; ();
+  posAlloc-&gt;Add (Vector (0.0, 0.0, 0.0));
+  posAlloc-&gt;Add (Vector (20.0, 0.0, 0.0));
+  mobility.SetPositionAllocator (posAlloc);
+  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  mobility.Install (nodes);
+
+  InternetStackHelper stack;
+  stack.Install (nodes);
+
+  Ipv4AddressHelper address;
+  address.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfaces = address.Assign (devices);
+
+  UdpEchoServerHelper server (9);
+  ApplicationContainer sApp = server.Install (nodes.Get (1));
+  sApp.Start (Seconds (1.0));
+  sApp.Stop (Seconds (10.0));
+
+  UdpEchoClientHelper client (interfaces.GetAddress (1), 9);
+  client.SetAttribute ("MaxPackets", UintegerValue (3));
+  client.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+  client.SetAttribute ("PacketSize", UintegerValue (1024));
+  ApplicationContainer cApp = client.Install (nodes.Get (0));
+  cApp.Start (Seconds (2.0));
+  cApp.Stop (Seconds (10.0));
+
+  Simulator::Run ();
+  Simulator::Destroy ();
+  return 0;
+}</code></pre>
+            `
+          }
+        ]
+      },
+      {
+        id: 2,
+        title: "Module 2: Infrastructure Mode (AP & Multi-Station)",
+        description: "Basic Service Sets (BSS), Beacon broadcasts, SSID association, and star topologies.",
+        lessons: [
+          {
+            id: "T3-M2-L1",
+            title: "2.1 Access Points, Beacons & Station Association",
+            moduleTitle: "Track 3 • Module 2 • Lesson 1",
+            body: `
+              <p>In standard home/enterprise Wi-Fi, devices operate in <strong>Infrastructure Mode</strong>:</p>
+              <ul>
+                <li><strong>ApWifiMac:</strong> Installed on the central Access Point. Generates periodic Beacons (every 102.4 ms) announcing network capabilities and SSID.</li>
+                <li><strong>StaWifiMac:</strong> Installed on clients. Listens for beacons, matches the SSID, and performs the 802.11 association handshake.</li>
+                <li><strong>Minstrel-HT Rate Manager:</strong> Dynamically adapts modulation and coding schemes (MCS) based on channel conditions.</li>
+              </ul>
+            `
+          },
+          {
+            id: "T3-M2-L2",
+            title: "2.2 Multi-Station BSS Script (wifi-infrastructure-ap.cc)",
+            moduleTitle: "Track 3 • Module 2 • Lesson 2",
+            body: `
+              <pre><code>WifiMacHelper mac;
+Ssid ssid = Ssid ("AeroWlan-Office");
+
+// 1. Configure Stations
+mac.SetType ("ns3::StaWifiMac", "Ssid", SsidValue (ssid));
+NetDeviceContainer staDevices = wifi.Install (phy, mac, staNodes);
+
+// 2. Configure Access Point
+mac.SetType ("ns3::ApWifiMac", "Ssid", SsidValue (ssid),
+             "BeaconInterval", TimeValue (MicroSeconds (102400)));
+NetDeviceContainer apDevice = wifi.Install (phy, mac, apNode);</code></pre>
+            `
+          }
+        ]
+      },
+      {
+        id: 3,
+        title: "Module 3: Dynamic Node Mobility & RF Path Loss",
+        description: "Log-distance path loss, ConstantVelocityMobilityModel, and packet loss boundaries.",
+        lessons: [
+          {
+            id: "T3-M3-L1",
+            title: "3.1 Signal Attenuation Physics & Dynamic Trajectories",
+            moduleTitle: "Track 3 • Module 3 • Lesson 1",
+            body: `
+              <p>Wireless signals decay exponentially with distance. In ns-3, you can model realistic shadow fading and moving nodes:</p>
+              <ul>
+                <li><strong>LogDistancePropagationLossModel:</strong> Path loss exponent $n = 3.0$ models urban obstacle scattering.</li>
+                <li><strong>ConstantVelocityMobilityModel:</strong> Gives stations a velocity vector $(v_x, v_y, v_z)$ in meters/second.</li>
+                <li><strong>CourseChange Tracing:</strong> Automatically triggers C++ callbacks whenever a mobile node shifts position.</li>
+              </ul>
+            `
+          }
+        ]
+      },
+      {
+        id: 4,
+        title: "Module 4: Wi-Fi Quality of Service (QoS) & EDCA",
+        description: "Enhanced Distributed Channel Access, 4 Access Categories (AC_VO, AC_VI, AC_BE, AC_BK), and A-MPDU aggregation.",
+        lessons: [
+          {
+            id: "T3-M4-L1",
+            title: "4.1 EDCA Access Categories & Contention Prioritization",
+            moduleTitle: "Track 3 • Module 4 • Lesson 1",
+            body: `
+              <p>Under 802.11e/n/ac/ax QoS, packets are separated into four prioritized hardware queues:</p>
+              <ul>
+                <li><strong>AC_VO (Voice):</strong> CWmin=3, CWmax=7, AIFS=2 slots. Transmits with lowest latency.</li>
+                <li><strong>AC_VI (Video):</strong> CWmin=7, CWmax=15.</li>
+                <li><strong>AC_BE (Best Effort):</strong> Standard TCP/web browsing.</li>
+                <li><strong>AC_BK (Background):</strong> Bulk downloads. Defers access whenever voice packets are waiting.</li>
+              </ul>
+            `
+          }
+        ]
+      },
+      {
+        id: 5,
+        title: "Module 5: Wireless Tracing, Wireshark Radiotap & NetAnim",
+        description: "PhyRxDrop, MacTx metrics, Radiotap PCAPs, and NetAnim XML visual animations.",
+        lessons: [
+          {
+            id: "T3-M5-L1",
+            title: "5.1 Extracting Deep Wireless Metrics & Radiotap Captures",
+            moduleTitle: "Track 3 • Module 5 • Lesson 1",
+            body: `
+              <p>Diagnosing wireless issues requires inspecting PHY/MAC trace hooks and packet captures:</p>
+              <ul>
+                <li><strong>DLT_IEEE802_11_RADIO (Radiotap):</strong> Includes antenna signal power in dBm, noise floor, and frequency in Wireshark captures.</li>
+                <li><strong>PhyRxDrop Trace:</strong> Dissects drops by reason code (packet collision, low SNR, header CRC failure).</li>
+                <li><strong>AnimationInterface:</strong> Outputs XML traces to animate radio wavefronts and node motion in NetAnim.</li>
+              </ul>
+            `
+          },
+          {
+            id: "T3-M5-Q",
+            title: "Track 3 Wi-Fi Mastery Review Quiz",
+            isQuizOnly: true,
+            moduleTitle: "Track 3 • Assessment",
+            quiz: [
+              {
+                question: "1. Which MAC helper type is used to configure an independent peer-to-peer Wi-Fi network without an Access Point?",
+                options: [
+                  { text: "ApWifiMac", isCorrect: false },
+                  { text: "AdhocWifiMac", isCorrect: true },
+                  { text: "StaWifiMac", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! AdhocWifiMac implements peer-to-peer IBSS communication.",
+                feedbackError: "Incorrect. AdhocWifiMac is used for peer-to-peer Wi-Fi networks. Try again!"
+              },
+              {
+                question: "2. Why is DLT_IEEE802_11_RADIO preferred over standard Ethernet PCAP in wireless simulations?",
+                options: [
+                  { text: "It compresses the PCAP file size by 50%", isCorrect: false },
+                  { text: "It prepends physical layer metadata including antenna signal (dBm), noise floor, and MCS data rate", isCorrect: true },
+                  { text: "It deletes failed packets automatically", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! Radiotap headers contain vital RF physical metrics.",
+                feedbackError: "Incorrect. Radiotap headers capture physical layer parameters like signal strength. Try again!"
+              }
+            ]
           }
         ]
       }
