@@ -41,22 +41,51 @@ const tracks = [
         lessons: [
           {
             id: "T1-M1-L1",
-            title: "1.1 ns-3 Architecture & Memory Abstractions",
+            title: "1.1 ns-3 Overview, Installation & First Run Flow",
             moduleTitle: "Track 1 • Module 1 • Lesson 1",
             body: `
-              <p>Welcome to ns-3! The <strong>ns-3 simulator</strong> is a discrete-event network simulator written in C++ and optimized for academic and industrial research.</p>
-              <h4>1.1.1 Directory Structure & Workspace Layout</h4>
-              <p>When you look inside the root directory <code>/home/jaswanth/Downloads/ns-allinone-3.45/ns-3.45</code>, you will find:</p>
+              <p>Welcome to ns-3! The <strong>ns-3 simulator</strong> is an open-source, discrete-event network simulator written in C++ and optimized for academic and industrial networking research.</p>
+
+              <h4>Official Portals & Resources:</h4>
               <ul>
-                <li><code>src/</code>: Contains the source code for all core simulator modules. Each folder inside (like <code>core</code>, <code>network</code>, <code>internet</code>, <code>wifi</code>) is compiled as a separate shared library.</li>
-                <li><code>examples/</code>: Contains standard pre-written simulations demonstrating various protocols.</li>
-                <li><code>scratch/</code>: The playground. Any C++ script placed here with a <code>main()</code> function is dynamically compiled as an executable target by the build system.</li>
+                <li><strong>Official Website:</strong> <a href="https://www.nsnam.org" target="_blank" style="color:#60a5fa;">https://www.nsnam.org</a></li>
+                <li><strong>GitLab Repository:</strong> <a href="https://gitlab.com/nsnam/ns-3-dev" target="_blank" style="color:#60a5fa;">https://gitlab.com/nsnam/ns-3-dev</a></li>
+                <li><strong>Official Manuals & API:</strong> <a href="https://www.nsnam.org/documentation/" target="_blank" style="color:#60a5fa;">https://www.nsnam.org/documentation/</a></li>
+                <li><strong>Community Forum:</strong> Google Groups (<code>ns-3-users</code>)</li>
               </ul>
-              <h4>1.1.2 Memory Management & smart pointers ([[NodeContainer]])</h4>
-              <p>C++ is notorious for memory leaks. To prevent leaks, ns-3 employs a custom reference-counting system. Rather than raw pointers, objects are managed using the smart pointer template <code>Ptr&lt;T&gt;</code>.</p>
-              <p>When you create a node in ns-3, you do not write <code>Node* node = new Node()</code>. Instead, you write:</p>
-              <pre><code>Ptr<Node> node = CreateObject<Node> ();</code></pre>
-              <p>The class [[NodeContainer]] is a helper that wraps an array of <code>Ptr&lt;Node&gt;</code> pointers, making it easy to create and manage multiple hosts simultaneously.</p>
+
+              <h4>How to Install ns-3.45 on Linux (Ubuntu/Debian):</h4>
+              <pre><code># 1. Install prerequisites
+sudo apt update && sudo apt install -y build-essential cmake ninja-build git python3 python3-dev sqlite3 libsqlite3-dev
+
+# 2. Download and extract ns-allinone
+wget https://www.nsnam.org/releases/ns-allinone-3.45.tar.bz2
+tar -xjf ns-allinone-3.45.tar.bz2
+cd ns-allinone-3.45/ns-3.45/
+
+# 3. Configure and compile
+./ns3 configure --build-profile=debug --enable-examples --enable-tests
+./ns3 build</code></pre>
+
+              <h4>The <code>examples/</code> Directory & Running <code>first.cc</code>:</h4>
+              <p>Inside <code>examples/tutorial/</code>, you will find canonical tutorial scripts like <code>first.cc</code>, <code>second.cc</code>, and <code>third.cc</code>. You can run <code>first.cc</code> directly using the <code>./ns3</code> runner:</p>
+              <pre><code># Run built-in first.cc with console logging:
+NS_LOG="UdpEchoClientApplication=level_info:UdpEchoServerApplication=level_info" ./ns3 run first</code></pre>
+
+              <h4>The Developer's Sandbox: <code>scratch/</code> Directory</h4>
+              <p>Any standalone C++ file placed inside <code>scratch/</code> is <strong>automatically discovered</strong> by CMake without needing to edit <code>CMakeLists.txt</code>!</p>
+              <pre><code># 1. Copy starter code to scratch
+cp examples/tutorial/first.cc scratch/myfirst.cc
+
+# 2. Compile and run your code
+./ns3 run scratch/myfirst
+
+# 3. Pass CLI arguments dynamically without recompiling:
+./ns3 run "scratch/myfirst --nPackets=5"</code></pre>
+
+              <h4>Memory Management & Smart Pointers (<code>Ptr&lt;T&gt;</code>)</h4>
+              <p>To prevent memory leaks, ns-3 employs custom intrusive reference counting. Rather than raw pointers, objects are managed using <code>Ptr&lt;T&gt;</code> and instantiated with <code>CreateObject&lt;T&gt;()</code>:</p>
+              <pre><code>Ptr&lt;Node&gt; node = CreateObject&lt;Node&gt; ();</code></pre>
               
               <div style="background: rgba(99, 102, 241, 0.1); border-left: 4px solid #6366f1; padding: 12px; border-radius: 0 8px 8px 0; margin: 16px 0; font-size: 14px; line-height: 1.5; color: #cbd5e1;">
                 <strong style="color: #a5b4fc; display: block; margin-bottom: 6px;">💡 Layman's Analogy:</strong>

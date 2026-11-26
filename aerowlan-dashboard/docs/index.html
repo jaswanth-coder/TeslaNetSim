@@ -450,6 +450,14 @@ function collapseAll() {
 <li><a href="#_cpp_mod2_callbacks">Optional: Callbacks, Events & Object Aggregation</a></li>
 </ul>
 </li>
+<li><a href="#_ns3_intro"><strong>Introduction to ns-3: Foundations, Installation & Developer Flow</strong></a>
+<ul class="sectlevel2">
+<li><a href="#_intro_what_is">What is ns-3, Core Philosophy & Official Portals</a></li>
+<li><a href="#_intro_install">Installing Latest ns-3.45 on Linux (Prerequisites & Build)</a></li>
+<li><a href="#_intro_examples">Anatomy of the examples/ Directory & Running first.cc</a></li>
+<li><a href="#_intro_scratch">The Developer's Workflow: Creating & Running Scripts in scratch/</a></li>
+</ul>
+</li>
 <li><a href="#_part1_core"><strong>Part I: Simulator Core & Wired Networks</strong></a>
 <ul class="sectlevel2">
 <li><a href="#_mod1_getting_started">Module 1: Getting Started, Architecture & The 7-Step Recipe</a></li>
@@ -1224,6 +1232,190 @@ int main ()
 
 </div>
 </div>
+
+<!-- ======================================================== -->
+<div class="sect1">
+<h2 id="_ns3_intro">Introduction to ns-3: Foundations, Installation & Developer Flow</h2>
+<div class="sectionbody">
+
+<!-- INTRO CARD -->
+<details class="module-card" open id="_intro_details">
+  <summary class="module-summary">
+    <div><span class="module-badge" style="background: #0284c7;">Orientation</span> What is ns-3, Installation Guide & Running Your First Code</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
+  </summary>
+  <div class="module-body">
+
+    <!-- SUBSECTION 1: WHAT IS NS3 -->
+    <h3 id="_intro_what_is">1. What is ns-3? Core Philosophy & Official Portals</h3>
+    <p>
+      <strong>ns-3 (Network Simulator 3)</strong> is an open-source, discrete-event network simulator written in C++ and optimized primarily for networking research, education, and standard prototyping.
+    </p>
+    <ul>
+      <li><strong>Discrete-Event Simulation (DES):</strong> Unlike network emulators (e.g. Mininet) or virtual machines which consume real CPU clock cycles, ns-3 maintains a priority queue of future events. Simulation virtual time advances in discrete jumps from one scheduled event to the next. Simulating 10 minutes of heavy network traffic might take 5 seconds on a fast computer or 30 minutes for a dense 1,000-node Wi-Fi network.</li>
+      <li><strong>Realistic Packet Modeling:</strong> Packets in ns-3 are modeled down to the exact byte buffer level. Headers (Ethernet, IPv4, TCP, UDP, 802.11 Radiotap) are serialized and deserialized bit-by-bit just like in the Linux kernel network stack.</li>
+      <li><strong>Modular C++ with Python Bindings:</strong> The engine is entirely authored in high-performance C++ (supporting C++17/20), with optional Python bindings and Gymnasium ML integrations (ns3-gym).</li>
+    </ul>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 18px 0;">
+      <a href="https://www.nsnam.org" target="_blank" style="text-decoration: none; background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #0284c7; border-radius: 8px; padding: 14px; display: block; transition: transform 0.2s;">
+        <strong style="color: #0369a1; font-size: 13px; display: block; margin-bottom: 4px;">🌐 Official ns-3 Website</strong>
+        <span style="font-size: 12px; color: #475569; display: block; line-height: 1.4;">https://www.nsnam.org</span>
+        <span style="font-size: 11px; color: #64748b; margin-top: 6px; display: block;">Releases, news, and official announcements.</span>
+      </a>
+
+      <a href="https://gitlab.com/nsnam/ns-3-dev" target="_blank" style="text-decoration: none; background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #f97316; border-radius: 8px; padding: 14px; display: block; transition: transform 0.2s;">
+        <strong style="color: #c2410c; font-size: 13px; display: block; margin-bottom: 4px;">🦊 GitLab Source Repository</strong>
+        <span style="font-size: 12px; color: #475569; display: block; line-height: 1.4;">https://gitlab.com/nsnam/ns-3-dev</span>
+        <span style="font-size: 11px; color: #64748b; margin-top: 6px; display: block;">Official git repository, merge requests, and issue tracker.</span>
+      </a>
+
+      <a href="https://www.nsnam.org/documentation/" target="_blank" style="text-decoration: none; background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #10b981; border-radius: 8px; padding: 14px; display: block; transition: transform 0.2s;">
+        <strong style="color: #047857; font-size: 13px; display: block; margin-bottom: 4px;">📚 Documentation & Manuals</strong>
+        <span style="font-size: 12px; color: #475569; display: block; line-height: 1.4;">https://www.nsnam.org/documentation/</span>
+        <span style="font-size: 11px; color: #64748b; margin-top: 6px; display: block;">Complete tutorial, reference manual, and Doxygen API docs.</span>
+      </a>
+
+      <a href="https://groups.google.com/g/ns-3-users" target="_blank" style="text-decoration: none; background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #8b5cf6; border-radius: 8px; padding: 14px; display: block; transition: transform 0.2s;">
+        <strong style="color: #6d28d9; font-size: 13px; display: block; margin-bottom: 4px;">👥 User Community & Forum</strong>
+        <span style="font-size: 12px; color: #475569; display: block; line-height: 1.4;">Google Groups: ns-3-users</span>
+        <span style="font-size: 11px; color: #64748b; margin-top: 6px; display: block;">Active community of over 10,000 researchers and developers.</span>
+      </a>
+    </div>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 24px 0;">
+
+    <!-- SUBSECTION 2: INSTALLATION -->
+    <h3 id="_intro_install">2. Installing the Latest Version of ns-3 on Linux (Ubuntu/Debian)</h3>
+    <p>
+      ns-3 uses <strong>CMake</strong> and <strong>Ninja</strong> (or Make) as its build orchestration system. Follow this battle-tested step-by-step pipeline to install the latest <code>ns-3.45</code> release cleanly:
+    </p>
+
+    <h4>Step 2.1: Install System Compiler & Library Prerequisites</h4>
+    <p>Open your Linux terminal and execute:</p>
+    <pre><code class="language-bash">sudo apt update && sudo apt upgrade -y
+sudo apt install -y build-essential gcc g++ cmake ninja-build git   python3 python3-dev pkg-config sqlite3 libsqlite3-dev libxml2 libxml2-dev   libgsl-dev libgtk-3-dev tcpdump wireshark</code></pre>
+
+    <h4>Step 2.2: Download & Extract the Official ns-allinone Tarball</h4>
+    <p>The <code>ns-allinone</code> release package bundles the ns-3 core engine, NetAnim visualizer, and pybindgen together:</p>
+    <pre><code class="language-bash"># Create a directory and download ns-allinone-3.45
+mkdir -p ~/ns3-workspace && cd ~/ns3-workspace
+wget https://www.nsnam.org/releases/ns-allinone-3.45.tar.bz2
+
+# Extract the archive
+tar -xjf ns-allinone-3.45.tar.bz2
+cd ns-allinone-3.45/ns-3.45/</code></pre>
+
+    <h4>Step 2.3: Configure the Build Environment</h4>
+    <p>In ns-3, we configure the project using the custom Python frontend script <code>./ns3</code>:</p>
+    <pre><code class="language-bash"># Configuration Profile 1: Debug Mode (Recommended for learning & debugging assertions)
+./ns3 configure --build-profile=debug --enable-examples --enable-tests
+
+# Configuration Profile 2: Optimized Mode (For high-speed batch sweeps, runs 5x-10x faster)
+# ./ns3 configure --build-profile=optimized --enable-examples</code></pre>
+
+    <h4>Step 2.4: Compile the Simulator</h4>
+    <pre><code class="language-bash"># Compile all libraries, examples, and tests in parallel
+./ns3 build
+
+# Verify build integrity using the test suite runner
+./test.py</code></pre>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 24px 0;">
+
+    <!-- SUBSECTION 3: EXAMPLES FOLDER & RUNNING FIRST.CC -->
+    <h3 id="_intro_examples">3. Anatomy of the <code>examples/</code> Directory & Running <code>first.cc</code></h3>
+    <p>
+      When ns-3 is compiled, thousands of pre-written example scripts are ready to inspect and run inside the <code>examples/</code> and <code>src/&lt;module&gt;/examples/</code> folders:
+    </p>
+    <ul>
+      <li><strong><code>examples/tutorial/</code>:</strong> The foundational tutorial scripts:
+        <ul>
+          <li><code>first.cc</code>: 2-node Point-to-Point UDP Echo simulation.</li>
+          <li><code>second.cc</code>: Hybrid Point-to-Point + CSMA shared bus network.</li>
+          <li><code>third.cc</code>: Wireless 802.11a Ad-hoc network with static node positions.</li>
+          <li><code>fourth.cc</code> & <code>fifth.cc</code>: Dynamic CommandLine parameters and logging.</li>
+          <li><code>sixth.cc</code> & <code>seventh.cc</code>: Tracing sinks and Congestion Window tracking.</li>
+        </ul>
+      </li>
+      <li><strong><code>examples/wireless/</code>:</strong> Advanced Wi-Fi, mesh networks, and rate control examples.</li>
+      <li><strong><code>examples/routing/</code>:</strong> Dynamic routing algorithms (RIP, OSPF, AODV, DSDV).</li>
+      <li><strong><code>examples/tcp/</code>:</strong> TCP bulk transfers, window scaling, and loss recovery.</li>
+    </ul>
+
+    <h4>How to Run the Built-in <code>first.cc</code> Directly:</h4>
+    <p>Because you configured with <code>--enable-examples</code>, ns-3 registers tutorial examples as build targets. You can run <code>first.cc</code> directly by target name without typing file paths:</p>
+    <pre><code class="language-bash"># 1. Run first.cc normally (runs silently by default)
+./ns3 run first
+
+# 2. Run first.cc with console logging activated to inspect packets in flight!
+NS_LOG="UdpEchoClientApplication=level_info:UdpEchoServerApplication=level_info" ./ns3 run first</code></pre>
+
+    <div style="background: #0f172a; border-radius: 6px; padding: 14px; font-family: monospace; font-size: 12px; color: #f8fafc; margin-top: 10px;">
+      <span style="color: #a855f7;">[Console Output]:</span><br>
+      <span style="color: #60a5fa;">At time +2s client sent 1024 bytes to 10.1.1.2 port 9</span><br>
+      <span style="color: #34d399;">At time +2.00369s server received 1024 bytes from 10.1.1.1 port 49153</span><br>
+      <span style="color: #34d399;">At time +2.00369s server sent 1024 bytes to 10.1.1.1 port 49153</span><br>
+      <span style="color: #60a5fa;">At time +2.00737s client received 1024 bytes from 10.1.1.2 port 9</span>
+    </div>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 24px 0;">
+
+    <!-- SUBSECTION 4: SCRATCH WORKFLOW -->
+    <h3 id="_intro_scratch">4. The Developer's Workflow: Creating & Running Scripts in <code>scratch/</code></h3>
+    <p>
+      Never edit the files inside <code>examples/</code> directly—they are reference templates. Instead, ns-3 provides a dedicated folder called <strong><code>scratch/</code></strong>:
+    </p>
+
+    <div style="background: rgba(16, 185, 129, 0.08); border-left: 4px solid #10b981; padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 16px 0; font-size: 13.5px; color: #065f46;">
+      <strong>🌟 The Magic of the <code>scratch/</code> Directory:</strong><br>
+      Any C++ file with a <code>main()</code> function placed inside <code>scratch/</code> (e.g. <code>scratch/my-lab.cc</code>) is <strong>automatically discovered</strong> by the CMake build system! You do not need to edit any <code>CMakeLists.txt</code> files or register your file. ns-3 automatically compiles it as an independent executable!
+    </div>
+
+    <h4>The Complete Step-by-Step Developer Loop:</h4>
+    <table class="code-explanation-table">
+      <thead>
+        <tr>
+          <th style="width: 25%;">Step & Purpose</th>
+          <th style="width: 45%;">Linux Shell Command</th>
+          <th style="width: 30%;">What Happens Under the Hood</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Step 1: Copy Starter Template</strong></td>
+          <td><code>cp examples/tutorial/first.cc scratch/myfirst.cc</code></td>
+          <td>Copies the canonical 7-step P2P script into your scratch sandbox.</td>
+        </tr>
+        <tr>
+          <td><strong>Step 2: Customize Your Code</strong></td>
+          <td><code>nano scratch/myfirst.cc</code><br><em>(or open in VS Code / Vim)</em></td>
+          <td>Modify nodes, change packet sizes, or attach error models.</td>
+        </tr>
+        <tr>
+          <td><strong>Step 3: Compile & Execute</strong></td>
+          <td><code>./ns3 run scratch/myfirst</code></td>
+          <td>CMake detects the file, invokes <code>g++</code> to compile it in ~2 seconds, links against ns-3 shared libraries, and runs the simulation!</td>
+        </tr>
+        <tr>
+          <td><strong>Step 4: Inspect Help & Flags</strong></td>
+          <td><code>./ns3 run "scratch/myfirst --PrintHelp"</code></td>
+          <td>Queries the CommandLine parser to print all configurable attributes and flags.</td>
+        </tr>
+        <tr>
+          <td><strong>Step 5: Pass Runtime CLI Arguments</strong></td>
+          <td><code>./ns3 run "scratch/myfirst --nPackets=10"</code></td>
+          <td>Passes arguments into <code>argc</code>/<code>argv</code> dynamically without requiring recompilation!</td>
+        </tr>
+      </tbody>
+    </table>
+
+  </div>
+</details>
+
+</div>
+</div>
+
 
 <!-- ======================================================== -->
 <div class="sect1">
