@@ -2411,8 +2411,161 @@ NetDeviceContainer apDevice = wifi.Install (phy, mac, apNode);</code></pre>
       }
     ]
   },
+{
+    name: "Track 4: Extending ns-3 & Custom Protocol Engineering",
+    modules: [
+      {
+        id: 1,
+        title: "Module 1: Source Tree Layout & The 4-Step Protocol",
+        description: "Understanding src/ directory organization, CMakeLists.txt targets, and the 4-step TypeId registration protocol.",
+        lessons: [
+          {
+            id: "T5-M1-L1",
+            title: "1.1 The Internal Source Tree Map",
+            moduleTitle: "Track 5 • Module 1 • Lesson 1",
+            body: `
+              <p>All core ns-3 protocols reside in <code>src/</code> as distinct libraries:</p>
+              <ul>
+                <li><code>src/core/</code>: Event scheduler, memory (Ptr&lt;T&gt;), TypeId, logging, and timers.</li>
+                <li><code>src/network/</code>: Node, NetDevice, Channel, Packet, Buffer, and Socket base classes.</li>
+                <li><code>src/wifi/</code>: WifiPhy, WifiMac, FrameExchangeManager, and rate adaptation engines.</li>
+                <li><code>src/propagation/</code>: Path loss models (Friis, LogDistance) and propagation delay models.</li>
+                <li><code>src/traffic-control/</code>: Active Queue Management (CoDel, RED, FIFO) and QueueDiscs.</li>
+                <li><code>src/internet/</code>: IPv4/IPv6, ARP, TCP congestion models (NewReno, BBR, Cubic), and routing protocols.</li>
+              </ul>
+            `
+          },
+          {
+            id: "T5-M1-L2",
+            title: "1.2 The Universal 4-Step Class Registration Protocol",
+            moduleTitle: "Track 5 • Module 1 • Lesson 2",
+            body: `
+              <ol style="padding-left: 20px; line-height: 1.7;">
+                <li><strong>Inherit:</strong> Subclass from the module base class (e.g. <code>PropagationLossModel</code>, <code>WifiRemoteStationManager</code>, <code>QueueDisc</code>).</li>
+                <li><strong>Define TypeId:</strong> Implement <code>GetTypeId()</code> declaring parent hierarchy, constructors, and configurable attributes.</li>
+                <li><strong>Register in CMake:</strong> Add <code>.cc</code> and <code>.h</code> file paths to the module's <code>CMakeLists.txt</code> under <code>target_sources()</code>.</li>
+                <li><strong>Compile & Verify:</strong> Run <code>./ns3 build</code> to compile the shared library.</li>
+              </ol>
+            `
+          }
+        ]
+      },
+      {
+        id: 2,
+        title: "Module 2: Custom PHY & Propagation Loss Models",
+        description: "Writing custom RF path loss models by subclassing PropagationLossModel.",
+        lessons: [
+          {
+            id: "T5-M2-L1",
+            title: "2.1 Subclassing PropagationLossModel",
+            moduleTitle: "Track 2 • Module 2 • Lesson 1",
+            body: `
+              <p>To implement custom physical signal decay, subclass <code>PropagationLossModel</code> inside <code>src/propagation/model/</code> and override:</p>
+              <pre><code>virtual double DoCalcRxPower (double txPowerDbm,
+                              Ptr&lt;MobilityModel&gt; a,
+                              Ptr&lt;MobilityModel&gt; b) const override
+{
+  double dist = a-&gt;GetDistanceFrom (b);
+  double lossDb = 10.0 * 2.5 * std::log10 (std::max (dist, 0.1));
+  return txPowerDbm - lossDb;
+}</code></pre>
+            `
+          }
+        ]
+      },
+      {
+        id: 3,
+        title: "Module 3: Custom Wi-Fi MAC Rate Adaptation Schedulers",
+        description: "Authoring adaptive modulation and coding algorithms by subclassing WifiRemoteStationManager.",
+        lessons: [
+          {
+            id: "T5-M3-L1",
+            title: "3.1 Subclassing WifiRemoteStationManager",
+            moduleTitle: "Track 5 • Module 3 • Lesson 1",
+            body: `
+              <p>Wi-Fi rate control lives in <code>src/wifi/model/rate-control/</code>. Subclass <code>WifiRemoteStationManager</code> and implement:</p>
+              <ul>
+                <li><code>DoGetDataTxVector()</code>: Selects the transmission MCS data rate, channel width, and spatial streams.</li>
+                <li><code>DoReportRxOk()</code>: Updates statistics when an 802.11 ACK frame is successfully received.</li>
+                <li><code>DoReportDataFailed()</code>: Steps down the rate when retransmission limits are approached.</li>
+              </ul>
+            `
+          }
+        ]
+      },
+      {
+        id: 4,
+        title: "Module 4: Custom QueueDiscs, Routing & TCP Algorithms",
+        description: "Subclassing QueueDisc, Ipv4RoutingProtocol, and TcpCongestionOps.",
+        lessons: [
+          {
+            id: "T5-M4-L1",
+            title: "4.1 Extending Traffic Control, Layer 3 & Layer 4",
+            moduleTitle: "Track 5 • Module 4 • Lesson 1",
+            body: `
+              <ul>
+                <li><strong>QueueDisc (Layer 2.5):</strong> Lives in <code>src/traffic-control/model/</code>. Override <code>DoEnqueue()</code> and <code>DoDequeue()</code> for custom buffer management.</li>
+                <li><strong>Ipv4RoutingProtocol (Layer 3):</strong> Lives in <code>src/internet/model/</code>. Override <code>RouteOutput()</code> and <code>RouteInput()</code> for custom path forwarding.</li>
+                <li><strong>TcpCongestionOps (Layer 4):</strong> Lives in <code>src/internet/model/</code>. Override <code>CongestionAvoidance()</code> and <code>PktsAcked()</code> for custom congestion control.</li>
+              </ul>
+            `
+          }
+        ]
+      },
+      {
+        id: 5,
+        title: "Module 5: CMake Registration & Unit Testing",
+        description: "Registering classes with CMake, writing TestCase suites, and running tests.",
+        lessons: [
+          {
+            id: "T5-M5-L1",
+            title: "5.1 Testing Framework & CMake Integration",
+            moduleTitle: "Track 5 • Module 5 • Lesson 1",
+            body: `
+              <pre><code># Inside module CMakeLists.txt:
+target_sources(${libwifi} PRIVATE
+    model/rate-control/my-custom-rate-manager.cc
+)
+
+# Compile and test:
+./ns3 build
+./ns3 run "test-runner --suite=my-test-suite"</code></pre>
+            `
+          },
+          {
+            id: "T5-M5-Q",
+            title: "Track 5 Core Architecture Review Quiz",
+            isQuizOnly: true,
+            moduleTitle: "Track 5 • Assessment",
+            quiz: [
+              {
+                question: "1. Which base class must you inherit from to create a custom Wi-Fi rate adaptation algorithm in ns-3?",
+                options: [
+                  { text: "WifiPhy", isCorrect: false },
+                  { text: "WifiRemoteStationManager", isCorrect: true },
+                  { text: "FrameExchangeManager", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! WifiRemoteStationManager arbitrates MCS rate selection.",
+                feedbackError: "Incorrect. WifiRemoteStationManager is the base class for rate adaptation. Try again!"
+              },
+              {
+                question: "2. Which method calculates received signal power in a custom PropagationLossModel?",
+                options: [
+                  { text: "DoCalcRxPower()", isCorrect: true },
+                  { text: "ComputeAttenuation()", isCorrect: false },
+                  { text: "CalculateLoss()", isCorrect: false }
+                ],
+                feedbackSuccess: "Correct! DoCalcRxPower computes received signal power in dBm.",
+                feedbackError: "Incorrect. DoCalcRxPower is the mandatory virtual method. Try again!"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   {
-    name: "Track 4: C++ Foundations for ns-3",
+    name: "Optional: C++ Systems Foundations for ns-3",
     modules: [
       {
         id: 1,
@@ -2871,159 +3024,6 @@ int main ()
             `,
             assignmentVerifyKeyword: "Generic template and event callback check passed.",
             practiceFile: "scratch/aerowlan_exercises/cpp_module3_assignment.cc"
-          }
-        ]
-      }
-    ]
-  },
-  {
-    name: "Track 5: Extending ns-3 & Custom Protocol Engineering",
-    modules: [
-      {
-        id: 1,
-        title: "Module 1: Source Tree Layout & The 4-Step Protocol",
-        description: "Understanding src/ directory organization, CMakeLists.txt targets, and the 4-step TypeId registration protocol.",
-        lessons: [
-          {
-            id: "T5-M1-L1",
-            title: "1.1 The Internal Source Tree Map",
-            moduleTitle: "Track 5 • Module 1 • Lesson 1",
-            body: `
-              <p>All core ns-3 protocols reside in <code>src/</code> as distinct libraries:</p>
-              <ul>
-                <li><code>src/core/</code>: Event scheduler, memory (Ptr&lt;T&gt;), TypeId, logging, and timers.</li>
-                <li><code>src/network/</code>: Node, NetDevice, Channel, Packet, Buffer, and Socket base classes.</li>
-                <li><code>src/wifi/</code>: WifiPhy, WifiMac, FrameExchangeManager, and rate adaptation engines.</li>
-                <li><code>src/propagation/</code>: Path loss models (Friis, LogDistance) and propagation delay models.</li>
-                <li><code>src/traffic-control/</code>: Active Queue Management (CoDel, RED, FIFO) and QueueDiscs.</li>
-                <li><code>src/internet/</code>: IPv4/IPv6, ARP, TCP congestion models (NewReno, BBR, Cubic), and routing protocols.</li>
-              </ul>
-            `
-          },
-          {
-            id: "T5-M1-L2",
-            title: "1.2 The Universal 4-Step Class Registration Protocol",
-            moduleTitle: "Track 5 • Module 1 • Lesson 2",
-            body: `
-              <ol style="padding-left: 20px; line-height: 1.7;">
-                <li><strong>Inherit:</strong> Subclass from the module base class (e.g. <code>PropagationLossModel</code>, <code>WifiRemoteStationManager</code>, <code>QueueDisc</code>).</li>
-                <li><strong>Define TypeId:</strong> Implement <code>GetTypeId()</code> declaring parent hierarchy, constructors, and configurable attributes.</li>
-                <li><strong>Register in CMake:</strong> Add <code>.cc</code> and <code>.h</code> file paths to the module's <code>CMakeLists.txt</code> under <code>target_sources()</code>.</li>
-                <li><strong>Compile & Verify:</strong> Run <code>./ns3 build</code> to compile the shared library.</li>
-              </ol>
-            `
-          }
-        ]
-      },
-      {
-        id: 2,
-        title: "Module 2: Custom PHY & Propagation Loss Models",
-        description: "Writing custom RF path loss models by subclassing PropagationLossModel.",
-        lessons: [
-          {
-            id: "T5-M2-L1",
-            title: "2.1 Subclassing PropagationLossModel",
-            moduleTitle: "Track 2 • Module 2 • Lesson 1",
-            body: `
-              <p>To implement custom physical signal decay, subclass <code>PropagationLossModel</code> inside <code>src/propagation/model/</code> and override:</p>
-              <pre><code>virtual double DoCalcRxPower (double txPowerDbm,
-                              Ptr&lt;MobilityModel&gt; a,
-                              Ptr&lt;MobilityModel&gt; b) const override
-{
-  double dist = a-&gt;GetDistanceFrom (b);
-  double lossDb = 10.0 * 2.5 * std::log10 (std::max (dist, 0.1));
-  return txPowerDbm - lossDb;
-}</code></pre>
-            `
-          }
-        ]
-      },
-      {
-        id: 3,
-        title: "Module 3: Custom Wi-Fi MAC Rate Adaptation Schedulers",
-        description: "Authoring adaptive modulation and coding algorithms by subclassing WifiRemoteStationManager.",
-        lessons: [
-          {
-            id: "T5-M3-L1",
-            title: "3.1 Subclassing WifiRemoteStationManager",
-            moduleTitle: "Track 5 • Module 3 • Lesson 1",
-            body: `
-              <p>Wi-Fi rate control lives in <code>src/wifi/model/rate-control/</code>. Subclass <code>WifiRemoteStationManager</code> and implement:</p>
-              <ul>
-                <li><code>DoGetDataTxVector()</code>: Selects the transmission MCS data rate, channel width, and spatial streams.</li>
-                <li><code>DoReportRxOk()</code>: Updates statistics when an 802.11 ACK frame is successfully received.</li>
-                <li><code>DoReportDataFailed()</code>: Steps down the rate when retransmission limits are approached.</li>
-              </ul>
-            `
-          }
-        ]
-      },
-      {
-        id: 4,
-        title: "Module 4: Custom QueueDiscs, Routing & TCP Algorithms",
-        description: "Subclassing QueueDisc, Ipv4RoutingProtocol, and TcpCongestionOps.",
-        lessons: [
-          {
-            id: "T5-M4-L1",
-            title: "4.1 Extending Traffic Control, Layer 3 & Layer 4",
-            moduleTitle: "Track 5 • Module 4 • Lesson 1",
-            body: `
-              <ul>
-                <li><strong>QueueDisc (Layer 2.5):</strong> Lives in <code>src/traffic-control/model/</code>. Override <code>DoEnqueue()</code> and <code>DoDequeue()</code> for custom buffer management.</li>
-                <li><strong>Ipv4RoutingProtocol (Layer 3):</strong> Lives in <code>src/internet/model/</code>. Override <code>RouteOutput()</code> and <code>RouteInput()</code> for custom path forwarding.</li>
-                <li><strong>TcpCongestionOps (Layer 4):</strong> Lives in <code>src/internet/model/</code>. Override <code>CongestionAvoidance()</code> and <code>PktsAcked()</code> for custom congestion control.</li>
-              </ul>
-            `
-          }
-        ]
-      },
-      {
-        id: 5,
-        title: "Module 5: CMake Registration & Unit Testing",
-        description: "Registering classes with CMake, writing TestCase suites, and running tests.",
-        lessons: [
-          {
-            id: "T5-M5-L1",
-            title: "5.1 Testing Framework & CMake Integration",
-            moduleTitle: "Track 5 • Module 5 • Lesson 1",
-            body: `
-              <pre><code># Inside module CMakeLists.txt:
-target_sources(${libwifi} PRIVATE
-    model/rate-control/my-custom-rate-manager.cc
-)
-
-# Compile and test:
-./ns3 build
-./ns3 run "test-runner --suite=my-test-suite"</code></pre>
-            `
-          },
-          {
-            id: "T5-M5-Q",
-            title: "Track 5 Core Architecture Review Quiz",
-            isQuizOnly: true,
-            moduleTitle: "Track 5 • Assessment",
-            quiz: [
-              {
-                question: "1. Which base class must you inherit from to create a custom Wi-Fi rate adaptation algorithm in ns-3?",
-                options: [
-                  { text: "WifiPhy", isCorrect: false },
-                  { text: "WifiRemoteStationManager", isCorrect: true },
-                  { text: "FrameExchangeManager", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! WifiRemoteStationManager arbitrates MCS rate selection.",
-                feedbackError: "Incorrect. WifiRemoteStationManager is the base class for rate adaptation. Try again!"
-              },
-              {
-                question: "2. Which method calculates received signal power in a custom PropagationLossModel?",
-                options: [
-                  { text: "DoCalcRxPower()", isCorrect: true },
-                  { text: "ComputeAttenuation()", isCorrect: false },
-                  { text: "CalculateLoss()", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! DoCalcRxPower computes received signal power in dBm.",
-                feedbackError: "Incorrect. DoCalcRxPower is the mandatory virtual method. Try again!"
-              }
-            ]
           }
         ]
       }

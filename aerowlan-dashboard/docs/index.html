@@ -444,6 +444,12 @@ function collapseAll() {
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
 <ul class="sectlevel1">
+<li><a href="#_cpp_foundations"><strong>Optional Foundations: C++ Systems Foundations for ns-3</strong></a>
+<ul class="sectlevel2">
+<li><a href="#_cpp_mod1_smart_pointers">Optional: Memory Management & Ptr&lt;T&gt; Internals</a></li>
+<li><a href="#_cpp_mod2_callbacks">Optional: Callbacks, Events & Object Aggregation</a></li>
+</ul>
+</li>
 <li><a href="#_part1_core"><strong>Part I: Simulator Core & Wired Networks</strong></a>
 <ul class="sectlevel2">
 <li><a href="#_mod1_getting_started">Module 1: Getting Started, Architecture & The 7-Step Recipe</a></li>
@@ -470,19 +476,13 @@ function collapseAll() {
 <li><a href="#_wifi_mod5_tracing">Module 14: Comprehensive Wireless Tracing, Wireshark PCAPs & NetAnim</a></li>
 </ul>
 </li>
-<li><a href="#_part4_cpp"><strong>Part IV: C++ Systems Foundations for ns-3</strong></a>
+<li><a href="#_part4_extending"><strong>Part IV: Extending ns-3 Internal Architecture & Custom Protocol Engineering</strong></a>
 <ul class="sectlevel2">
-<li><a href="#_cpp_mod1_smart_pointers">Module 15: Memory Management & Ptr&lt;T&gt; Internals</a></li>
-<li><a href="#_cpp_mod2_callbacks">Module 16: Callbacks, Events & Object Aggregation</a></li>
-</ul>
-</li>
-<li><a href="#_part5_extending"><strong>Part V: Extending ns-3 Internal Architecture & Custom Protocol Engineering</strong></a>
-<ul class="sectlevel2">
-<li><a href="#_ext_mod1_tree">Module 17: Source Tree Layout, Module Anatomy & CMake Registration</a></li>
-<li><a href="#_ext_mod2_phy">Module 18: PHY Layer: Custom Channels & Propagation Loss Models</a></li>
-<li><a href="#_ext_mod3_mac">Module 19: MAC Layer: Custom Rate Adaptation & Frame Schedulers</a></li>
-<li><a href="#_ext_mod4_l34">Module 20: Layer 2.5/3/4: Custom QueueDiscs, Routing & TCP Congestion</a></li>
-<li><a href="#_ext_mod5_tests">Module 21: Unit Testing Framework & Build Verification</a></li>
+<li><a href="#_ext_mod1_tree">Module 15: Source Tree Layout, Module Anatomy & CMake Registration</a></li>
+<li><a href="#_ext_mod2_phy">Module 16: PHY Layer: Custom Channels & Propagation Loss Models</a></li>
+<li><a href="#_ext_mod3_mac">Module 17: MAC Layer: Custom Rate Adaptation & Frame Schedulers</a></li>
+<li><a href="#_ext_mod4_l34">Module 18: Layer 2.5/3/4: Custom QueueDiscs, Routing & TCP Congestion</a></li>
+<li><a href="#_ext_mod5_tests">Module 19: Unit Testing Framework & Build Verification</a></li>
 </ul>
 </li>
 </ul>
@@ -507,6 +507,721 @@ function collapseAll() {
     <a href="ns3-master-notes.pdf" target="_blank" class="tool-btn tool-btn-primary" style="text-decoration: none;">Download Offline PDF</a>
   </div>
 </div>
+</div>
+</div>
+
+<!-- ======================================================== -->
+<div class="sect1">
+<h2 id="_cpp_foundations" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+  <span>Optional Foundations: C++ Systems Foundations for ns-3</span>
+  <span style="font-size: 13px; font-weight: 600; background: #e2e8f0; color: #475569; padding: 4px 14px; border-radius: 20px; border: 1px solid #cbd5e1;">Optional Prerequisites</span>
+</h2>
+<div class="sectionbody">
+  <div style="background: rgba(99, 102, 241, 0.05); border-left: 4px solid #6366f1; padding: 14px 18px; border-radius: 0 8px 8px 0; margin-bottom: 24px; font-size: 14px; color: #334155; line-height: 1.6;">
+    <strong>💡 Optional Prerequisites:</strong> These foundational modules cover internal memory management (<code>Ptr&lt;T&gt;</code>, intrusive reference counting), Callbacks, and Object Aggregation in ns-3. If you already have strong C++ experience or prefer diving directly into network simulations first, you can skip straight to <strong>Part I</strong> below and return here whenever you need deep C++ reference.
+  </div>
+
+<!-- MODULE 10 -->
+<details class="module-card" open id="_cpp_mod1_smart_pointers">
+  <summary class="module-summary">
+    <div><span class="module-badge" style="background: #475569;">Optional</span> Memory Management & Ptr&lt;T&gt; Internals</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
+  </summary>
+  <div class="module-body">
+    <div class="admonitionblock note" style="margin-bottom: 20px;">
+      <table><tr>
+        <td class="icon"><div class="title" style="color: #186d7a; font-weight: bold;">Note for Beginners</div></td>
+        <td class="content">
+          In standard C++, memory bugs (such as forgetting to call <code>delete</code> or deleting memory twice) cause silent memory exhaustion or catastrophic segmentation faults. In ns-3, <strong>you almost never write raw <code>new</code> or <code>delete</code></strong>. Instead, ns-3 uses an elegant, high-performance smart pointer called <code>Ptr&lt;T&gt;</code> backed by intrusive reference counting. This module explains exactly how it works from the hardware stack and heap up.
+        </td>
+      </tr></table>
+    </div>
+
+    <h3>11.1 The Core Problem: Why Raw Pointers Fail in Large Simulators</h3>
+    <p>A single Wi-Fi simulation can generate, route, buffer, and destroy over <strong>10,000,000 packets</strong> in a few minutes. Imagine managing that with raw C++ pointers (<code>Packet* p = new Packet();</code>):</p>
+    <ul>
+      <li><strong>The Memory Leak Disaster:</strong> If a packet is dropped by an intermediate router queue and the programmer forgets to call <code>delete p;</code>, your simulation will rapidly consume 16 GB of RAM and crash the computer.</li>
+      <li><strong>The Dangling Pointer / Double-Free Crash:</strong> If both the wireless PHY layer and a tracing monitor attempt to <code>delete p;</code> at the same time, the program aborts instantly with a <code>double free or corruption (fasttop)</code> crash.</li>
+      <li><strong>The Shared Ownership Reality:</strong> In real networks, multiple entities simultaneously "own" a packet—the transmission queue is holding it, the physical channel is transmitting it, and an analytical probe is calculating jitter on it. Who should be responsible for deleting it?</li>
+    </ul>
+
+    <h3>11.2 The Solution: Intrusive Reference Counting (The Library Book Analogy)</h3>
+    <p>ns-3 solves shared ownership using <strong>Intrusive Reference Counting</strong> via the base class <code>SimpleRefCount&lt;T&gt;</code>:</p>
+    <blockquote>
+      <strong>The Library Book Analogy:</strong> Think of a shared library book with an internal checkout stamp counter. When the book is placed on the shelf, its counter is 1. When Borrower Alice checks it out, the counter increments to 2. When Borrower Bob also borrows it for a joint project, the counter becomes 3. When Alice returns it, the counter decrements to 2. When Bob returns it, the counter decrements to 1. When the library decides to retire the book and removes its own reference, the counter drops to <strong>0</strong>. The exact instant the counter reaches 0, the book is safely recycled.
+    </blockquote>
+
+    <h3>11.3 Why ns-3 Uses <code>Ptr&lt;T&gt;</code> Instead of <code>std::shared_ptr&lt;T&gt;</code></h3>
+    <p>Modern C++ includes <code>std::shared_ptr&lt;T&gt;</code>, so why did the ns-3 architects create their own custom pointer? The answer is <strong>CPU cache locality and memory fragmentation</strong>:</p>
+
+    <!-- SVG 2: std::shared_ptr vs ns3::Ptr Memory Layout -->
+    <div style="margin: 28px 0; text-align: center;">
+      <svg viewBox="0 0 820 230" width="100%" height="230" xmlns="http://www.w3.org/2000/svg" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <!-- Left: std::shared_ptr -->
+        <g transform="translate(20, 15)">
+          <rect x="0" y="0" width="370" height="200" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-dasharray="4,4"/>
+          <text x="185" y="24" text-anchor="middle" font-size="13" font-weight="bold" fill="#ba3925">Standard C++: std::shared_ptr&lt;T&gt; (Non-Intrusive)</text>
+          
+          <!-- Stack pointer -->
+          <rect x="20" y="45" width="100" height="40" rx="4" fill="#fee2e2" stroke="#ef4444" stroke-width="1.5"/>
+          <text x="70" y="65" text-anchor="middle" font-size="11" font-weight="bold" fill="#991b1b">Stack Handle</text>
+          <text x="70" y="78" text-anchor="middle" font-size="9" fill="#7f1d1d">16 bytes (2 ptrs)</text>
+          
+          <!-- Heap Block 1: Object -->
+          <rect x="180" y="45" width="160" height="55" rx="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+          <text x="260" y="68" text-anchor="middle" font-size="11" font-weight="bold" fill="#334155">Heap Chunk 1: Object T</text>
+          <text x="260" y="86" text-anchor="middle" font-size="9" fill="#64748b">m_size, m_buffer, ...</text>
+
+          <!-- Heap Block 2: Control Block -->
+          <rect x="180" y="125" width="160" height="60" rx="4" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/>
+          <text x="260" y="146" text-anchor="middle" font-size="11" font-weight="bold" fill="#92400e">Heap Chunk 2: Control Block</text>
+          <text x="260" y="162" text-anchor="middle" font-size="9" fill="#b45309">strong_ref = 1, weak_ref = 0</text>
+          <text x="260" y="176" text-anchor="middle" font-size="9" fill="#b45309">deleter, allocator ptrs</text>
+
+          <!-- Arrows -->
+          <path d="M 120 60 L 175 65" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+          <path d="M 120 75 L 175 145" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+          <text x="185" y="195" text-anchor="middle" font-size="9" font-style="italic" fill="#dc2626">⚠️ 2 separate heap allocations = Cache misses & memory overhead</text>
+        </g>
+
+        <!-- Right: ns3::Ptr -->
+        <g transform="translate(425, 15)">
+          <rect x="0" y="0" width="375" height="200" rx="6" fill="#f0fdf4" stroke="#86efac" stroke-dasharray="4,4"/>
+          <text x="187" y="24" text-anchor="middle" font-size="13" font-weight="bold" fill="#15803d">ns-3 Engine: ns3::Ptr&lt;T&gt; (Intrusive Counter)</text>
+          
+          <!-- Stack pointer -->
+          <rect x="20" y="65" width="100" height="40" rx="4" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+          <text x="70" y="85" text-anchor="middle" font-size="11" font-weight="bold" fill="#166534">Stack Ptr&lt;T&gt;</text>
+          <text x="70" y="98" text-anchor="middle" font-size="9" fill="#14532d">8 bytes (single ptr)</text>
+
+          <!-- Heap Single Block: Object + Counter -->
+          <rect x="175" y="45" width="180" height="120" rx="4" fill="#ffffff" stroke="#16a34a" stroke-width="2"/>
+          <rect x="175" y="45" width="180" height="32" rx="4" fill="#dcfce7"/>
+          <text x="265" y="66" text-anchor="middle" font-size="11" font-weight="bold" fill="#166534">Single Heap Chunk: Object T</text>
+          
+          <!-- Embedded counter -->
+          <rect x="190" y="88" width="150" height="28" rx="3" fill="#ecfdf5" stroke="#10b981" stroke-width="1"/>
+          <text x="265" y="106" text-anchor="middle" font-size="10" font-weight="bold" fill="#047857">uint32_t m_count = 1 (Embedded)</text>
+          
+          <text x="265" y="132" text-anchor="middle" font-size="9" fill="#475569">m_size, m_buffer, payload...</text>
+          <text x="265" y="148" text-anchor="middle" font-size="9" fill="#475569">vtbl pointer (vtable)</text>
+
+          <!-- Single Arrow -->
+          <path d="M 120 85 L 170 85" stroke="#16a34a" stroke-width="2" marker-end="url(#arrow-green)"/>
+          <text x="187" y="195" text-anchor="middle" font-size="9" font-style="italic" fill="#15803d">✓ 1 contiguous allocation = Peak CPU L1 cache speed & zero bloat</text>
+        </g>
+
+        <defs>
+          <marker id="arrow-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444"/>
+          </marker>
+          <marker id="arrow-amber" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#f59e0b"/>
+          </marker>
+          <marker id="arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#16a34a"/>
+          </marker>
+        </defs>
+      </svg>
+      <div style="font-size: 11px; color: #64748b; margin-top: 6px;">Figure 11.1: Architectural memory layout comparison between <code>std::shared_ptr&lt;T&gt;</code> and ns-3's intrusive <code>Ptr&lt;T&gt;</code>.</div>
+    </div>
+
+    <h3>11.4 Step-by-Step Memory Lifecycle of an ns-3 Object</h3>
+    <p>To see intrusive reference counting in action, let us trace four distinct time stages in code:</p>
+    <pre><code class="language-cpp">// Stage 1: Heap allocation
+Ptr&lt;Node&gt; n1 = CreateObject&lt;Node&gt;(); // Heap allocation: m_count initialized to 1
+
+// Stage 2: Assignment / Copying
+Ptr&lt;Node&gt; n2 = n1;                  // Copy constructor: increments m_count to 2
+NodeContainer container;
+container.Add(n1);                  // Container stores its own Ptr: m_count increments to 3
+
+// Stage 3: Scope Termination
+{
+    Ptr&lt;Node&gt; temp = n1;            // m_count increments to 4
+}                                   // temp goes out of scope: destructor calls Unref() -> m_count drops back to 3
+
+// Stage 4: Deletion
+n2 = 0;                             // n2 reset: m_count drops to 2
+n1 = 0;                             // n1 reset: m_count drops to 1
+container.Clear();                  // container destroyed: m_count drops to 0 -> delete this!</code></pre>
+
+    <!-- SVG 1: Step-by-Step Reference Count State Machine -->
+    <div style="margin: 28px 0; text-align: center;">
+      <svg viewBox="0 0 820 330" width="100%" height="330" xmlns="http://www.w3.org/2000/svg" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <!-- Header -->
+        <rect x="0" y="0" width="820" height="38" fill="#2c3e50" rx="8" ry="8"/>
+        <text x="410" y="24" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">Step-by-Step Hardware Stack & Heap Lifecycle of Ptr&lt;Node&gt;</text>
+        
+        <!-- Step 1 -->
+        <g transform="translate(15, 52)">
+          <rect x="0" y="0" width="185" height="260" rx="6" fill="#f8fafc" stroke="#cbd5e1"/>
+          <rect x="0" y="0" width="185" height="28" rx="6" fill="#e2e8f0"/>
+          <text x="92" y="19" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e293b">Step 1: CreateObject</text>
+          
+          <rect x="15" y="42" width="155" height="42" rx="4" fill="#dbeafe" stroke="#3b82f6"/>
+          <text x="92" y="58" text-anchor="middle" font-size="10" font-weight="bold" fill="#1e40af">Stack: n1</text>
+          <text x="92" y="73" text-anchor="middle" font-size="9" fill="#1e3a8a">points to 0x1A40</text>
+
+          <path d="M 92 84 L 92 125" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrow-blue)"/>
+
+          <rect x="15" y="130" width="155" height="110" rx="4" fill="#ffffff" stroke="#3b82f6" stroke-width="1.5"/>
+          <text x="92" y="150" text-anchor="middle" font-size="10" font-weight="bold" fill="#1e293b">Heap: Node (0x1A40)</text>
+          
+          <rect x="30" y="162" width="125" height="32" rx="3" fill="#eff6ff" stroke="#3b82f6"/>
+          <text x="92" y="182" text-anchor="middle" font-size="11" font-weight="bold" fill="#2563eb">m_count = 1</text>
+          <text x="92" y="215" text-anchor="middle" font-size="9" fill="#64748b">Active References: 1</text>
+          <text x="92" y="230" text-anchor="middle" font-size="9" fill="#16a34a">Status: In Use</text>
+        </g>
+
+        <!-- Step 2 -->
+        <g transform="translate(215, 52)">
+          <rect x="0" y="0" width="185" height="260" rx="6" fill="#f8fafc" stroke="#cbd5e1"/>
+          <rect x="0" y="0" width="185" height="28" rx="6" fill="#e2e8f0"/>
+          <text x="92" y="19" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e293b">Step 2: Add to Container</text>
+          
+          <rect x="15" y="38" width="72" height="42" rx="4" fill="#dbeafe" stroke="#3b82f6"/>
+          <text x="51" y="55" text-anchor="middle" font-size="9" font-weight="bold" fill="#1e40af">Stack: n1</text>
+          <text x="51" y="70" text-anchor="middle" font-size="8" fill="#1e3a8a">0x1A40</text>
+
+          <rect x="98" y="38" width="72" height="42" rx="4" fill="#fce7f3" stroke="#ec4899"/>
+          <text x="134" y="55" text-anchor="middle" font-size="9" font-weight="bold" fill="#9d174d">Stack: c[0]</text>
+          <text x="134" y="70" text-anchor="middle" font-size="8" fill="#831843">0x1A40</text>
+
+          <path d="M 51 80 L 80 125" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+          <path d="M 134 80 L 105 125" stroke="#ec4899" stroke-width="1.5" marker-end="url(#arrow-pink)"/>
+
+          <rect x="15" y="130" width="155" height="110" rx="4" fill="#ffffff" stroke="#ec4899" stroke-width="1.5"/>
+          <text x="92" y="150" text-anchor="middle" font-size="10" font-weight="bold" fill="#1e293b">Heap: Node (0x1A40)</text>
+          
+          <rect x="30" y="162" width="125" height="32" rx="3" fill="#fdf2f8" stroke="#ec4899"/>
+          <text x="92" y="182" text-anchor="middle" font-size="11" font-weight="bold" fill="#db2777">m_count = 2</text>
+          <text x="92" y="215" text-anchor="middle" font-size="9" fill="#64748b">Active References: 2</text>
+          <text x="92" y="230" text-anchor="middle" font-size="9" fill="#16a34a">Shared Ownership</text>
+        </g>
+
+        <!-- Step 3 -->
+        <g transform="translate(415, 52)">
+          <rect x="0" y="0" width="185" height="260" rx="6" fill="#f8fafc" stroke="#cbd5e1"/>
+          <rect x="0" y="0" width="185" height="28" rx="6" fill="#e2e8f0"/>
+          <text x="92" y="19" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e293b">Step 3: n1 Goes Out of Scope</text>
+          
+          <rect x="15" y="38" width="72" height="42" rx="4" fill="#f1f5f9" stroke="#94a3b8" stroke-dasharray="2,2"/>
+          <text x="51" y="55" text-anchor="middle" font-size="9" fill="#94a3b8">Stack: n1</text>
+          <text x="51" y="70" text-anchor="middle" font-size="8" fill="#94a3b8">POPPED</text>
+
+          <rect x="98" y="38" width="72" height="42" rx="4" fill="#fce7f3" stroke="#ec4899"/>
+          <text x="134" y="55" text-anchor="middle" font-size="9" font-weight="bold" fill="#9d174d">Stack: c[0]</text>
+          <text x="134" y="70" text-anchor="middle" font-size="8" fill="#831843">0x1A40</text>
+
+          <path d="M 134 80 L 105 125" stroke="#ec4899" stroke-width="1.5" marker-end="url(#arrow-pink)"/>
+
+          <rect x="15" y="130" width="155" height="110" rx="4" fill="#ffffff" stroke="#64748b" stroke-width="1.5"/>
+          <text x="92" y="150" text-anchor="middle" font-size="10" font-weight="bold" fill="#1e293b">Heap: Node (0x1A40)</text>
+          
+          <rect x="30" y="162" width="125" height="32" rx="3" fill="#f8fafc" stroke="#64748b"/>
+          <text x="92" y="182" text-anchor="middle" font-size="11" font-weight="bold" fill="#475569">m_count = 1</text>
+          <text x="92" y="215" text-anchor="middle" font-size="9" fill="#64748b">Active References: 1</text>
+          <text x="92" y="230" text-anchor="middle" font-size="9" fill="#eab308">Preserved in Heap</text>
+        </g>
+
+        <!-- Step 4 -->
+        <g transform="translate(615, 52)">
+          <rect x="0" y="0" width="190" height="260" rx="6" fill="#fef2f2" stroke="#fca5a5"/>
+          <rect x="0" y="0" width="190" height="28" rx="6" fill="#fee2e2"/>
+          <text x="95" y="19" text-anchor="middle" font-size="11" font-weight="bold" fill="#991b1b">Step 4: Container Cleared</text>
+          
+          <rect x="15" y="38" width="160" height="42" rx="4" fill="#f1f5f9" stroke="#94a3b8" stroke-dasharray="2,2"/>
+          <text x="95" y="55" text-anchor="middle" font-size="9" fill="#94a3b8">Stack: c[0] Destroyed</text>
+          <text x="95" y="70" text-anchor="middle" font-size="8" fill="#94a3b8">container.Clear()</text>
+
+          <path d="M 95 80 L 95 125" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#arrow-red)"/>
+
+          <rect x="15" y="130" width="160" height="110" rx="4" fill="#ffffff" stroke="#ef4444" stroke-width="2"/>
+          <text x="95" y="150" text-anchor="middle" font-size="10" font-weight="bold" fill="#991b1b">Heap: Node (DELETED)</text>
+          
+          <rect x="30" y="162" width="130" height="32" rx="3" fill="#fee2e2" stroke="#ef4444"/>
+          <text x="95" y="182" text-anchor="middle" font-size="11" font-weight="bold" fill="#dc2626">m_count = 0</text>
+          <text x="95" y="215" text-anchor="middle" font-size="9" font-weight="bold" fill="#dc2626">delete this Called!</text>
+          <text x="95" y="230" text-anchor="middle" font-size="9" fill="#16a34a">RAM Reclaimed</text>
+        </g>
+
+        <defs>
+          <marker id="arrow-blue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#3b82f6"/>
+          </marker>
+          <marker id="arrow-pink" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#ec4899"/>
+          </marker>
+        </defs>
+      </svg>
+      <div style="font-size: 11px; color: #64748b; margin-top: 6px;">Figure 11.2: Hardware stack and heap allocation dynamics showing intrusive reference counting lifecycle transitions.</div>
+    </div>
+
+    <h3>11.5 Canonical C++ Script: Demonstrating <code>SimpleRefCount</code> & <code>Ptr&lt;T&gt;</code></h3>
+    <p>Below is a minimal, educational C++ script showing how you can create your own reference-counted class in ns-3:</p>
+
+    <pre><code class="language-cpp">#include "ns3/core-module.h"
+#include &lt;iostream&gt;
+
+using namespace ns3;
+
+// Inherit from SimpleRefCount to make our class reference-counted!
+class MyBuffer : public SimpleRefCount&lt;MyBuffer&gt;
+{
+public:
+  MyBuffer (uint32_t size) : m_size (size) {
+    std::cout &lt;&lt; "[CONSTRUCTOR] Allocating MyBuffer of size: " &lt;&lt; m_size &lt;&lt; " bytes\n";
+  }
+  ~MyBuffer () {
+    std::cout &lt;&lt; "[DESTRUCTOR] Deallocating MyBuffer of size: " &lt;&lt; m_size &lt;&lt; " bytes automatically!\n";
+  }
+  void PrintInfo () const {
+    std::cout &lt;&lt; "  -&gt; Buffer holding " &lt;&lt; m_size &lt;&lt; " bytes\n";
+  }
+private:
+  uint32_t m_size;
+};
+
+void ProcessBuffer (Ptr&lt;MyBuffer&gt; buf)
+{
+  std::cout &lt;&lt; "Inside ProcessBuffer: Reference count incremented temporarily\n";
+  buf-&gt;PrintInfo ();
+}
+
+int main ()
+{
+  std::cout &lt;&lt; "--- STEP 1: Creating object on Heap via Create&lt;T&gt; ---\n";
+  Ptr&lt;MyBuffer&gt; p1 = Create&lt;MyBuffer&gt; (1024); // m_count starts at 1
+  
+  std::cout &lt;&lt; "--- STEP 2: Creating a second reference p2 ---\n";
+  Ptr&lt;MyBuffer&gt; p2 = p1; // Copy constructor increments m_count to 2
+  
+  std::cout &lt;&lt; "--- STEP 3: Passing p2 by value to a function ---\n";
+  ProcessBuffer (p2); // Copies Ptr, m_count becomes 3 inside function, drops back to 2 upon return
+  
+  std::cout &lt;&lt; "--- STEP 4: Resetting p1 ---\n";
+  p1 = 0; // p1 drops reference, m_count drops to 1. Buffer NOT deleted yet!
+  
+  std::cout &lt;&lt; "--- STEP 5: Resetting p2 (The last remaining reference) ---\n";
+  p2 = 0; // m_count drops to 0 -> Destructor automatically called here!
+  
+  std::cout &lt;&lt; "--- End of main program ---\n";
+  return 0;
+}</code></pre>
+
+    <h3>11.6 Line-by-Line Code Breakdown & Memory Mechanics</h3>
+    <table class="tableblock frame-all grid-all stretch" style="margin-top: 15px;">
+      <colgroup><col style="width: 8%;"><col style="width: 25%;"><col style="width: 27%;"><col style="width: 40%;"></colgroup>
+      <thead>
+        <tr><th class="tableblock halign-left">Line #</th><th class="tableblock halign-left">C++ Statement</th><th class="tableblock halign-left">What It Does</th><th class="tableblock halign-left">Under-the-Hood Memory Behavior</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="tableblock halign-left"><strong>L7</strong></td>
+          <td class="tableblock halign-left"><code>class MyBuffer : public SimpleRefCount&lt;MyBuffer&gt;</code></td>
+          <td class="tableblock halign-left">Inherits reference-counting capability via Curiously Recurring Template Pattern (CRTP).</td>
+          <td class="tableblock halign-left">Injects a 32-bit integer <code>uint32_t m_count</code> and inline <code>Ref()</code> and <code>Unref()</code> methods directly into <code>MyBuffer</code>'s memory layout.</td>
+        </tr>
+        <tr>
+          <td class="tableblock halign-left"><strong>L10</strong></td>
+          <td class="tableblock halign-left"><code>MyBuffer (uint32_t size)</code></td>
+          <td class="tableblock halign-left">Custom class constructor.</td>
+          <td class="tableblock halign-left">Initializes <code>m_count = 1</code> when allocated via <code>Create&lt;T&gt;()</code>.</td>
+        </tr>
+        <tr>
+          <td class="tableblock halign-left"><strong>L13</strong></td>
+          <td class="tableblock halign-left"><code>~MyBuffer ()</code></td>
+          <td class="tableblock halign-left">Custom class destructor.</td>
+          <td class="tableblock halign-left">Invoked only when <code>m_count</code> reaches 0 inside the <code>Unref()</code> method.</td>
+        </tr>
+        <tr>
+          <td class="tableblock halign-left"><strong>L22</strong></td>
+          <td class="tableblock halign-left"><code>void ProcessBuffer (Ptr&lt;MyBuffer&gt; buf)</code></td>
+          <td class="tableblock halign-left">Function taking a smart pointer parameter <strong>by value</strong>.</td>
+          <td class="tableblock halign-left">Creates a temporary <code>Ptr</code> on the call stack frame, invoking <code>Ref()</code> which increments <code>m_count</code> by 1 during function execution.</td>
+        </tr>
+        <tr>
+          <td class="tableblock halign-left"><strong>L30</strong></td>
+          <td class="tableblock halign-left"><code>Ptr&lt;MyBuffer&gt; p1 = Create&lt;MyBuffer&gt; (1024);</code></td>
+          <td class="tableblock halign-left">Allocates <code>MyBuffer</code> on the heap and wraps it in a <code>Ptr</code>.</td>
+          <td class="tableblock halign-left">Calls <code>new MyBuffer(1024)</code>, sets embedded <code>m_count = 1</code>, and assigns raw memory address to <code>p1.m_ptr</code> on the stack.</td>
+        </tr>
+        <tr>
+          <td class="tableblock halign-left"><strong>L33</strong></td>
+          <td class="tableblock halign-left"><code>Ptr&lt;MyBuffer&gt; p2 = p1;</code></td>
+          <td class="tableblock halign-left">Copies smart pointer <code>p1</code> into a new smart pointer <code>p2</code>.</td>
+          <td class="tableblock halign-left">Executes <code>Ptr</code> copy constructor: copies address <code>p2.m_ptr = p1.m_ptr</code> and calls <code>p1.m_ptr-&gt;Ref()</code>, changing <code>m_count</code> from 1 to 2.</td>
+        </tr>
+        <tr>
+          <td class="tableblock halign-left"><strong>L36</strong></td>
+          <td class="tableblock halign-left"><code>ProcessBuffer (p2);</code></td>
+          <td class="tableblock halign-left">Passes <code>p2</code> to function.</td>
+          <td class="tableblock halign-left">Stack pushes parameter: <code>m_count</code> becomes 3. When function returns, parameter destroyed: <code>Unref()</code> drops <code>m_count</code> back to 2.</td>
+        </tr>
+        <tr>
+          <td class="tableblock halign-left"><strong>L39</strong></td>
+          <td class="tableblock halign-left"><code>p1 = 0;</code></td>
+          <td class="tableblock halign-left">Clears smart pointer <code>p1</code> (points to null).</td>
+          <td class="tableblock halign-left">Calls <code>p1.m_ptr-&gt;Unref()</code>. <code>m_count</code> decrements from 2 to 1. Since $1 &gt; 0$, memory remains allocated because <code>p2</code> still holds it.</td>
+        </tr>
+        <tr>
+          <td class="tableblock halign-left"><strong>L42</strong></td>
+          <td class="tableblock halign-left"><code>p2 = 0;</code></td>
+          <td class="tableblock halign-left">Clears the final remaining pointer.</td>
+          <td class="tableblock halign-left">Calls <code>p2.m_ptr-&gt;Unref()</code>. <code>m_count</code> decrements from 1 to 0! Condition <code>if (--m_count == 0) delete this;</code> triggers, invoking <code>~MyBuffer()</code> and freeing heap memory immediately!</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>11.7 Student Best Practices & The Circular Reference Trap</h3>
+    <div class="admonitionblock warning" style="margin-top: 15px;">
+      <table><tr>
+        <td class="icon"><div class="title" style="color: #ba3925; font-weight: bold;">Warning: Circular Reference Deadlock</div></td>
+        <td class="content">
+          If Object A holds <code>Ptr&lt;B&gt;</code> and Object B holds <code>Ptr&lt;A&gt;</code>, neither object can ever reach <code>m_count == 0</code>. Even if all external pointers are destroyed, they will keep each other alive forever, causing a <strong>permanent memory leak</strong>. In ns-3, break circular references by having one side store a raw pointer (<code>T*</code>) or by breaking the link during <code>DoDispose()</code>.
+        </td>
+      </tr></table>
+    </div>
+
+    <div class="admonitionblock tip" style="margin-top: 15px;">
+      <table><tr>
+        <td class="icon"><div class="title" style="color: #15803d; font-weight: bold;">Performance Pro-Tip: Pass by Const Reference</div></td>
+        <td class="content">
+          Passing <code>Ptr&lt;T&gt;</code> by value (<code>void Foo (Ptr&lt;Node&gt; n)</code>) causes atomic increment and decrement of <code>m_count</code>. For high-speed simulations processing millions of packets, always pass by const reference: <code>void Foo (const Ptr&lt;Node&gt;&amp; n)</code>. This avoids touching <code>m_count</code> completely while maintaining safety!
+        </td>
+      </tr></table>
+    </div>
+  </div>
+</details>
+
+<!-- MODULE 12 -->
+<details class="module-card" open id="_cpp_mod2_callbacks">
+  <summary class="module-summary">
+    <div><span class="module-badge" style="background: #475569;">Optional</span> Callbacks, Events & Object Aggregation</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
+  </summary>
+  <div class="module-body">
+    <div class="admonitionblock note" style="margin-bottom: 20px;">
+      <table><tr>
+        <td class="icon"><div class="title" style="color: #186d7a; font-weight: bold;">Core Insight</div></td>
+        <td class="content">
+          How can a physical Wi-Fi queue notify a TCP layer that a packet was dropped without hardcoding `#include "ns3/tcp-socket-base.h"` into the Wi-Fi physical layer? And how can a generic <code>Node</code> support Wi-Fi, Ethernet, LTE, IPv4, IPv6, and 3D Mobility without creating an unmaintainable "God-class" with 500 methods? ns-3 answers these two fundamental questions with <strong>Type-Safe Callbacks</strong> and <strong>COM-like Object Aggregation</strong>.
+        </td>
+      </tr></table>
+    </div>
+
+    <h3>12.1 The Callback Template: Type-Safe Function Pointers</h3>
+    <p>In standard C, function pointers (<code>void (*fn)(int)</code>) are brittle, lack type safety, and cannot bind to C++ member functions on specific object instances. ns-3 introduces <code>Callback&lt;R, T1, T2...&gt;</code>:</p>
+    <blockquote>
+      <strong>The Telephone Callback Analogy:</strong> Suppose you order a package. You don't sit by the door waiting (blocking). Instead, you give the courier company your phone number (a Callback). When the package arrives, the courier dials that number. The courier doesn't care who answers or what you do with the package—their only job is to execute the callback.
+    </blockquote>
+
+    <!-- SVG 3: Callback Decoupled Invocation Pipeline -->
+    <div style="margin: 28px 0; text-align: center;">
+      <svg viewBox="0 0 820 250" width="100%" height="250" xmlns="http://www.w3.org/2000/svg" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <!-- Header -->
+        <rect x="0" y="0" width="820" height="36" fill="#2c3e50" rx="8" ry="8"/>
+        <text x="410" y="23" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">The Decoupled Callback Architecture: Zero Dependency Inversion</text>
+        
+        <!-- Publisher: Queue -->
+        <g transform="translate(25, 55)">
+          <rect x="0" y="0" width="220" height="170" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+          <rect x="0" y="0" width="220" height="30" rx="6" fill="#e2e8f0"/>
+          <text x="110" y="20" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e293b">Event Publisher: DropTailQueue</text>
+          
+          <rect x="15" y="45" width="190" height="50" rx="4" fill="#fee2e2" stroke="#ef4444"/>
+          <text x="105" y="65" text-anchor="middle" font-size="10" font-weight="bold" fill="#991b1b">Event: Queue Full!</text>
+          <text x="105" y="82" text-anchor="middle" font-size="9" fill="#7f1d1d">Must drop Ptr&lt;Packet&gt; p</text>
+
+          <rect x="15" y="110" width="190" height="42" rx="4" fill="#ffffff" stroke="#94a3b8"/>
+          <text x="105" y="128" text-anchor="middle" font-size="9" font-weight="bold" fill="#475569">m_dropCallback(p)</text>
+          <text x="105" y="142" text-anchor="middle" font-size="8" fill="#64748b">Doesn't know who is listening!</text>
+        </g>
+
+        <!-- The Bridge: Callback Object -->
+        <g transform="translate(285, 75)">
+          <rect x="0" y="0" width="250" height="130" rx="6" fill="#f0fdf4" stroke="#22c55e" stroke-width="2"/>
+          <rect x="0" y="0" width="250" height="28" rx="6" fill="#dcfce7"/>
+          <text x="125" y="19" text-anchor="middle" font-size="11" font-weight="bold" fill="#166534">Callback&lt;void, Ptr&lt;Packet&gt;&gt;</text>
+          
+          <text x="125" y="55" text-anchor="middle" font-size="10" fill="#14532d">Stores:</text>
+          <text x="125" y="74" text-anchor="middle" font-size="10" font-weight="bold" fill="#15803d">1. Object: Ptr&lt;TrafficAnalyzer&gt;</text>
+          <text x="125" y="93" text-anchor="middle" font-size="10" font-weight="bold" fill="#15803d">2. Method: &amp;TrafficAnalyzer::LogDrop</text>
+          <text x="125" y="115" text-anchor="middle" font-size="9" font-style="italic" fill="#166534">Invoked via MakeCallback()</text>
+        </g>
+
+        <!-- Subscriber: Traffic Analyzer -->
+        <g transform="translate(575, 55)">
+          <rect x="0" y="0" width="220" height="170" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+          <rect x="0" y="0" width="220" height="30" rx="6" fill="#e2e8f0"/>
+          <text x="110" y="20" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e293b">Event Subscriber: Analyzer</text>
+          
+          <rect x="15" y="45" width="190" height="50" rx="4" fill="#e0f2fe" stroke="#0284c7"/>
+          <text x="105" y="65" text-anchor="middle" font-size="10" font-weight="bold" fill="#0369a1">Member Function</text>
+          <text x="105" y="82" text-anchor="middle" font-size="9" fill="#075985">void LogDrop (Ptr&lt;Packet&gt; p)</text>
+
+          <rect x="15" y="110" width="190" height="42" rx="4" fill="#ffffff" stroke="#94a3b8"/>
+          <text x="105" y="128" text-anchor="middle" font-size="9" font-weight="bold" fill="#475569">Records Loss Stats</text>
+          <text x="105" y="142" text-anchor="middle" font-size="8" fill="#64748b">Plots drop graph / exports SQL</text>
+        </g>
+
+        <!-- Connecting Arrows -->
+        <path d="M 245 140 L 280 140" stroke="#22c55e" stroke-width="2.5" marker-end="url(#arrow-green2)"/>
+        <path d="M 535 140 L 570 140" stroke="#0284c7" stroke-width="2.5" marker-end="url(#arrow-blue2)"/>
+
+        <defs>
+          <marker id="arrow-green2" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#22c55e"/>
+          </marker>
+          <marker id="arrow-blue2" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#0284c7"/>
+          </marker>
+        </defs>
+      </svg>
+      <div style="font-size: 11px; color: #64748b; margin-top: 6px;">Figure 12.1: Complete decoupling between network queues and analytical monitors using ns-3 Callbacks.</div>
+    </div>
+
+    <h3>12.2 Two Types of Callbacks: Free Functions vs Member Methods</h3>
+    <table class="tableblock frame-all grid-all stretch" style="margin-top: 15px;">
+      <colgroup><col style="width: 25%;"><col style="width: 35%;"><col style="width: 40%;"></colgroup>
+      <thead>
+        <tr><th class="tableblock halign-left">Callback Type</th><th class="tableblock halign-left">C++ Syntax</th><th class="tableblock halign-left">When to Use</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="tableblock halign-left"><strong>Free / Static Function</strong></td>
+          <td class="tableblock halign-left"><code>MakeCallback (&amp;MyStandaloneFunction)</code></td>
+          <td class="tableblock halign-left">When the listener is a simple global function without state or internal class variables.</td>
+        </tr>
+        <tr>
+          <td class="tableblock halign-left"><strong>C++ Member Method</strong></td>
+          <td class="tableblock halign-left"><code>MakeCallback (&amp;MyClass::OnEvent, this)</code></td>
+          <td class="tableblock halign-left">When the listener needs access to instance variables (e.g., updating packet counts in <code>this-&gt;m_totalBytes</code>). Automatically manages <code>Ptr</code> lifetime.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>12.3 Object Aggregation: The "Swiss Army Knife" Architecture</h3>
+    <p>In traditional object-oriented software, developers try to create network nodes using inheritance:</p>
+    <pre><code class="language-cpp">// BAD OOP DESIGN: Class explosion!
+class WifiIpv4Node : public Node { ... };
+class LteIpv6MobileNode : public Node { ... };
+class WifiLteDualStackIpv4Ipv6Node : public Node { ... }; // 100 combination classes!</code></pre>
+    <p>ns-3 completely rejects this broken inheritance model. Instead, ns-3 implements <strong>Object Aggregation</strong> (inspired by Microsoft COM). A <code>Node</code> begins as an empty shell. You attach protocols and capabilities to it at runtime dynamically:</p>
+
+    <!-- SVG 4: Node Object Aggregation Internal Graph -->
+    <div style="margin: 28px 0; text-align: center;">
+      <svg viewBox="0 0 820 280" width="100%" height="280" xmlns="http://www.w3.org/2000/svg" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <!-- Header -->
+        <rect x="0" y="0" width="820" height="36" fill="#2c3e50" rx="8" ry="8"/>
+        <text x="410" y="23" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">The Object Aggregation Pattern: Dynamic Runtime Composition</text>
+        
+        <!-- Central Node -->
+        <g transform="translate(320, 95)">
+          <rect x="0" y="0" width="180" height="90" rx="8" fill="#1e293b" stroke="#0f172a" stroke-width="2"/>
+          <text x="90" y="32" text-anchor="middle" font-size="14" font-weight="bold" fill="#ffffff">Ptr&lt;Node&gt;</text>
+          <text x="90" y="52" text-anchor="middle" font-size="10" fill="#94a3b8">Node ID: 0</text>
+          <text x="90" y="70" text-anchor="middle" font-size="9" fill="#38bdf8">AggregateObjectList</text>
+        </g>
+
+        <!-- Aggregated: Ipv4 -->
+        <g transform="translate(40, 50)">
+          <rect x="0" y="0" width="190" height="65" rx="6" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+          <text x="95" y="26" text-anchor="middle" font-size="11" font-weight="bold" fill="#1d4ed8">Ptr&lt;Ipv4L3Protocol&gt;</text>
+          <text x="95" y="44" text-anchor="middle" font-size="9" fill="#1e40af">IP Routing &amp; ARP Resolution</text>
+          <text x="95" y="56" text-anchor="middle" font-size="8" fill="#60a5fa">TypeId: ns3::Ipv4L3Protocol</text>
+          <path d="M 190 32 L 315 110" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="3,3"/>
+        </g>
+
+        <!-- Aggregated: MobilityModel -->
+        <g transform="translate(40, 160)">
+          <rect x="0" y="0" width="190" height="65" rx="6" fill="#f0fdf4" stroke="#22c55e" stroke-width="1.5"/>
+          <text x="95" y="26" text-anchor="middle" font-size="11" font-weight="bold" fill="#15803d">Ptr&lt;MobilityModel&gt;</text>
+          <text x="95" y="44" text-anchor="middle" font-size="9" fill="#166534">3D Coordinates (x, y, z)</text>
+          <text x="95" y="56" text-anchor="middle" font-size="8" fill="#4ade80">TypeId: ns3::ConstantPosition</text>
+          <path d="M 190 192 L 315 150" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="3,3"/>
+        </g>
+
+        <!-- Aggregated: WifiNetDevice -->
+        <g transform="translate(590, 50)">
+          <rect x="0" y="0" width="190" height="65" rx="6" fill="#fdf4ff" stroke="#c084fc" stroke-width="1.5"/>
+          <text x="95" y="26" text-anchor="middle" font-size="11" font-weight="bold" fill="#7e22ce">Ptr&lt;WifiNetDevice&gt;</text>
+          <text x="95" y="44" text-anchor="middle" font-size="9" fill="#6b21a8">802.11be MLO &amp; PHY</text>
+          <text x="95" y="56" text-anchor="middle" font-size="8" fill="#a855f7">TypeId: ns3::WifiNetDevice</text>
+          <path d="M 590 32 L 505 110" stroke="#c084fc" stroke-width="1.5" stroke-dasharray="3,3"/>
+        </g>
+
+        <!-- Aggregated: EnergyModel -->
+        <g transform="translate(590, 160)">
+          <rect x="0" y="0" width="190" height="65" rx="6" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.5"/>
+          <text x="95" y="26" text-anchor="middle" font-size="11" font-weight="bold" fill="#b45309">Ptr&lt;EnergySource&gt;</text>
+          <text x="95" y="44" text-anchor="middle" font-size="9" fill="#92400e">Battery Energy Harvesting</text>
+          <text x="95" y="56" text-anchor="middle" font-size="8" fill="#fbbf24">TypeId: ns3::LiIonEnergySource</text>
+          <path d="M 590 192 L 505 150" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3,3"/>
+        </g>
+
+        <!-- Bottom retrieval hint -->
+        <text x="410" y="245" text-anchor="middle" font-size="12" font-weight="bold" fill="#ba3925">node-&gt;GetObject&lt;MobilityModel&gt;() dynamically returns the component in O(1) time!</text>
+      </svg>
+      <div style="font-size: 11px; color: #64748b; margin-top: 6px;">Figure 12.2: Object aggregation internal structure. Components query each other using <code>GetObject&lt;T&gt;()</code>.</div>
+    </div>
+
+    <h3>12.4 Canonical C++ Script: Combining Callbacks, Events & Aggregation</h3>
+    <p>The following standalone program demonstrates how to bind member callbacks, schedule future discrete events, aggregate custom components, and query them at runtime:</p>
+
+    <pre><code class="language-cpp">#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include &lt;iostream&gt;
+
+using namespace ns3;
+
+// 1. A Custom Network Component that can be aggregated onto a Node
+class BatteryComponent : public Object
+{
+public:
+  static TypeId GetTypeId (void) {
+    static TypeId tid = TypeId ("ns3::BatteryComponent")
+      .SetParent&lt;Object&gt; ()
+      .AddConstructor&lt;BatteryComponent&gt; ();
+    return tid;
+  }
+  BatteryComponent () : m_joules (1000.0) {}
+
+  void DrainBattery (double amount) {
+    m_joules -= amount;
+    std::cout &lt;&lt; "  [Battery] Drained " &lt;&lt; amount &lt;&lt; " J. Remaining: " &lt;&lt; m_joules &lt;&lt; " J\n";
+    if (m_joules &lt;= 500.0 &amp;&amp; !m_lowBatteryCallback.IsNull ()) {
+      m_lowBatteryCallback (m_joules); // Invoke callback!
+    }
+  }
+
+  void SetLowBatteryCallback (Callback&lt;void, double&gt; cb) {
+    m_lowBatteryCallback = cb;
+  }
+
+private:
+  double m_joules;
+  Callback&lt;void, double&gt; m_lowBatteryCallback;
+};
+
+// 2. An Observer Class that handles the event
+class PowerManager
+{
+public:
+  void OnLowBatteryWarning (double remainingJoules) {
+    std::cout &lt;&lt; "  [PowerManager ALERT] Low battery warning! Switching to Power-Save Mode. Level = " 
+              &lt;&lt; remainingJoules &lt;&lt; " J at t = " &lt;&lt; Simulator::Now ().GetSeconds () &lt;&lt; "s\n";
+  }
+};
+
+int main ()
+{
+  std::cout &lt;&lt; "=== 1. Creating Node and Aggregating Component ===\n";
+  Ptr&lt;Node&gt; node = CreateObject&lt;Node&gt; ();
+  Ptr&lt;BatteryComponent&gt; battery = CreateObject&lt;BatteryComponent&gt; ();
+  
+  // Aggregate battery into the Node
+  node-&gt;AggregateObject (battery);
+
+  std::cout &lt;&lt; "=== 2. Binding Member Method Callback ===\n";
+  PowerManager manager;
+  
+  // Query battery back from Node using GetObject&lt;T&gt;()!
+  Ptr&lt;BatteryComponent&gt; queriedBattery = node-&gt;GetObject&lt;BatteryComponent&gt; ();
+  NS_ASSERT (queriedBattery != 0); // Verify component was found
+
+  // Hook PowerManager::OnLowBatteryWarning as the callback target
+  queriedBattery-&gt;SetLowBatteryCallback (
+    MakeCallback (&amp;PowerManager::OnLowBatteryWarning, &amp;manager)
+  );
+
+  std::cout &lt;&lt; "=== 3. Scheduling Discrete Simulation Events ===\n";
+  // Schedule battery drains across simulation time
+  Simulator::Schedule (Seconds (1.0), &amp;BatteryComponent::DrainBattery, queriedBattery, 300.0);
+  Simulator::Schedule (Seconds (2.5), &amp;BatteryComponent::DrainBattery, queriedBattery, 250.0); // Triggers callback!
+  Simulator::Schedule (Seconds (4.0), &amp;BatteryComponent::DrainBattery, queriedBattery, 100.0);
+
+  std::cout &lt;&lt; "=== 4. Running Simulation Scheduler ===\n";
+  Simulator::Run ();
+  Simulator::Destroy ();
+  std::cout &lt;&lt; "Simulation Finished Successfully!\n";
+  return 0;
+}</code></pre>
+
+    <h3>12.5 Line-by-Line Code Breakdown & Architectural Execution</h3>
+    <table class="tableblock frame-all grid-all stretch" style="margin-top: 15px;">
+      <colgroup><col style="width: 8%;"><col style="width: 25%;"><col style="width: 27%;"><col style="width: 40%;"></colgroup>
+      <thead>
+        <tr><th class="tableblock halign-left">Line #</th><th class="tableblock halign-left">C++ Statement</th><th class="tableblock halign-left">What It Does</th><th class="tableblock halign-left">Under-the-Hood Architectural Behavior</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="tableblock halign-left"><strong>L8</strong></td>
+          <td class="tableblock halign-left"><code>class BatteryComponent : public Object</code></td>
+          <td class="tableblock halign-left">Inherits from root <code>ns3::Object</code>.</td>
+          <td class="tableblock halign-left">Enables RTTI (Runtime Type Information), <code>TypeId</code> reflection, and object aggregation capabilities.</td>
+        </tr>
+        <tr>
+          <td class="tableblock halign-left"><strong>L11</strong></td>
+          <td class="tableblock halign-left"><code>static TypeId GetTypeId (void)</code></td>
+          <td class="tableblock halign-left">Registers class type metadata in ns-3 type registry.</td>
+          <td class="tableblock halign-left">Assigns a unique string name <code>"ns3::BatteryComponent"</code> and constructor pointer so the object can be created or queried dynamically by string name.</td>
+        </tr>
+        <tr>
+          <td class="tableblock halign-left"><strong>L31</strong></td>
+          <td class="tableblock halign-left"><code>Callback&lt;void, double&gt; m_lowBatteryCallback;</code></td>
+          <td class="tableblock halign-left">Declares callback storage attribute.</td>
+          <td class="tableblock halign-left">Creates a generic, type-safe wrapper that accepts any callable function taking <code>double</code> and returning <code>void</code>.</td>
+        </tr>
+        <tr>
+          <td class="tableblock halign-left"><strong>L48</strong></td>
+          <td class="tableblock halign-left"><code>node-&gt;AggregateObject (battery);</code></td>
+          <td class="tableblock halign-left">Aggregates battery object into the node.</td>
+          <td class="tableblock halign-left">Merges both objects' internal aggregate pointer tables. Now <code>node</code> points to <code>battery</code>, and <code>battery</code> points to <code>node</code>.</td>
+        </tr>
+        <tr>
+          <td class="tableblock halign-left"><strong>L54</strong></td>
+          <td class="tableblock halign-left"><code>node-&gt;GetObject&lt;BatteryComponent&gt; ();</code></td>
+          <td class="tableblock halign-left">Queries component from node by C++ type.</td>
+          <td class="tableblock halign-left">Walks the aggregate list, compares each object's <code>TypeId</code> using fast integer comparisons, and returns the matching pointer safely casted to <code>Ptr&lt;BatteryComponent&gt;</code>.</td>
+        </tr>
+        <tr>
+          <td class="tableblock halign-left"><strong>L58</strong></td>
+          <td class="tableblock halign-left"><code>MakeCallback (&amp;PowerManager::OnLowBatteryWarning, &amp;manager)</code></td>
+          <td class="tableblock halign-left">Binds member function to specific class instance.</td>
+          <td class="tableblock halign-left">Packages the target instance pointer (<code>&amp;manager</code>) and method pointer into an internal <code>MemPtrCallbackImpl</code> functor.</td>
+        </tr>
+        <tr>
+          <td class="tableblock halign-left"><strong>L63</strong></td>
+          <td class="tableblock halign-left"><code>Simulator::Schedule (Seconds (1.0), &amp;BatteryComponent::DrainBattery, queriedBattery, 300.0);</code></td>
+          <td class="tableblock halign-left">Schedules future event in simulation clock.</td>
+          <td class="tableblock halign-left">Wraps the method call and arguments into an <code>EventImpl</code>, assigns execution timestamp $t = 1.0	ext{s}$, and inserts it into the DES binary heap priority queue.</td>
+        </tr>
+        <tr>
+          <td class="tableblock halign-left"><strong>L64</strong></td>
+          <td class="tableblock halign-left"><code>Simulator::Schedule (Seconds (2.5), ... 250.0);</code></td>
+          <td class="tableblock halign-left">Schedules second drain event at $t = 2.5	ext{s}$.</td>
+          <td class="tableblock halign-left">Remaining joules drops from $700	ext{ J}$ to $450	ext{ J}$ ($&lt; 500	ext{ J}$). Condition triggers, firing <code>m_lowBatteryCallback(450.0)</code> which calls <code>manager.OnLowBatteryWarning()</code>!</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>12.6 Student Self-Check Quiz</h3>
+    <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 16px; margin-top: 15px;">
+      <p style="font-weight: bold; color: #1e293b; margin-top: 0;">Conceptual Checkpoint for Students:</p>
+      <ol style="margin-bottom: 0;">
+        <li><strong>Question 1:</strong> If you pass <code>Ptr&lt;Node&gt;</code> by value 10,000,000 times inside a tight routing loop, what is the performance impact compared to passing <code>const Ptr&lt;Node&gt;&amp;</code>?
+          <br><span style="color: #64748b; font-size: 13px;"><em>Answer hint:</em> Every value copy triggers atomic CPU instructions (<code>lock xadd</code>) to increment and decrement <code>m_count</code>, degrading CPU pipeline efficiency. Const reference passes an 8-byte pointer without touching memory count.</span>
+        </li>
+        <li style="margin-top: 10px;"><strong>Question 2:</strong> What will <code>node-&gt;GetObject&lt;WifiNetDevice&gt;()</code> return if you forgot to install a Wi-Fi device on that node?
+          <br><span style="color: #64748b; font-size: 13px;"><em>Answer hint:</em> It returns a null smart pointer (<code>Ptr&lt;WifiNetDevice&gt; (0)</code>). Always check <code>if (dev != 0)</code> or use <code>NS_ASSERT(dev != 0)</code> before dereferencing!</span>
+        </li>
+      </ol>
+    </div>
+  </div>
+</details>
+
 </div>
 </div>
 
@@ -4126,747 +4841,93 @@ int main (int argc, char *argv[])
 
 <!-- ======================================================== -->
 <div class="sect1">
-<h2 id="_part4_cpp">Part IV: C++ Systems Foundations for ns-3</h2>
-<div class="sectionbody">
-
-<!-- MODULE 10 -->
-<details class="module-card" open id="_cpp_mod1_smart_pointers">
-  <summary class="module-summary">
-    <div><span class="module-badge">Module 15</span> Memory Management & Ptr&lt;T&gt; Internals</div>
-    <span style="font-size: 14px; color: #64748b;">▼</span>
-  </summary>
-  <div class="module-body">
-    <div class="admonitionblock note" style="margin-bottom: 20px;">
-      <table><tr>
-        <td class="icon"><div class="title" style="color: #186d7a; font-weight: bold;">Note for Beginners</div></td>
-        <td class="content">
-          In standard C++, memory bugs (such as forgetting to call <code>delete</code> or deleting memory twice) cause silent memory exhaustion or catastrophic segmentation faults. In ns-3, <strong>you almost never write raw <code>new</code> or <code>delete</code></strong>. Instead, ns-3 uses an elegant, high-performance smart pointer called <code>Ptr&lt;T&gt;</code> backed by intrusive reference counting. This module explains exactly how it works from the hardware stack and heap up.
-        </td>
-      </tr></table>
-    </div>
-
-    <h3>11.1 The Core Problem: Why Raw Pointers Fail in Large Simulators</h3>
-    <p>A single Wi-Fi simulation can generate, route, buffer, and destroy over <strong>10,000,000 packets</strong> in a few minutes. Imagine managing that with raw C++ pointers (<code>Packet* p = new Packet();</code>):</p>
-    <ul>
-      <li><strong>The Memory Leak Disaster:</strong> If a packet is dropped by an intermediate router queue and the programmer forgets to call <code>delete p;</code>, your simulation will rapidly consume 16 GB of RAM and crash the computer.</li>
-      <li><strong>The Dangling Pointer / Double-Free Crash:</strong> If both the wireless PHY layer and a tracing monitor attempt to <code>delete p;</code> at the same time, the program aborts instantly with a <code>double free or corruption (fasttop)</code> crash.</li>
-      <li><strong>The Shared Ownership Reality:</strong> In real networks, multiple entities simultaneously "own" a packet—the transmission queue is holding it, the physical channel is transmitting it, and an analytical probe is calculating jitter on it. Who should be responsible for deleting it?</li>
-    </ul>
-
-    <h3>11.2 The Solution: Intrusive Reference Counting (The Library Book Analogy)</h3>
-    <p>ns-3 solves shared ownership using <strong>Intrusive Reference Counting</strong> via the base class <code>SimpleRefCount&lt;T&gt;</code>:</p>
-    <blockquote>
-      <strong>The Library Book Analogy:</strong> Think of a shared library book with an internal checkout stamp counter. When the book is placed on the shelf, its counter is 1. When Borrower Alice checks it out, the counter increments to 2. When Borrower Bob also borrows it for a joint project, the counter becomes 3. When Alice returns it, the counter decrements to 2. When Bob returns it, the counter decrements to 1. When the library decides to retire the book and removes its own reference, the counter drops to <strong>0</strong>. The exact instant the counter reaches 0, the book is safely recycled.
-    </blockquote>
-
-    <h3>11.3 Why ns-3 Uses <code>Ptr&lt;T&gt;</code> Instead of <code>std::shared_ptr&lt;T&gt;</code></h3>
-    <p>Modern C++ includes <code>std::shared_ptr&lt;T&gt;</code>, so why did the ns-3 architects create their own custom pointer? The answer is <strong>CPU cache locality and memory fragmentation</strong>:</p>
-
-    <!-- SVG 2: std::shared_ptr vs ns3::Ptr Memory Layout -->
-    <div style="margin: 28px 0; text-align: center;">
-      <svg viewBox="0 0 820 230" width="100%" height="230" xmlns="http://www.w3.org/2000/svg" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-        <!-- Left: std::shared_ptr -->
-        <g transform="translate(20, 15)">
-          <rect x="0" y="0" width="370" height="200" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-dasharray="4,4"/>
-          <text x="185" y="24" text-anchor="middle" font-size="13" font-weight="bold" fill="#ba3925">Standard C++: std::shared_ptr&lt;T&gt; (Non-Intrusive)</text>
-          
-          <!-- Stack pointer -->
-          <rect x="20" y="45" width="100" height="40" rx="4" fill="#fee2e2" stroke="#ef4444" stroke-width="1.5"/>
-          <text x="70" y="65" text-anchor="middle" font-size="11" font-weight="bold" fill="#991b1b">Stack Handle</text>
-          <text x="70" y="78" text-anchor="middle" font-size="9" fill="#7f1d1d">16 bytes (2 ptrs)</text>
-          
-          <!-- Heap Block 1: Object -->
-          <rect x="180" y="45" width="160" height="55" rx="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
-          <text x="260" y="68" text-anchor="middle" font-size="11" font-weight="bold" fill="#334155">Heap Chunk 1: Object T</text>
-          <text x="260" y="86" text-anchor="middle" font-size="9" fill="#64748b">m_size, m_buffer, ...</text>
-
-          <!-- Heap Block 2: Control Block -->
-          <rect x="180" y="125" width="160" height="60" rx="4" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/>
-          <text x="260" y="146" text-anchor="middle" font-size="11" font-weight="bold" fill="#92400e">Heap Chunk 2: Control Block</text>
-          <text x="260" y="162" text-anchor="middle" font-size="9" fill="#b45309">strong_ref = 1, weak_ref = 0</text>
-          <text x="260" y="176" text-anchor="middle" font-size="9" fill="#b45309">deleter, allocator ptrs</text>
-
-          <!-- Arrows -->
-          <path d="M 120 60 L 175 65" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrow-red)"/>
-          <path d="M 120 75 L 175 145" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
-          <text x="185" y="195" text-anchor="middle" font-size="9" font-style="italic" fill="#dc2626">⚠️ 2 separate heap allocations = Cache misses & memory overhead</text>
-        </g>
-
-        <!-- Right: ns3::Ptr -->
-        <g transform="translate(425, 15)">
-          <rect x="0" y="0" width="375" height="200" rx="6" fill="#f0fdf4" stroke="#86efac" stroke-dasharray="4,4"/>
-          <text x="187" y="24" text-anchor="middle" font-size="13" font-weight="bold" fill="#15803d">ns-3 Engine: ns3::Ptr&lt;T&gt; (Intrusive Counter)</text>
-          
-          <!-- Stack pointer -->
-          <rect x="20" y="65" width="100" height="40" rx="4" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
-          <text x="70" y="85" text-anchor="middle" font-size="11" font-weight="bold" fill="#166534">Stack Ptr&lt;T&gt;</text>
-          <text x="70" y="98" text-anchor="middle" font-size="9" fill="#14532d">8 bytes (single ptr)</text>
-
-          <!-- Heap Single Block: Object + Counter -->
-          <rect x="175" y="45" width="180" height="120" rx="4" fill="#ffffff" stroke="#16a34a" stroke-width="2"/>
-          <rect x="175" y="45" width="180" height="32" rx="4" fill="#dcfce7"/>
-          <text x="265" y="66" text-anchor="middle" font-size="11" font-weight="bold" fill="#166534">Single Heap Chunk: Object T</text>
-          
-          <!-- Embedded counter -->
-          <rect x="190" y="88" width="150" height="28" rx="3" fill="#ecfdf5" stroke="#10b981" stroke-width="1"/>
-          <text x="265" y="106" text-anchor="middle" font-size="10" font-weight="bold" fill="#047857">uint32_t m_count = 1 (Embedded)</text>
-          
-          <text x="265" y="132" text-anchor="middle" font-size="9" fill="#475569">m_size, m_buffer, payload...</text>
-          <text x="265" y="148" text-anchor="middle" font-size="9" fill="#475569">vtbl pointer (vtable)</text>
-
-          <!-- Single Arrow -->
-          <path d="M 120 85 L 170 85" stroke="#16a34a" stroke-width="2" marker-end="url(#arrow-green)"/>
-          <text x="187" y="195" text-anchor="middle" font-size="9" font-style="italic" fill="#15803d">✓ 1 contiguous allocation = Peak CPU L1 cache speed & zero bloat</text>
-        </g>
-
-        <defs>
-          <marker id="arrow-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444"/>
-          </marker>
-          <marker id="arrow-amber" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M 0 1 L 10 5 L 0 9 z" fill="#f59e0b"/>
-          </marker>
-          <marker id="arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M 0 1 L 10 5 L 0 9 z" fill="#16a34a"/>
-          </marker>
-        </defs>
-      </svg>
-      <div style="font-size: 11px; color: #64748b; margin-top: 6px;">Figure 11.1: Architectural memory layout comparison between <code>std::shared_ptr&lt;T&gt;</code> and ns-3's intrusive <code>Ptr&lt;T&gt;</code>.</div>
-    </div>
-
-    <h3>11.4 Step-by-Step Memory Lifecycle of an ns-3 Object</h3>
-    <p>To see intrusive reference counting in action, let us trace four distinct time stages in code:</p>
-    <pre><code class="language-cpp">// Stage 1: Heap allocation
-Ptr&lt;Node&gt; n1 = CreateObject&lt;Node&gt;(); // Heap allocation: m_count initialized to 1
-
-// Stage 2: Assignment / Copying
-Ptr&lt;Node&gt; n2 = n1;                  // Copy constructor: increments m_count to 2
-NodeContainer container;
-container.Add(n1);                  // Container stores its own Ptr: m_count increments to 3
-
-// Stage 3: Scope Termination
-{
-    Ptr&lt;Node&gt; temp = n1;            // m_count increments to 4
-}                                   // temp goes out of scope: destructor calls Unref() -> m_count drops back to 3
-
-// Stage 4: Deletion
-n2 = 0;                             // n2 reset: m_count drops to 2
-n1 = 0;                             // n1 reset: m_count drops to 1
-container.Clear();                  // container destroyed: m_count drops to 0 -> delete this!</code></pre>
-
-    <!-- SVG 1: Step-by-Step Reference Count State Machine -->
-    <div style="margin: 28px 0; text-align: center;">
-      <svg viewBox="0 0 820 330" width="100%" height="330" xmlns="http://www.w3.org/2000/svg" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-        <!-- Header -->
-        <rect x="0" y="0" width="820" height="38" fill="#2c3e50" rx="8" ry="8"/>
-        <text x="410" y="24" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">Step-by-Step Hardware Stack & Heap Lifecycle of Ptr&lt;Node&gt;</text>
-        
-        <!-- Step 1 -->
-        <g transform="translate(15, 52)">
-          <rect x="0" y="0" width="185" height="260" rx="6" fill="#f8fafc" stroke="#cbd5e1"/>
-          <rect x="0" y="0" width="185" height="28" rx="6" fill="#e2e8f0"/>
-          <text x="92" y="19" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e293b">Step 1: CreateObject</text>
-          
-          <rect x="15" y="42" width="155" height="42" rx="4" fill="#dbeafe" stroke="#3b82f6"/>
-          <text x="92" y="58" text-anchor="middle" font-size="10" font-weight="bold" fill="#1e40af">Stack: n1</text>
-          <text x="92" y="73" text-anchor="middle" font-size="9" fill="#1e3a8a">points to 0x1A40</text>
-
-          <path d="M 92 84 L 92 125" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrow-blue)"/>
-
-          <rect x="15" y="130" width="155" height="110" rx="4" fill="#ffffff" stroke="#3b82f6" stroke-width="1.5"/>
-          <text x="92" y="150" text-anchor="middle" font-size="10" font-weight="bold" fill="#1e293b">Heap: Node (0x1A40)</text>
-          
-          <rect x="30" y="162" width="125" height="32" rx="3" fill="#eff6ff" stroke="#3b82f6"/>
-          <text x="92" y="182" text-anchor="middle" font-size="11" font-weight="bold" fill="#2563eb">m_count = 1</text>
-          <text x="92" y="215" text-anchor="middle" font-size="9" fill="#64748b">Active References: 1</text>
-          <text x="92" y="230" text-anchor="middle" font-size="9" fill="#16a34a">Status: In Use</text>
-        </g>
-
-        <!-- Step 2 -->
-        <g transform="translate(215, 52)">
-          <rect x="0" y="0" width="185" height="260" rx="6" fill="#f8fafc" stroke="#cbd5e1"/>
-          <rect x="0" y="0" width="185" height="28" rx="6" fill="#e2e8f0"/>
-          <text x="92" y="19" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e293b">Step 2: Add to Container</text>
-          
-          <rect x="15" y="38" width="72" height="42" rx="4" fill="#dbeafe" stroke="#3b82f6"/>
-          <text x="51" y="55" text-anchor="middle" font-size="9" font-weight="bold" fill="#1e40af">Stack: n1</text>
-          <text x="51" y="70" text-anchor="middle" font-size="8" fill="#1e3a8a">0x1A40</text>
-
-          <rect x="98" y="38" width="72" height="42" rx="4" fill="#fce7f3" stroke="#ec4899"/>
-          <text x="134" y="55" text-anchor="middle" font-size="9" font-weight="bold" fill="#9d174d">Stack: c[0]</text>
-          <text x="134" y="70" text-anchor="middle" font-size="8" fill="#831843">0x1A40</text>
-
-          <path d="M 51 80 L 80 125" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
-          <path d="M 134 80 L 105 125" stroke="#ec4899" stroke-width="1.5" marker-end="url(#arrow-pink)"/>
-
-          <rect x="15" y="130" width="155" height="110" rx="4" fill="#ffffff" stroke="#ec4899" stroke-width="1.5"/>
-          <text x="92" y="150" text-anchor="middle" font-size="10" font-weight="bold" fill="#1e293b">Heap: Node (0x1A40)</text>
-          
-          <rect x="30" y="162" width="125" height="32" rx="3" fill="#fdf2f8" stroke="#ec4899"/>
-          <text x="92" y="182" text-anchor="middle" font-size="11" font-weight="bold" fill="#db2777">m_count = 2</text>
-          <text x="92" y="215" text-anchor="middle" font-size="9" fill="#64748b">Active References: 2</text>
-          <text x="92" y="230" text-anchor="middle" font-size="9" fill="#16a34a">Shared Ownership</text>
-        </g>
-
-        <!-- Step 3 -->
-        <g transform="translate(415, 52)">
-          <rect x="0" y="0" width="185" height="260" rx="6" fill="#f8fafc" stroke="#cbd5e1"/>
-          <rect x="0" y="0" width="185" height="28" rx="6" fill="#e2e8f0"/>
-          <text x="92" y="19" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e293b">Step 3: n1 Goes Out of Scope</text>
-          
-          <rect x="15" y="38" width="72" height="42" rx="4" fill="#f1f5f9" stroke="#94a3b8" stroke-dasharray="2,2"/>
-          <text x="51" y="55" text-anchor="middle" font-size="9" fill="#94a3b8">Stack: n1</text>
-          <text x="51" y="70" text-anchor="middle" font-size="8" fill="#94a3b8">POPPED</text>
-
-          <rect x="98" y="38" width="72" height="42" rx="4" fill="#fce7f3" stroke="#ec4899"/>
-          <text x="134" y="55" text-anchor="middle" font-size="9" font-weight="bold" fill="#9d174d">Stack: c[0]</text>
-          <text x="134" y="70" text-anchor="middle" font-size="8" fill="#831843">0x1A40</text>
-
-          <path d="M 134 80 L 105 125" stroke="#ec4899" stroke-width="1.5" marker-end="url(#arrow-pink)"/>
-
-          <rect x="15" y="130" width="155" height="110" rx="4" fill="#ffffff" stroke="#64748b" stroke-width="1.5"/>
-          <text x="92" y="150" text-anchor="middle" font-size="10" font-weight="bold" fill="#1e293b">Heap: Node (0x1A40)</text>
-          
-          <rect x="30" y="162" width="125" height="32" rx="3" fill="#f8fafc" stroke="#64748b"/>
-          <text x="92" y="182" text-anchor="middle" font-size="11" font-weight="bold" fill="#475569">m_count = 1</text>
-          <text x="92" y="215" text-anchor="middle" font-size="9" fill="#64748b">Active References: 1</text>
-          <text x="92" y="230" text-anchor="middle" font-size="9" fill="#eab308">Preserved in Heap</text>
-        </g>
-
-        <!-- Step 4 -->
-        <g transform="translate(615, 52)">
-          <rect x="0" y="0" width="190" height="260" rx="6" fill="#fef2f2" stroke="#fca5a5"/>
-          <rect x="0" y="0" width="190" height="28" rx="6" fill="#fee2e2"/>
-          <text x="95" y="19" text-anchor="middle" font-size="11" font-weight="bold" fill="#991b1b">Step 4: Container Cleared</text>
-          
-          <rect x="15" y="38" width="160" height="42" rx="4" fill="#f1f5f9" stroke="#94a3b8" stroke-dasharray="2,2"/>
-          <text x="95" y="55" text-anchor="middle" font-size="9" fill="#94a3b8">Stack: c[0] Destroyed</text>
-          <text x="95" y="70" text-anchor="middle" font-size="8" fill="#94a3b8">container.Clear()</text>
-
-          <path d="M 95 80 L 95 125" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#arrow-red)"/>
-
-          <rect x="15" y="130" width="160" height="110" rx="4" fill="#ffffff" stroke="#ef4444" stroke-width="2"/>
-          <text x="95" y="150" text-anchor="middle" font-size="10" font-weight="bold" fill="#991b1b">Heap: Node (DELETED)</text>
-          
-          <rect x="30" y="162" width="130" height="32" rx="3" fill="#fee2e2" stroke="#ef4444"/>
-          <text x="95" y="182" text-anchor="middle" font-size="11" font-weight="bold" fill="#dc2626">m_count = 0</text>
-          <text x="95" y="215" text-anchor="middle" font-size="9" font-weight="bold" fill="#dc2626">delete this Called!</text>
-          <text x="95" y="230" text-anchor="middle" font-size="9" fill="#16a34a">RAM Reclaimed</text>
-        </g>
-
-        <defs>
-          <marker id="arrow-blue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M 0 1 L 10 5 L 0 9 z" fill="#3b82f6"/>
-          </marker>
-          <marker id="arrow-pink" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M 0 1 L 10 5 L 0 9 z" fill="#ec4899"/>
-          </marker>
-        </defs>
-      </svg>
-      <div style="font-size: 11px; color: #64748b; margin-top: 6px;">Figure 11.2: Hardware stack and heap allocation dynamics showing intrusive reference counting lifecycle transitions.</div>
-    </div>
-
-    <h3>11.5 Canonical C++ Script: Demonstrating <code>SimpleRefCount</code> & <code>Ptr&lt;T&gt;</code></h3>
-    <p>Below is a minimal, educational C++ script showing how you can create your own reference-counted class in ns-3:</p>
-
-    <pre><code class="language-cpp">#include "ns3/core-module.h"
-#include &lt;iostream&gt;
-
-using namespace ns3;
-
-// Inherit from SimpleRefCount to make our class reference-counted!
-class MyBuffer : public SimpleRefCount&lt;MyBuffer&gt;
-{
-public:
-  MyBuffer (uint32_t size) : m_size (size) {
-    std::cout &lt;&lt; "[CONSTRUCTOR] Allocating MyBuffer of size: " &lt;&lt; m_size &lt;&lt; " bytes\n";
-  }
-  ~MyBuffer () {
-    std::cout &lt;&lt; "[DESTRUCTOR] Deallocating MyBuffer of size: " &lt;&lt; m_size &lt;&lt; " bytes automatically!\n";
-  }
-  void PrintInfo () const {
-    std::cout &lt;&lt; "  -&gt; Buffer holding " &lt;&lt; m_size &lt;&lt; " bytes\n";
-  }
-private:
-  uint32_t m_size;
-};
-
-void ProcessBuffer (Ptr&lt;MyBuffer&gt; buf)
-{
-  std::cout &lt;&lt; "Inside ProcessBuffer: Reference count incremented temporarily\n";
-  buf-&gt;PrintInfo ();
-}
-
-int main ()
-{
-  std::cout &lt;&lt; "--- STEP 1: Creating object on Heap via Create&lt;T&gt; ---\n";
-  Ptr&lt;MyBuffer&gt; p1 = Create&lt;MyBuffer&gt; (1024); // m_count starts at 1
-  
-  std::cout &lt;&lt; "--- STEP 2: Creating a second reference p2 ---\n";
-  Ptr&lt;MyBuffer&gt; p2 = p1; // Copy constructor increments m_count to 2
-  
-  std::cout &lt;&lt; "--- STEP 3: Passing p2 by value to a function ---\n";
-  ProcessBuffer (p2); // Copies Ptr, m_count becomes 3 inside function, drops back to 2 upon return
-  
-  std::cout &lt;&lt; "--- STEP 4: Resetting p1 ---\n";
-  p1 = 0; // p1 drops reference, m_count drops to 1. Buffer NOT deleted yet!
-  
-  std::cout &lt;&lt; "--- STEP 5: Resetting p2 (The last remaining reference) ---\n";
-  p2 = 0; // m_count drops to 0 -> Destructor automatically called here!
-  
-  std::cout &lt;&lt; "--- End of main program ---\n";
-  return 0;
-}</code></pre>
-
-    <h3>11.6 Line-by-Line Code Breakdown & Memory Mechanics</h3>
-    <table class="tableblock frame-all grid-all stretch" style="margin-top: 15px;">
-      <colgroup><col style="width: 8%;"><col style="width: 25%;"><col style="width: 27%;"><col style="width: 40%;"></colgroup>
-      <thead>
-        <tr><th class="tableblock halign-left">Line #</th><th class="tableblock halign-left">C++ Statement</th><th class="tableblock halign-left">What It Does</th><th class="tableblock halign-left">Under-the-Hood Memory Behavior</th></tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td class="tableblock halign-left"><strong>L7</strong></td>
-          <td class="tableblock halign-left"><code>class MyBuffer : public SimpleRefCount&lt;MyBuffer&gt;</code></td>
-          <td class="tableblock halign-left">Inherits reference-counting capability via Curiously Recurring Template Pattern (CRTP).</td>
-          <td class="tableblock halign-left">Injects a 32-bit integer <code>uint32_t m_count</code> and inline <code>Ref()</code> and <code>Unref()</code> methods directly into <code>MyBuffer</code>'s memory layout.</td>
-        </tr>
-        <tr>
-          <td class="tableblock halign-left"><strong>L10</strong></td>
-          <td class="tableblock halign-left"><code>MyBuffer (uint32_t size)</code></td>
-          <td class="tableblock halign-left">Custom class constructor.</td>
-          <td class="tableblock halign-left">Initializes <code>m_count = 1</code> when allocated via <code>Create&lt;T&gt;()</code>.</td>
-        </tr>
-        <tr>
-          <td class="tableblock halign-left"><strong>L13</strong></td>
-          <td class="tableblock halign-left"><code>~MyBuffer ()</code></td>
-          <td class="tableblock halign-left">Custom class destructor.</td>
-          <td class="tableblock halign-left">Invoked only when <code>m_count</code> reaches 0 inside the <code>Unref()</code> method.</td>
-        </tr>
-        <tr>
-          <td class="tableblock halign-left"><strong>L22</strong></td>
-          <td class="tableblock halign-left"><code>void ProcessBuffer (Ptr&lt;MyBuffer&gt; buf)</code></td>
-          <td class="tableblock halign-left">Function taking a smart pointer parameter <strong>by value</strong>.</td>
-          <td class="tableblock halign-left">Creates a temporary <code>Ptr</code> on the call stack frame, invoking <code>Ref()</code> which increments <code>m_count</code> by 1 during function execution.</td>
-        </tr>
-        <tr>
-          <td class="tableblock halign-left"><strong>L30</strong></td>
-          <td class="tableblock halign-left"><code>Ptr&lt;MyBuffer&gt; p1 = Create&lt;MyBuffer&gt; (1024);</code></td>
-          <td class="tableblock halign-left">Allocates <code>MyBuffer</code> on the heap and wraps it in a <code>Ptr</code>.</td>
-          <td class="tableblock halign-left">Calls <code>new MyBuffer(1024)</code>, sets embedded <code>m_count = 1</code>, and assigns raw memory address to <code>p1.m_ptr</code> on the stack.</td>
-        </tr>
-        <tr>
-          <td class="tableblock halign-left"><strong>L33</strong></td>
-          <td class="tableblock halign-left"><code>Ptr&lt;MyBuffer&gt; p2 = p1;</code></td>
-          <td class="tableblock halign-left">Copies smart pointer <code>p1</code> into a new smart pointer <code>p2</code>.</td>
-          <td class="tableblock halign-left">Executes <code>Ptr</code> copy constructor: copies address <code>p2.m_ptr = p1.m_ptr</code> and calls <code>p1.m_ptr-&gt;Ref()</code>, changing <code>m_count</code> from 1 to 2.</td>
-        </tr>
-        <tr>
-          <td class="tableblock halign-left"><strong>L36</strong></td>
-          <td class="tableblock halign-left"><code>ProcessBuffer (p2);</code></td>
-          <td class="tableblock halign-left">Passes <code>p2</code> to function.</td>
-          <td class="tableblock halign-left">Stack pushes parameter: <code>m_count</code> becomes 3. When function returns, parameter destroyed: <code>Unref()</code> drops <code>m_count</code> back to 2.</td>
-        </tr>
-        <tr>
-          <td class="tableblock halign-left"><strong>L39</strong></td>
-          <td class="tableblock halign-left"><code>p1 = 0;</code></td>
-          <td class="tableblock halign-left">Clears smart pointer <code>p1</code> (points to null).</td>
-          <td class="tableblock halign-left">Calls <code>p1.m_ptr-&gt;Unref()</code>. <code>m_count</code> decrements from 2 to 1. Since $1 &gt; 0$, memory remains allocated because <code>p2</code> still holds it.</td>
-        </tr>
-        <tr>
-          <td class="tableblock halign-left"><strong>L42</strong></td>
-          <td class="tableblock halign-left"><code>p2 = 0;</code></td>
-          <td class="tableblock halign-left">Clears the final remaining pointer.</td>
-          <td class="tableblock halign-left">Calls <code>p2.m_ptr-&gt;Unref()</code>. <code>m_count</code> decrements from 1 to 0! Condition <code>if (--m_count == 0) delete this;</code> triggers, invoking <code>~MyBuffer()</code> and freeing heap memory immediately!</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <h3>11.7 Student Best Practices & The Circular Reference Trap</h3>
-    <div class="admonitionblock warning" style="margin-top: 15px;">
-      <table><tr>
-        <td class="icon"><div class="title" style="color: #ba3925; font-weight: bold;">Warning: Circular Reference Deadlock</div></td>
-        <td class="content">
-          If Object A holds <code>Ptr&lt;B&gt;</code> and Object B holds <code>Ptr&lt;A&gt;</code>, neither object can ever reach <code>m_count == 0</code>. Even if all external pointers are destroyed, they will keep each other alive forever, causing a <strong>permanent memory leak</strong>. In ns-3, break circular references by having one side store a raw pointer (<code>T*</code>) or by breaking the link during <code>DoDispose()</code>.
-        </td>
-      </tr></table>
-    </div>
-
-    <div class="admonitionblock tip" style="margin-top: 15px;">
-      <table><tr>
-        <td class="icon"><div class="title" style="color: #15803d; font-weight: bold;">Performance Pro-Tip: Pass by Const Reference</div></td>
-        <td class="content">
-          Passing <code>Ptr&lt;T&gt;</code> by value (<code>void Foo (Ptr&lt;Node&gt; n)</code>) causes atomic increment and decrement of <code>m_count</code>. For high-speed simulations processing millions of packets, always pass by const reference: <code>void Foo (const Ptr&lt;Node&gt;&amp; n)</code>. This avoids touching <code>m_count</code> completely while maintaining safety!
-        </td>
-      </tr></table>
-    </div>
-  </div>
-</details>
-
-<!-- MODULE 12 -->
-<details class="module-card" open id="_cpp_mod2_callbacks">
-  <summary class="module-summary">
-    <div><span class="module-badge">Module 16</span> Callbacks, Events & Object Aggregation</div>
-    <span style="font-size: 14px; color: #64748b;">▼</span>
-  </summary>
-  <div class="module-body">
-    <div class="admonitionblock note" style="margin-bottom: 20px;">
-      <table><tr>
-        <td class="icon"><div class="title" style="color: #186d7a; font-weight: bold;">Core Insight</div></td>
-        <td class="content">
-          How can a physical Wi-Fi queue notify a TCP layer that a packet was dropped without hardcoding `#include "ns3/tcp-socket-base.h"` into the Wi-Fi physical layer? And how can a generic <code>Node</code> support Wi-Fi, Ethernet, LTE, IPv4, IPv6, and 3D Mobility without creating an unmaintainable "God-class" with 500 methods? ns-3 answers these two fundamental questions with <strong>Type-Safe Callbacks</strong> and <strong>COM-like Object Aggregation</strong>.
-        </td>
-      </tr></table>
-    </div>
-
-    <h3>12.1 The Callback Template: Type-Safe Function Pointers</h3>
-    <p>In standard C, function pointers (<code>void (*fn)(int)</code>) are brittle, lack type safety, and cannot bind to C++ member functions on specific object instances. ns-3 introduces <code>Callback&lt;R, T1, T2...&gt;</code>:</p>
-    <blockquote>
-      <strong>The Telephone Callback Analogy:</strong> Suppose you order a package. You don't sit by the door waiting (blocking). Instead, you give the courier company your phone number (a Callback). When the package arrives, the courier dials that number. The courier doesn't care who answers or what you do with the package—their only job is to execute the callback.
-    </blockquote>
-
-    <!-- SVG 3: Callback Decoupled Invocation Pipeline -->
-    <div style="margin: 28px 0; text-align: center;">
-      <svg viewBox="0 0 820 250" width="100%" height="250" xmlns="http://www.w3.org/2000/svg" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-        <!-- Header -->
-        <rect x="0" y="0" width="820" height="36" fill="#2c3e50" rx="8" ry="8"/>
-        <text x="410" y="23" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">The Decoupled Callback Architecture: Zero Dependency Inversion</text>
-        
-        <!-- Publisher: Queue -->
-        <g transform="translate(25, 55)">
-          <rect x="0" y="0" width="220" height="170" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
-          <rect x="0" y="0" width="220" height="30" rx="6" fill="#e2e8f0"/>
-          <text x="110" y="20" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e293b">Event Publisher: DropTailQueue</text>
-          
-          <rect x="15" y="45" width="190" height="50" rx="4" fill="#fee2e2" stroke="#ef4444"/>
-          <text x="105" y="65" text-anchor="middle" font-size="10" font-weight="bold" fill="#991b1b">Event: Queue Full!</text>
-          <text x="105" y="82" text-anchor="middle" font-size="9" fill="#7f1d1d">Must drop Ptr&lt;Packet&gt; p</text>
-
-          <rect x="15" y="110" width="190" height="42" rx="4" fill="#ffffff" stroke="#94a3b8"/>
-          <text x="105" y="128" text-anchor="middle" font-size="9" font-weight="bold" fill="#475569">m_dropCallback(p)</text>
-          <text x="105" y="142" text-anchor="middle" font-size="8" fill="#64748b">Doesn't know who is listening!</text>
-        </g>
-
-        <!-- The Bridge: Callback Object -->
-        <g transform="translate(285, 75)">
-          <rect x="0" y="0" width="250" height="130" rx="6" fill="#f0fdf4" stroke="#22c55e" stroke-width="2"/>
-          <rect x="0" y="0" width="250" height="28" rx="6" fill="#dcfce7"/>
-          <text x="125" y="19" text-anchor="middle" font-size="11" font-weight="bold" fill="#166534">Callback&lt;void, Ptr&lt;Packet&gt;&gt;</text>
-          
-          <text x="125" y="55" text-anchor="middle" font-size="10" fill="#14532d">Stores:</text>
-          <text x="125" y="74" text-anchor="middle" font-size="10" font-weight="bold" fill="#15803d">1. Object: Ptr&lt;TrafficAnalyzer&gt;</text>
-          <text x="125" y="93" text-anchor="middle" font-size="10" font-weight="bold" fill="#15803d">2. Method: &amp;TrafficAnalyzer::LogDrop</text>
-          <text x="125" y="115" text-anchor="middle" font-size="9" font-style="italic" fill="#166534">Invoked via MakeCallback()</text>
-        </g>
-
-        <!-- Subscriber: Traffic Analyzer -->
-        <g transform="translate(575, 55)">
-          <rect x="0" y="0" width="220" height="170" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
-          <rect x="0" y="0" width="220" height="30" rx="6" fill="#e2e8f0"/>
-          <text x="110" y="20" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e293b">Event Subscriber: Analyzer</text>
-          
-          <rect x="15" y="45" width="190" height="50" rx="4" fill="#e0f2fe" stroke="#0284c7"/>
-          <text x="105" y="65" text-anchor="middle" font-size="10" font-weight="bold" fill="#0369a1">Member Function</text>
-          <text x="105" y="82" text-anchor="middle" font-size="9" fill="#075985">void LogDrop (Ptr&lt;Packet&gt; p)</text>
-
-          <rect x="15" y="110" width="190" height="42" rx="4" fill="#ffffff" stroke="#94a3b8"/>
-          <text x="105" y="128" text-anchor="middle" font-size="9" font-weight="bold" fill="#475569">Records Loss Stats</text>
-          <text x="105" y="142" text-anchor="middle" font-size="8" fill="#64748b">Plots drop graph / exports SQL</text>
-        </g>
-
-        <!-- Connecting Arrows -->
-        <path d="M 245 140 L 280 140" stroke="#22c55e" stroke-width="2.5" marker-end="url(#arrow-green2)"/>
-        <path d="M 535 140 L 570 140" stroke="#0284c7" stroke-width="2.5" marker-end="url(#arrow-blue2)"/>
-
-        <defs>
-          <marker id="arrow-green2" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M 0 1 L 10 5 L 0 9 z" fill="#22c55e"/>
-          </marker>
-          <marker id="arrow-blue2" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M 0 1 L 10 5 L 0 9 z" fill="#0284c7"/>
-          </marker>
-        </defs>
-      </svg>
-      <div style="font-size: 11px; color: #64748b; margin-top: 6px;">Figure 12.1: Complete decoupling between network queues and analytical monitors using ns-3 Callbacks.</div>
-    </div>
-
-    <h3>12.2 Two Types of Callbacks: Free Functions vs Member Methods</h3>
-    <table class="tableblock frame-all grid-all stretch" style="margin-top: 15px;">
-      <colgroup><col style="width: 25%;"><col style="width: 35%;"><col style="width: 40%;"></colgroup>
-      <thead>
-        <tr><th class="tableblock halign-left">Callback Type</th><th class="tableblock halign-left">C++ Syntax</th><th class="tableblock halign-left">When to Use</th></tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td class="tableblock halign-left"><strong>Free / Static Function</strong></td>
-          <td class="tableblock halign-left"><code>MakeCallback (&amp;MyStandaloneFunction)</code></td>
-          <td class="tableblock halign-left">When the listener is a simple global function without state or internal class variables.</td>
-        </tr>
-        <tr>
-          <td class="tableblock halign-left"><strong>C++ Member Method</strong></td>
-          <td class="tableblock halign-left"><code>MakeCallback (&amp;MyClass::OnEvent, this)</code></td>
-          <td class="tableblock halign-left">When the listener needs access to instance variables (e.g., updating packet counts in <code>this-&gt;m_totalBytes</code>). Automatically manages <code>Ptr</code> lifetime.</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <h3>12.3 Object Aggregation: The "Swiss Army Knife" Architecture</h3>
-    <p>In traditional object-oriented software, developers try to create network nodes using inheritance:</p>
-    <pre><code class="language-cpp">// BAD OOP DESIGN: Class explosion!
-class WifiIpv4Node : public Node { ... };
-class LteIpv6MobileNode : public Node { ... };
-class WifiLteDualStackIpv4Ipv6Node : public Node { ... }; // 100 combination classes!</code></pre>
-    <p>ns-3 completely rejects this broken inheritance model. Instead, ns-3 implements <strong>Object Aggregation</strong> (inspired by Microsoft COM). A <code>Node</code> begins as an empty shell. You attach protocols and capabilities to it at runtime dynamically:</p>
-
-    <!-- SVG 4: Node Object Aggregation Internal Graph -->
-    <div style="margin: 28px 0; text-align: center;">
-      <svg viewBox="0 0 820 280" width="100%" height="280" xmlns="http://www.w3.org/2000/svg" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-        <!-- Header -->
-        <rect x="0" y="0" width="820" height="36" fill="#2c3e50" rx="8" ry="8"/>
-        <text x="410" y="23" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">The Object Aggregation Pattern: Dynamic Runtime Composition</text>
-        
-        <!-- Central Node -->
-        <g transform="translate(320, 95)">
-          <rect x="0" y="0" width="180" height="90" rx="8" fill="#1e293b" stroke="#0f172a" stroke-width="2"/>
-          <text x="90" y="32" text-anchor="middle" font-size="14" font-weight="bold" fill="#ffffff">Ptr&lt;Node&gt;</text>
-          <text x="90" y="52" text-anchor="middle" font-size="10" fill="#94a3b8">Node ID: 0</text>
-          <text x="90" y="70" text-anchor="middle" font-size="9" fill="#38bdf8">AggregateObjectList</text>
-        </g>
-
-        <!-- Aggregated: Ipv4 -->
-        <g transform="translate(40, 50)">
-          <rect x="0" y="0" width="190" height="65" rx="6" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
-          <text x="95" y="26" text-anchor="middle" font-size="11" font-weight="bold" fill="#1d4ed8">Ptr&lt;Ipv4L3Protocol&gt;</text>
-          <text x="95" y="44" text-anchor="middle" font-size="9" fill="#1e40af">IP Routing &amp; ARP Resolution</text>
-          <text x="95" y="56" text-anchor="middle" font-size="8" fill="#60a5fa">TypeId: ns3::Ipv4L3Protocol</text>
-          <path d="M 190 32 L 315 110" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="3,3"/>
-        </g>
-
-        <!-- Aggregated: MobilityModel -->
-        <g transform="translate(40, 160)">
-          <rect x="0" y="0" width="190" height="65" rx="6" fill="#f0fdf4" stroke="#22c55e" stroke-width="1.5"/>
-          <text x="95" y="26" text-anchor="middle" font-size="11" font-weight="bold" fill="#15803d">Ptr&lt;MobilityModel&gt;</text>
-          <text x="95" y="44" text-anchor="middle" font-size="9" fill="#166534">3D Coordinates (x, y, z)</text>
-          <text x="95" y="56" text-anchor="middle" font-size="8" fill="#4ade80">TypeId: ns3::ConstantPosition</text>
-          <path d="M 190 192 L 315 150" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="3,3"/>
-        </g>
-
-        <!-- Aggregated: WifiNetDevice -->
-        <g transform="translate(590, 50)">
-          <rect x="0" y="0" width="190" height="65" rx="6" fill="#fdf4ff" stroke="#c084fc" stroke-width="1.5"/>
-          <text x="95" y="26" text-anchor="middle" font-size="11" font-weight="bold" fill="#7e22ce">Ptr&lt;WifiNetDevice&gt;</text>
-          <text x="95" y="44" text-anchor="middle" font-size="9" fill="#6b21a8">802.11be MLO &amp; PHY</text>
-          <text x="95" y="56" text-anchor="middle" font-size="8" fill="#a855f7">TypeId: ns3::WifiNetDevice</text>
-          <path d="M 590 32 L 505 110" stroke="#c084fc" stroke-width="1.5" stroke-dasharray="3,3"/>
-        </g>
-
-        <!-- Aggregated: EnergyModel -->
-        <g transform="translate(590, 160)">
-          <rect x="0" y="0" width="190" height="65" rx="6" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.5"/>
-          <text x="95" y="26" text-anchor="middle" font-size="11" font-weight="bold" fill="#b45309">Ptr&lt;EnergySource&gt;</text>
-          <text x="95" y="44" text-anchor="middle" font-size="9" fill="#92400e">Battery Energy Harvesting</text>
-          <text x="95" y="56" text-anchor="middle" font-size="8" fill="#fbbf24">TypeId: ns3::LiIonEnergySource</text>
-          <path d="M 590 192 L 505 150" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3,3"/>
-        </g>
-
-        <!-- Bottom retrieval hint -->
-        <text x="410" y="245" text-anchor="middle" font-size="12" font-weight="bold" fill="#ba3925">node-&gt;GetObject&lt;MobilityModel&gt;() dynamically returns the component in O(1) time!</text>
-      </svg>
-      <div style="font-size: 11px; color: #64748b; margin-top: 6px;">Figure 12.2: Object aggregation internal structure. Components query each other using <code>GetObject&lt;T&gt;()</code>.</div>
-    </div>
-
-    <h3>12.4 Canonical C++ Script: Combining Callbacks, Events & Aggregation</h3>
-    <p>The following standalone program demonstrates how to bind member callbacks, schedule future discrete events, aggregate custom components, and query them at runtime:</p>
-
-    <pre><code class="language-cpp">#include "ns3/core-module.h"
-#include "ns3/network-module.h"
-#include &lt;iostream&gt;
-
-using namespace ns3;
-
-// 1. A Custom Network Component that can be aggregated onto a Node
-class BatteryComponent : public Object
-{
-public:
-  static TypeId GetTypeId (void) {
-    static TypeId tid = TypeId ("ns3::BatteryComponent")
-      .SetParent&lt;Object&gt; ()
-      .AddConstructor&lt;BatteryComponent&gt; ();
-    return tid;
-  }
-  BatteryComponent () : m_joules (1000.0) {}
-
-  void DrainBattery (double amount) {
-    m_joules -= amount;
-    std::cout &lt;&lt; "  [Battery] Drained " &lt;&lt; amount &lt;&lt; " J. Remaining: " &lt;&lt; m_joules &lt;&lt; " J\n";
-    if (m_joules &lt;= 500.0 &amp;&amp; !m_lowBatteryCallback.IsNull ()) {
-      m_lowBatteryCallback (m_joules); // Invoke callback!
-    }
-  }
-
-  void SetLowBatteryCallback (Callback&lt;void, double&gt; cb) {
-    m_lowBatteryCallback = cb;
-  }
-
-private:
-  double m_joules;
-  Callback&lt;void, double&gt; m_lowBatteryCallback;
-};
-
-// 2. An Observer Class that handles the event
-class PowerManager
-{
-public:
-  void OnLowBatteryWarning (double remainingJoules) {
-    std::cout &lt;&lt; "  [PowerManager ALERT] Low battery warning! Switching to Power-Save Mode. Level = " 
-              &lt;&lt; remainingJoules &lt;&lt; " J at t = " &lt;&lt; Simulator::Now ().GetSeconds () &lt;&lt; "s\n";
-  }
-};
-
-int main ()
-{
-  std::cout &lt;&lt; "=== 1. Creating Node and Aggregating Component ===\n";
-  Ptr&lt;Node&gt; node = CreateObject&lt;Node&gt; ();
-  Ptr&lt;BatteryComponent&gt; battery = CreateObject&lt;BatteryComponent&gt; ();
-  
-  // Aggregate battery into the Node
-  node-&gt;AggregateObject (battery);
-
-  std::cout &lt;&lt; "=== 2. Binding Member Method Callback ===\n";
-  PowerManager manager;
-  
-  // Query battery back from Node using GetObject&lt;T&gt;()!
-  Ptr&lt;BatteryComponent&gt; queriedBattery = node-&gt;GetObject&lt;BatteryComponent&gt; ();
-  NS_ASSERT (queriedBattery != 0); // Verify component was found
-
-  // Hook PowerManager::OnLowBatteryWarning as the callback target
-  queriedBattery-&gt;SetLowBatteryCallback (
-    MakeCallback (&amp;PowerManager::OnLowBatteryWarning, &amp;manager)
-  );
-
-  std::cout &lt;&lt; "=== 3. Scheduling Discrete Simulation Events ===\n";
-  // Schedule battery drains across simulation time
-  Simulator::Schedule (Seconds (1.0), &amp;BatteryComponent::DrainBattery, queriedBattery, 300.0);
-  Simulator::Schedule (Seconds (2.5), &amp;BatteryComponent::DrainBattery, queriedBattery, 250.0); // Triggers callback!
-  Simulator::Schedule (Seconds (4.0), &amp;BatteryComponent::DrainBattery, queriedBattery, 100.0);
-
-  std::cout &lt;&lt; "=== 4. Running Simulation Scheduler ===\n";
-  Simulator::Run ();
-  Simulator::Destroy ();
-  std::cout &lt;&lt; "Simulation Finished Successfully!\n";
-  return 0;
-}</code></pre>
-
-    <h3>12.5 Line-by-Line Code Breakdown & Architectural Execution</h3>
-    <table class="tableblock frame-all grid-all stretch" style="margin-top: 15px;">
-      <colgroup><col style="width: 8%;"><col style="width: 25%;"><col style="width: 27%;"><col style="width: 40%;"></colgroup>
-      <thead>
-        <tr><th class="tableblock halign-left">Line #</th><th class="tableblock halign-left">C++ Statement</th><th class="tableblock halign-left">What It Does</th><th class="tableblock halign-left">Under-the-Hood Architectural Behavior</th></tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td class="tableblock halign-left"><strong>L8</strong></td>
-          <td class="tableblock halign-left"><code>class BatteryComponent : public Object</code></td>
-          <td class="tableblock halign-left">Inherits from root <code>ns3::Object</code>.</td>
-          <td class="tableblock halign-left">Enables RTTI (Runtime Type Information), <code>TypeId</code> reflection, and object aggregation capabilities.</td>
-        </tr>
-        <tr>
-          <td class="tableblock halign-left"><strong>L11</strong></td>
-          <td class="tableblock halign-left"><code>static TypeId GetTypeId (void)</code></td>
-          <td class="tableblock halign-left">Registers class type metadata in ns-3 type registry.</td>
-          <td class="tableblock halign-left">Assigns a unique string name <code>"ns3::BatteryComponent"</code> and constructor pointer so the object can be created or queried dynamically by string name.</td>
-        </tr>
-        <tr>
-          <td class="tableblock halign-left"><strong>L31</strong></td>
-          <td class="tableblock halign-left"><code>Callback&lt;void, double&gt; m_lowBatteryCallback;</code></td>
-          <td class="tableblock halign-left">Declares callback storage attribute.</td>
-          <td class="tableblock halign-left">Creates a generic, type-safe wrapper that accepts any callable function taking <code>double</code> and returning <code>void</code>.</td>
-        </tr>
-        <tr>
-          <td class="tableblock halign-left"><strong>L48</strong></td>
-          <td class="tableblock halign-left"><code>node-&gt;AggregateObject (battery);</code></td>
-          <td class="tableblock halign-left">Aggregates battery object into the node.</td>
-          <td class="tableblock halign-left">Merges both objects' internal aggregate pointer tables. Now <code>node</code> points to <code>battery</code>, and <code>battery</code> points to <code>node</code>.</td>
-        </tr>
-        <tr>
-          <td class="tableblock halign-left"><strong>L54</strong></td>
-          <td class="tableblock halign-left"><code>node-&gt;GetObject&lt;BatteryComponent&gt; ();</code></td>
-          <td class="tableblock halign-left">Queries component from node by C++ type.</td>
-          <td class="tableblock halign-left">Walks the aggregate list, compares each object's <code>TypeId</code> using fast integer comparisons, and returns the matching pointer safely casted to <code>Ptr&lt;BatteryComponent&gt;</code>.</td>
-        </tr>
-        <tr>
-          <td class="tableblock halign-left"><strong>L58</strong></td>
-          <td class="tableblock halign-left"><code>MakeCallback (&amp;PowerManager::OnLowBatteryWarning, &amp;manager)</code></td>
-          <td class="tableblock halign-left">Binds member function to specific class instance.</td>
-          <td class="tableblock halign-left">Packages the target instance pointer (<code>&amp;manager</code>) and method pointer into an internal <code>MemPtrCallbackImpl</code> functor.</td>
-        </tr>
-        <tr>
-          <td class="tableblock halign-left"><strong>L63</strong></td>
-          <td class="tableblock halign-left"><code>Simulator::Schedule (Seconds (1.0), &amp;BatteryComponent::DrainBattery, queriedBattery, 300.0);</code></td>
-          <td class="tableblock halign-left">Schedules future event in simulation clock.</td>
-          <td class="tableblock halign-left">Wraps the method call and arguments into an <code>EventImpl</code>, assigns execution timestamp $t = 1.0	ext{s}$, and inserts it into the DES binary heap priority queue.</td>
-        </tr>
-        <tr>
-          <td class="tableblock halign-left"><strong>L64</strong></td>
-          <td class="tableblock halign-left"><code>Simulator::Schedule (Seconds (2.5), ... 250.0);</code></td>
-          <td class="tableblock halign-left">Schedules second drain event at $t = 2.5	ext{s}$.</td>
-          <td class="tableblock halign-left">Remaining joules drops from $700	ext{ J}$ to $450	ext{ J}$ ($&lt; 500	ext{ J}$). Condition triggers, firing <code>m_lowBatteryCallback(450.0)</code> which calls <code>manager.OnLowBatteryWarning()</code>!</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <h3>12.6 Student Self-Check Quiz</h3>
-    <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 16px; margin-top: 15px;">
-      <p style="font-weight: bold; color: #1e293b; margin-top: 0;">Conceptual Checkpoint for Students:</p>
-      <ol style="margin-bottom: 0;">
-        <li><strong>Question 1:</strong> If you pass <code>Ptr&lt;Node&gt;</code> by value 10,000,000 times inside a tight routing loop, what is the performance impact compared to passing <code>const Ptr&lt;Node&gt;&amp;</code>?
-          <br><span style="color: #64748b; font-size: 13px;"><em>Answer hint:</em> Every value copy triggers atomic CPU instructions (<code>lock xadd</code>) to increment and decrement <code>m_count</code>, degrading CPU pipeline efficiency. Const reference passes an 8-byte pointer without touching memory count.</span>
-        </li>
-        <li style="margin-top: 10px;"><strong>Question 2:</strong> What will <code>node-&gt;GetObject&lt;WifiNetDevice&gt;()</code> return if you forgot to install a Wi-Fi device on that node?
-          <br><span style="color: #64748b; font-size: 13px;"><em>Answer hint:</em> It returns a null smart pointer (<code>Ptr&lt;WifiNetDevice&gt; (0)</code>). Always check <code>if (dev != 0)</code> or use <code>NS_ASSERT(dev != 0)</code> before dereferencing!</span>
-        </li>
-      </ol>
-    </div>
-  </div>
-</details>
-
-</div>
-</div>
-
-<!-- ======================================================== -->
-<div class="sect1">
-<h2 id="_part5_extending">Part V: Extending ns-3 Internal Architecture & Custom Protocol Engineering</h2>
+<h2 id="_part4_extending">Part IV: Extending ns-3 Internal Architecture & Custom Protocol Engineering</h2>
 <div class="sectionbody">
 
 <!-- MODULE 17: SOURCE TREE & CMAKE -->
 <details class="module-card" open id="_ext_mod1_tree">
   <summary class="module-summary">
-    <div><span class="module-badge">Module 17</span> Source Tree Layout, Module Anatomy & CMake Registration</div>
+    <div><span class="module-badge">Module 15</span> Source Tree Layout, Module Anatomy & CMake Registration</div>
     <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
   <div class="module-body">
-    <h3>17.1 The ns-3 Internal Directory Map</h3>
+    <h3>15.1 The ns-3 Internal Directory Map</h3>
     <p>
       To write custom networking models in ns-3, you must understand the repository hierarchy. All core network models live inside the <code>src/</code> directory, organized into autonomous modular libraries:
     </p>
 
-    <div class="topology-box" style="background: #0f172a; color: #f8fafc; border-color: #334155; font-family: monospace; font-size: 12px; line-height: 1.6;">
-      <span style="color: #60a5fa; font-weight: bold;">ns-3.45/</span><br>
-      ├── <span style="color: #38bdf8; font-weight: bold;">src/</span> (Core simulation engine and protocol libraries)<br>
-      │   ├── <span style="color: #4ade80;">core/</span>           → Event scheduler (Simulator), Time, Ptr&lt;T&gt;, TypeId, Logging, Random variables<br>
-      │   ├── <span style="color: #4ade80;">network/</span>        → Node, NetDevice, Channel, Packet, Buffer, Header, Tag, Socket abstractions<br>
-      │   ├── <span style="color: #4ade80;">internet/</span>       → IPv4/IPv6, ARP, ICMP, TCP (NewReno, BBR, Cubic), UDP, Routing protocols<br>
-      │   ├── <span style="color: #4ade80;">traffic-control/</span>→ QueueDisc (CoDel, RED, FIFO, FQ-CoDel, PfifoFast), Packet filters<br>
-      │   ├── <span style="color: #4ade80;">propagation/</span>    → PropagationLossModel (Friis, LogDistance, Nakagami, Jakes, ConstantSpeed)<br>
-      │   ├── <span style="color: #4ade80;">mobility/</span>       → MobilityModel (ConstantPosition, ConstantVelocity, RandomWalk2d, Waypoint)<br>
-      │   ├── <span style="color: #4ade80;">wifi/</span>           → WifiPhy, WifiMac, FrameExchangeManager, WifiRemoteStationManager, EDCA, MLO<br>
-      │   └── <span style="color: #4ade80;">point-to-point/</span> → PointToPointNetDevice, PointToPointChannel, DropTailQueue<br>
-      ├── <span style="color: #f472b6; font-weight: bold;">contrib/</span>        → Third-party plug-in modules (e.g. opengym, custom research extensions)<br>
-      ├── <span style="color: #fbbf24; font-weight: bold;">scratch/</span>        → User simulation scripts (.cc). Dynamically compiled as executables target<br>
-      └── <span style="color: #a78bfa; font-weight: bold;">examples/</span>       → Canonical reference scripts demonstrating standard protocols<br>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin: 20px 0;">
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-left: 4px solid #3b82f6; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <code style="font-weight: bold; color: #1e40af; font-size: 13px;">src/core/</code>
+          <span style="font-size: 11px; background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 12px; font-weight: 600;">Engine Core</span>
+        </div>
+        <p style="font-size: 12px; color: #475569; margin: 0 0 8px 0; line-height: 1.5;">Discrete Event Simulator priority calendar, <code>Ptr&lt;T&gt;</code> smart pointer counter, <code>TypeId</code> metadata registry, and logging system.</p>
+        <div style="font-size: 11px; color: #64748b;"><strong>Key Classes:</strong> <code>Simulator</code>, <code>Time</code>, <code>SimpleRefCount</code>, <code>TypeId</code>, <code>CommandLine</code></div>
+      </div>
+
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-left: 4px solid #10b981; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <code style="font-weight: bold; color: #065f46; font-size: 13px;">src/network/</code>
+          <span style="font-size: 11px; background: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 12px; font-weight: 600;">Base Network</span>
+        </div>
+        <p style="font-size: 12px; color: #475569; margin: 0 0 8px 0; line-height: 1.5;">Core networking abstractions and packet byte buffers. Contains the abstract base classes for nodes, channels, devices, and headers.</p>
+        <div style="font-size: 11px; color: #64748b;"><strong>Key Classes:</strong> <code>Node</code>, <code>NetDevice</code>, <code>Channel</code>, <code>Packet</code>, <code>Header</code>, <code>Tag</code>, <code>Socket</code></div>
+      </div>
+
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-left: 4px solid #8b5cf6; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <code style="font-weight: bold; color: #5b21b6; font-size: 13px;">src/wifi/</code>
+          <span style="font-size: 11px; background: #ede9fe; color: #5b21b6; padding: 2px 8px; border-radius: 12px; font-weight: 600;">802.11 WLAN</span>
+        </div>
+        <p style="font-size: 12px; color: #475569; margin: 0 0 8px 0; line-height: 1.5;">Physical and MAC layer implementation of IEEE 802.11a/b/g/n/ac/ax/be. Handles frame handshakes, EDCA QoS, and rate adaptation.</p>
+        <div style="font-size: 11px; color: #64748b;"><strong>Key Classes:</strong> <code>WifiPhy</code>, <code>WifiMac</code>, <code>FrameExchangeManager</code>, <code>WifiRemoteStationManager</code></div>
+      </div>
+
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <code style="font-weight: bold; color: #92400e; font-size: 13px;">src/propagation/</code>
+          <span style="font-size: 11px; background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 12px; font-weight: 600;">RF Propagation</span>
+        </div>
+        <p style="font-size: 12px; color: #475569; margin: 0 0 8px 0; line-height: 1.5;">Electromagnetic path loss models, shadowing distributions, multipath fading channels, and propagation delay engines.</p>
+        <div style="font-size: 11px; color: #64748b;"><strong>Key Classes:</strong> <code>PropagationLossModel</code>, <code>FriisPropagationLossModel</code>, <code>LogDistancePropagationLossModel</code></div>
+      </div>
+
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-left: 4px solid #06b6d4; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <code style="font-weight: bold; color: #155e75; font-size: 13px;">src/traffic-control/</code>
+          <span style="font-size: 11px; background: #cffafe; color: #155e75; padding: 2px 8px; border-radius: 12px; font-weight: 600;">Layer 2.5 AQM</span>
+        </div>
+        <p style="font-size: 12px; color: #475569; margin: 0 0 8px 0; line-height: 1.5;">Queueing disciplines positioned between Layer 2 NIC queues and Layer 3 IP. Implements Active Queue Management (AQM) to fight bufferbloat.</p>
+        <div style="font-size: 11px; color: #64748b;"><strong>Key Classes:</strong> <code>QueueDisc</code>, <code>CoDelQueueDisc</code>, <code>RedQueueDisc</code>, <code>PfifoFastQueueDisc</code></div>
+      </div>
+
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-left: 4px solid #ef4444; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <code style="font-weight: bold; color: #991b1b; font-size: 13px;">src/internet/</code>
+          <span style="font-size: 11px; background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 12px; font-weight: 600;">Layer 3 / 4</span>
+        </div>
+        <p style="font-size: 12px; color: #475569; margin: 0 0 8px 0; line-height: 1.5;">Complete TCP/IP stack implementation. Contains IPv4/IPv6 engines, ARP protocol, dynamic routing algorithms, and TCP congestion control variants.</p>
+        <div style="font-size: 11px; color: #64748b;"><strong>Key Classes:</strong> <code>Ipv4L3Protocol</code>, <code>TcpSocketBase</code>, <code>TcpCongestionOps</code>, <code>Ipv4RoutingProtocol</code></div>
+      </div>
     </div>
 
-    <h3>17.2 The Universal 4-Step Registration Protocol</h3>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px;">
+      <div style="flex: 1; min-width: 200px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 12px;">
+        <strong style="color: #0f172a; font-size: 12px;">📁 contrib/</strong>
+        <p style="font-size: 11px; color: #64748b; margin: 4px 0 0 0;">Third-party extensions (e.g. <code>opengym</code>, <code>ns3-ai</code>). Kept isolated from core codebase.</p>
+      </div>
+      <div style="flex: 1; min-width: 200px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 12px;">
+        <strong style="color: #0f172a; font-size: 12px;">📁 scratch/</strong>
+        <p style="font-size: 11px; color: #64748b; margin: 4px 0 0 0;">Developer sandbox. Any <code>.cc</code> script placed here is automatically built as an executable target.</p>
+      </div>
+      <div style="flex: 1; min-width: 200px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 12px;">
+        <strong style="color: #0f172a; font-size: 12px;">📁 examples/</strong>
+        <p style="font-size: 11px; color: #64748b; margin: 4px 0 0 0;">Official reference simulations demonstrating routing, wireless, and transport features.</p>
+      </div>
+    </div>
+
+    <h3>15.2 The Universal 4-Step Registration Protocol</h3>
     <p>
       Whenever you author a new protocol class, channel, or scheduler, you must follow the <strong>Universal 4-Step Protocol</strong>:
     </p>
@@ -4882,11 +4943,11 @@ int main ()
 <!-- MODULE 18: PHY & PROPAGATION LAYER -->
 <details class="module-card" id="_ext_mod2_phy">
   <summary class="module-summary">
-    <div><span class="module-badge">Module 18</span> PHY Layer: Custom Channels & Propagation Loss Models</div>
+    <div><span class="module-badge">Module 16</span> PHY Layer: Custom Channels & Propagation Loss Models</div>
     <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
   <div class="module-body">
-    <h3>18.1 Target Directory & Subclassing PropagationLossModel</h3>
+    <h3>16.1 Target Directory & Subclassing PropagationLossModel</h3>
     <p>
       In ns-3 wireless networks, received power is computed by chainable loss models. To create a custom path loss model (e.g., a two-slope obstacle attenuation model or a custom satellite shadowing model):
     </p>
@@ -5020,11 +5081,11 @@ CustomTwoSlopeLossModel::DoAssignStreams (int64_t stream)
 <!-- MODULE 19: MAC LAYER & WIFI SCHEDULING -->
 <details class="module-card" id="_ext_mod3_mac">
   <summary class="module-summary">
-    <div><span class="module-badge">Module 19</span> MAC Layer: Custom Rate Adaptation & Frame Schedulers</div>
+    <div><span class="module-badge">Module 17</span> MAC Layer: Custom Rate Adaptation & Frame Schedulers</div>
     <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
   <div class="module-body">
-    <h3>19.1 Target Directory & Subclassing WifiRemoteStationManager</h3>
+    <h3>17.1 Target Directory & Subclassing WifiRemoteStationManager</h3>
     <p>
       In 802.11 Wi-Fi, the algorithm choosing the Modulation and Coding Scheme (MCS) data rate for every transmitted frame is decoupled from the PHY. To write a custom rate control algorithm (like ARF, AARF, ONOE, Minstrel, or ML-based rate control):
     </p>
@@ -5156,11 +5217,11 @@ CustomThresholdRateManager::DoReportDataFailed (WifiRemoteStation *st)
 <!-- MODULE 20: LAYER 2.5 / 3 / 4 PROTOCOLS -->
 <details class="module-card" id="_ext_mod4_l34">
   <summary class="module-summary">
-    <div><span class="module-badge">Module 20</span> Layer 2.5/3/4: Custom QueueDiscs, Routing & TCP Congestion</div>
+    <div><span class="module-badge">Module 18</span> Layer 2.5/3/4: Custom QueueDiscs, Routing & TCP Congestion</div>
     <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
   <div class="module-body">
-    <h3>20.1 Active Queue Management: Subclassing QueueDisc (Layer 2.5)</h3>
+    <h3>18.1 Active Queue Management: Subclassing QueueDisc (Layer 2.5)</h3>
     <p>
       In modern Linux and ns-3, queueing is handled by the <strong>Traffic Control Layer</strong> (between Layer 2 and Layer 3). To implement custom queue disciplines (like CoDel, RED, or Token Bucket Shaping):
     </p>
@@ -5170,7 +5231,7 @@ CustomThresholdRateManager::DoReportDataFailed (WifiRemoteStation *st)
       <li><strong>Mandatory Overrides:</strong> <code>DoEnqueue(Ptr&lt;QueueDiscItem&gt; item)</code> and <code>DoDequeue()</code></li>
     </ul>
 
-    <h3>20.2 Custom Layer 3 IP Routing Protocol</h3>
+    <h3>18.2 Custom Layer 3 IP Routing Protocol</h3>
     <ul>
       <li><strong>Target Directory:</strong> <code>src/internet/model/</code> (e.g. AODV, DSDV, OLSR)</li>
       <li><strong>Base Class:</strong> <code>ns3::Ipv4RoutingProtocol</code></li>
@@ -5182,7 +5243,7 @@ CustomThresholdRateManager::DoReportDataFailed (WifiRemoteStation *st)
       </li>
     </ul>
 
-    <h3>20.3 Custom Layer 4 TCP Congestion Control</h3>
+    <h3>18.3 Custom Layer 4 TCP Congestion Control</h3>
     <ul>
       <li><strong>Target Directory:</strong> <code>src/internet/model/</code> (e.g. <code>tcp-bbr.cc</code>, <code>tcp-cubic.cc</code>)</li>
       <li><strong>Base Class:</strong> <code>ns3::TcpCongestionOps</code></li>
@@ -5200,11 +5261,11 @@ CustomThresholdRateManager::DoReportDataFailed (WifiRemoteStation *st)
 <!-- MODULE 21: UNIT TESTS & CMAKE REGISTRATION -->
 <details class="module-card" id="_ext_mod5_tests">
   <summary class="module-summary">
-    <div><span class="module-badge">Module 21</span> Unit Testing Framework & Build Verification</div>
+    <div><span class="module-badge">Module 19</span> Unit Testing Framework & Build Verification</div>
     <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
   <div class="module-body">
-    <h3>21.1 Registering Custom Files in CMake</h3>
+    <h3>19.1 Registering Custom Files in CMake</h3>
     <p>
       Whenever you add new <code>.cc</code> and <code>.h</code> files to an existing module (e.g. <code>src/wifi/</code>), you must register them in that module's <code>CMakeLists.txt</code>:
     </p>
@@ -5220,7 +5281,7 @@ target_include_directories(${libwifi} PUBLIC
     # ... other headers
 )</code></pre>
 
-    <h3>21.2 Writing Automated Unit Tests</h3>
+    <h3>19.2 Writing Automated Unit Tests</h3>
     <p>
       ns-3 includes an automated test framework. Test suites subclass <code>TestCase</code> and are grouped inside a <code>TestSuite</code>:
     </p>
@@ -5249,7 +5310,7 @@ public:
 
 static CustomModelTestSuite g_customModelTestSuite;</code></pre>
 
-    <h3>21.3 Terminal Build & Verification Workflow</h3>
+    <h3>19.3 Terminal Build & Verification Workflow</h3>
     <pre><code class="language-bash"># 1. Compile the newly added files
 ./ns3 build
 
