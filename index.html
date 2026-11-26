@@ -461,15 +461,19 @@ function collapseAll() {
 <li><a href="#_ns3gym_mod3_py">Module 9: Deep Reinforcement Learning (DQN / PPO) Training in Python</a></li>
 </ul>
 </li>
-<li><a href="#_part3_wireless"><strong>Part III: Wireless LAN & WiFi 7/8 Research</strong></a>
+<li><a href="#_part3_wifi"><strong>Part III: Comprehensive Wi-Fi & Wireless Network Simulations</strong></a>
 <ul class="sectlevel2">
-<li><a href="#_part3_wireless">WiFi 7 & WiFi 8 Research Modules (Upcoming)</a></li>
+<li><a href="#_wifi_mod1_adhoc">Module 10: Foundational Wi-Fi & Peer-to-Peer Ad-hoc Networking</a></li>
+<li><a href="#_wifi_mod2_infra">Module 11: Infrastructure Mode: Access Point (AP) & Multi-Station (STA)</a></li>
+<li><a href="#_wifi_mod3_mobility">Module 12: Dynamic Node Mobility & RF Propagation Path Loss</a></li>
+<li><a href="#_wifi_mod4_qos">Module 13: Wi-Fi QoS, EDCA Channel Access & Rate Control</a></li>
+<li><a href="#_wifi_mod5_tracing">Module 14: Comprehensive Wireless Tracing, Wireshark PCAPs & NetAnim</a></li>
 </ul>
 </li>
 <li><a href="#_part4_cpp"><strong>Part IV: C++ Systems Foundations for ns-3</strong></a>
 <ul class="sectlevel2">
-<li><a href="#_cpp_mod1_smart_pointers">Module 10: Memory Management & Ptr&lt;T&gt; Internals</a></li>
-<li><a href="#_cpp_mod2_callbacks">Module 11: Callbacks, Events & Object Aggregation</a></li>
+<li><a href="#_cpp_mod1_smart_pointers">Module 15: Memory Management & Ptr&lt;T&gt; Internals</a></li>
+<li><a href="#_cpp_mod2_callbacks">Module 16: Callbacks, Events & Object Aggregation</a></li>
 </ul>
 </li>
 </ul>
@@ -3309,17 +3313,804 @@ if __name__ == "__main__":
 
 <!-- ======================================================== -->
 <div class="sect1">
-<h2 id="_part3_wireless">Part III: Wireless LAN & WiFi 7/8 Research</h2>
+<h2 id="_part3_wifi">Part III: Comprehensive Wi-Fi & Wireless Network Simulations</h2>
 <div class="sectionbody">
 
-  <div style="background: rgba(99, 102, 241, 0.05); border: 2px dashed #6366f1; border-radius: 12px; padding: 36px 24px; text-align: center; margin: 24px 0;">
-    <div style="font-size: 38px; margin-bottom: 12px;">📡</div>
-    <h3 style="color: #4f46e5; margin: 0 0 10px 0;">WiFi 7 (802.11be) & WiFi 8 (802.11bn) Research Modules</h3>
-    <p style="color: #64748b; max-width: 620px; margin: 0 auto 16px auto; font-size: 14px; line-height: 1.6;">
-      This section is reserved for upcoming modules covering Multi-Link Operation (MLO), Multi-RU, 320 MHz channels, Multi-AP Coordination (MAPC), and Coordinated Beamforming. Content will be populated here in subsequent updates as requested.
+<!-- MODULE 10: ADHOC BASIC -->
+<details class="module-card" open id="_wifi_mod1_adhoc">
+  <summary class="module-summary">
+    <div><span class="module-badge">Module 10</span> Foundational Wi-Fi & Peer-to-Peer Ad-hoc Networking</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
+  </summary>
+  <div class="module-body">
+    <h3>10.1 The Core Wireless Simulation Stack</h3>
+    <p>
+      Unlike wired links where a single cable connects two ports, wireless communication requires modeling three interconnected physical layers:
     </p>
-    <span style="display: inline-block; background: #e0e7ff; color: #4338ca; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;">Status: Reserved for Upcoming Updates</span>
+    <ul>
+      <li><strong><code>WifiNetDevice</code>:</strong> The virtual Network Interface Card (NIC) handling packet transmission queues and orchestrating MAC and PHY engines.</li>
+      <li><strong><code>WifiPhy</code> (Physical Layer):</strong> Models electromagnetic signal transmission, reception sensitivity, antenna gains, carrier frequencies (2.4 GHz, 5 GHz), channel bandwidths (20 MHz, 40 MHz, 80 MHz, 160 MHz), and SINR calculations.</li>
+      <li><strong><code>WifiMac</code> (MAC Sublayer):</strong> Implements IEEE 802.11 Distributed Coordination Function (DCF) or EDCA channel access, frame headers, ACK timeouts, and contention backoff timers.</li>
+      <li><strong><code>MobilityModel</code>:</strong> Every wireless node must possess $(x, y, z)$ spatial coordinates to allow propagation loss models to calculate signal attenuation based on physical distance.</li>
+    </ul>
+
+    <div class="topology-box">
+      <div class="node-card">
+        <h5>Node 0 (Station A)</h5>
+        <span class="node-tag">10.1.1.1</span>
+        <div class="node-spec">
+          <strong>Pos:</strong> (0.0, 0.0, 0.0)<br>
+          <strong>MAC:</strong> AdhocWifiMac<br>
+          <strong>Standard:</strong> 802.11a (5 GHz)
+        </div>
+      </div>
+
+      <div class="channel-link">
+        <span class="channel-label">YansWifiChannel (Wireless Medium)</span>
+        <div class="channel-line" style="border-top-style: dotted; border-color: #3b82f6;"></div>
+        <span class="channel-sub">ConstantSpeedPropagationDelay • FriisPropagationLoss • Dist: 20m</span>
+      </div>
+
+      <div class="node-card server">
+        <h5>Node 1 (Station B)</h5>
+        <span class="node-tag" style="background: #d1fae5; color: #065f46;">10.1.1.2</span>
+        <div class="node-spec">
+          <strong>Pos:</strong> (20.0, 0.0, 0.0)<br>
+          <strong>MAC:</strong> AdhocWifiMac<br>
+          <strong>Standard:</strong> 802.11a (5 GHz)
+        </div>
+      </div>
+    </div>
+
+    <h4>Full Canonical C++ Code (<code>wifi-adhoc-basic.cc</code>):</h4>
+    <pre><code class="language-cpp">#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/mobility-module.h"
+#include "ns3/wifi-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/applications-module.h"
+
+using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE ("AeroWlanWifiAdhocBasic");
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  Time::SetResolution (Time::NS);
+  LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
+  LogComponentEnable ("UdpEchoServerApplication", LOG_LEVEL_INFO);
+
+  // STEP 1: Create 2 wireless nodes
+  NodeContainer wifiNodes;
+  wifiNodes.Create (2);
+
+  // STEP 2: Configure Physical Channel & Propagation Models
+  YansWifiChannelHelper channel = YansWifiChannelHelper::Default ();
+  YansWifiPhyHelper phy;
+  phy.SetChannel (channel.Create ());
+
+  // STEP 3: Configure 802.11 Standard and MAC Helper (Ad-hoc / IBSS)
+  WifiHelper wifi;
+  wifi.SetStandard (WIFI_STANDARD_80211a);
+  wifi.SetRemoteStationManager ("ns3::ConstantRateWifiManager",
+                                "DataMode", StringValue ("OfdmRate6Mbps"),
+                                "ControlMode", StringValue ("OfdmRate6Mbps"));
+
+  WifiMacHelper mac;
+  mac.SetType ("ns3::AdhocWifiMac");
+
+  NetDeviceContainer devices = wifi.Install (phy, mac, wifiNodes);
+
+  // STEP 4: Configure Node Spatial Coordinates (20 meters apart)
+  MobilityHelper mobility;
+  Ptr&lt;ListPositionAllocator&gt; positionAlloc = CreateObject&lt;ListPositionAllocator&gt; ();
+  positionAlloc-&gt;Add (Vector (0.0, 0.0, 0.0));   // Node 0
+  positionAlloc-&gt;Add (Vector (20.0, 0.0, 0.0));  // Node 1
+  mobility.SetPositionAllocator (positionAlloc);
+  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  mobility.Install (wifiNodes);
+
+  // STEP 5: Install Internet Stack & Assign IP Subnet
+  InternetStackHelper stack;
+  stack.Install (wifiNodes);
+
+  Ipv4AddressHelper address;
+  address.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfaces = address.Assign (devices);
+
+  // STEP 6: Install UDP Server on Node 1 (10.1.1.2)
+  UdpEchoServerHelper echoServer (9);
+  ApplicationContainer serverApps = echoServer.Install (wifiNodes.Get (1));
+  serverApps.Start (Seconds (1.0));
+  serverApps.Stop (Seconds (10.0));
+
+  // STEP 7: Install UDP Client on Node 0 targeting Node 1
+  UdpEchoClientHelper echoClient (interfaces.GetAddress (1), 9);
+  echoClient.SetAttribute ("MaxPackets", UintegerValue (3));
+  echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+  echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
+
+  ApplicationContainer clientApps = echoClient.Install (wifiNodes.Get (0));
+  clientApps.Start (Seconds (2.0));
+  clientApps.Stop (Seconds (10.0));
+
+  Simulator::Run ();
+  Simulator::Destroy ();
+  return 0;
+}</code></pre>
+
+    <table class="code-explanation-table">
+      <thead>
+        <tr>
+          <th class="code-col">Code Statement</th>
+          <th class="desc-col">Exhaustive Architectural Breakdown (What, Why & Memory Model)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="code-col">YansWifiChannelHelper channel = YansWifiChannelHelper::Default ();<br>phy.SetChannel (channel.Create ());</td>
+          <td class="desc-col">
+            <strong>What:</strong> Creates a shared wireless channel equipped with default propagation loss (<code>LogDistancePropagationLossModel</code>) and delay (<code>ConstantSpeedPropagationDelayModel</code>).<br>
+            <strong>Why:</strong> In wired networks, wires isolate signals. In wireless, all nodes within radio range share a single channel object that computes path attenuation and inter-node interference dynamically.<br>
+            <strong>Under the Hood:</strong> <code>channel.Create()</code> instantiates a <code>Ptr&lt;YansWifiChannel&gt;</code> that maintains a list of attached <code>WifiPhy</code> interfaces.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">mac.SetType ("ns3::AdhocWifiMac");</td>
+          <td class="desc-col">
+            <strong>What:</strong> Configures peer-to-peer Independent Basic Service Set (IBSS) MAC architecture.<br>
+            <strong>Why:</strong> In ad-hoc mode, stations communicate directly without beacons, probe requests, or an Access Point. Nodes execute DCF CSMA/CA carrier-sensing with backoff before transmitting.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">mobility.SetPositionAllocator (positionAlloc);<br>mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");</td>
+          <td class="desc-col">
+            <strong>What:</strong> Places Node 0 at $(0, 0, 0)$ and Node 1 at $(20, 0, 0)$ in meters.<br>
+            <strong>Why:</strong> Wireless PHY layers cannot compute received signal strength (RSSI) without knowing physical distance: $d = \sqrt{(x_2-x_1)^2 + (y_2-y_1)^2} = 20	ext{ m}$.
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
+</details>
+
+<!-- MODULE 11: INFRASTRUCTURE AP -->
+<details class="module-card" id="_wifi_mod2_infra">
+  <summary class="module-summary">
+    <div><span class="module-badge">Module 11</span> Infrastructure Mode: Access Point (AP) & Multi-Station (STA)</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
+  </summary>
+  <div class="module-body">
+    <h3>11.1 Infrastructure Basic Service Set (BSS) Architecture</h3>
+    <p>
+      In consumer and enterprise Wi-Fi (homes, offices, campuses), devices operate in <strong>Infrastructure Mode</strong>. All communication is arbitrated by a central <strong>Access Point (AP)</strong>:
+    </p>
+    <ul>
+      <li><strong>Beacons:</strong> The AP periodically broadcasts management frames (every 100 ms by default) containing its Service Set Identifier (SSID) and supported data rates.</li>
+      <li><strong>Association Handshake:</strong> Before transmitting data, a Station (STA) must discover the AP, exchange Probe Request/Response frames, and complete Authentication and Association.</li>
+      <li><strong>Star Topology:</strong> STAs do not transmit directly to one another; traffic flows Station $	o$ AP (Uplink), and AP $	o$ Station (Downlink).</li>
+    </ul>
+
+    <div class="topology-box">
+      <div style="display: flex; flex-direction: column; width: 100%; gap: 16px; align-items: center;">
+        <div class="node-card" style="border: 2px solid #3b82f6; background: #eff6ff; max-width: 220px;">
+          <h5>Central Access Point (AP)</h5>
+          <span class="node-tag" style="background: #3b82f6; color: white;">IP: 10.1.1.1</span>
+          <div class="node-spec">
+            <strong>SSID:</strong> AeroWlan-Office<br>
+            <strong>Pos:</strong> (0.0, 0.0) • Beacon: 100ms
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-around; width: 100%; gap: 12px;">
+          <div class="node-card server" style="flex: 1; max-width: 140px;">
+            <h5>STA 1</h5>
+            <span class="node-tag">10.1.1.2</span>
+            <span style="font-size: 10px; color: #64748b;">Pos: (10, 0)</span>
+          </div>
+          <div class="node-card server" style="flex: 1; max-width: 140px;">
+            <h5>STA 2</h5>
+            <span class="node-tag">10.1.1.3</span>
+            <span style="font-size: 10px; color: #64748b;">Pos: (0, 10)</span>
+          </div>
+          <div class="node-card server" style="flex: 1; max-width: 140px;">
+            <h5>STA 3</h5>
+            <span class="node-tag">10.1.1.4</span>
+            <span style="font-size: 10px; color: #64748b;">Pos: (-10, 0)</span>
+          </div>
+          <div class="node-card server" style="flex: 1; max-width: 140px;">
+            <h5>STA 4</h5>
+            <span class="node-tag">10.1.1.5</span>
+            <span style="font-size: 10px; color: #64748b;">Pos: (0, -10)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h4>Full Canonical C++ Code (<code>wifi-infrastructure-ap.cc</code>):</h4>
+    <pre><code class="language-cpp">#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/mobility-module.h"
+#include "ns3/wifi-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/applications-module.h"
+
+using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE ("AeroWlanWifiInfrastructure");
+
+int main (int argc, char *argv[])
+{
+  uint32_t nWifiStas = 4;
+  CommandLine cmd (__FILE__);
+  cmd.AddValue ("nWifiStas", "Number of wifi STA devices", nWifiStas);
+  cmd.Parse (argc, argv);
+
+  Time::SetResolution (Time::NS);
+  LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
+  LogComponentEnable ("UdpEchoServerApplication", LOG_LEVEL_INFO);
+
+  NodeContainer wifiApNode;
+  wifiApNode.Create (1);
+
+  NodeContainer wifiStaNodes;
+  wifiStaNodes.Create (nWifiStas);
+
+  YansWifiChannelHelper channel = YansWifiChannelHelper::Default ();
+  YansWifiPhyHelper phy;
+  phy.SetChannel (channel.Create ());
+
+  WifiHelper wifi;
+  wifi.SetStandard (WIFI_STANDARD_80211n); // High Throughput 802.11n (2.4 GHz)
+  wifi.SetRemoteStationManager ("ns3::MinstrelHtWifiManager");
+
+  WifiMacHelper mac;
+  Ssid ssid = Ssid ("AeroWlan-Office");
+
+  // Configure Station MACs (Active Probing with SSID matching)
+  mac.SetType ("ns3::StaWifiMac",
+               "Ssid", SsidValue (ssid),
+               "ActiveProbing", BooleanValue (false));
+  NetDeviceContainer staDevices = wifi.Install (phy, mac, wifiStaNodes);
+
+  // Configure Access Point MAC (Beacons & Association Manager)
+  mac.SetType ("ns3::ApWifiMac",
+               "Ssid", SsidValue (ssid),
+               "BeaconInterval", TimeValue (MicroSeconds (102400)));
+  NetDeviceContainer apDevices = wifi.Install (phy, mac, wifiApNode);
+
+  // Mobility: AP in center (0,0), STAs arranged in disc around AP
+  MobilityHelper mobility;
+  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  mobility.Install (wifiApNode);
+
+  mobility.SetPositionAllocator ("ns3::UniformDiscPositionAllocator",
+                                 "rho", DoubleValue (15.0),
+                                 "X", DoubleValue (0.0),
+                                 "Y", DoubleValue (0.0));
+  mobility.Install (wifiStaNodes);
+
+  InternetStackHelper stack;
+  stack.Install (wifiApNode);
+  stack.Install (wifiStaNodes);
+
+  Ipv4AddressHelper address;
+  address.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer apInterface = address.Assign (apDevices);
+  Ipv4InterfaceContainer staInterfaces = address.Assign (staDevices);
+
+  // Install Echo Server on AP (10.1.1.1)
+  UdpEchoServerHelper echoServer (9);
+  ApplicationContainer serverApps = echoServer.Install (wifiApNode.Get (0));
+  serverApps.Start (Seconds (1.0));
+  serverApps.Stop (Seconds (10.0));
+
+  // Install Echo Clients on all Stations sending packets to AP
+  UdpEchoClientHelper echoClient (apInterface.GetAddress (0), 9);
+  echoClient.SetAttribute ("MaxPackets", UintegerValue (2));
+  echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+  echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
+
+  ApplicationContainer clientApps = echoClient.Install (wifiStaNodes);
+  clientApps.Start (Seconds (2.0));
+  clientApps.Stop (Seconds (10.0));
+
+  Simulator::Run ();
+  Simulator::Destroy ();
+  return 0;
+}</code></pre>
+
+    <table class="code-explanation-table">
+      <thead>
+        <tr>
+          <th class="code-col">Code Statement</th>
+          <th class="desc-col">Exhaustive Architectural Breakdown (What, Why & Memory Model)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="code-col">Ssid ssid = Ssid ("AeroWlan-Office");<br>mac.SetType ("ns3::StaWifiMac", "Ssid", SsidValue (ssid));</td>
+          <td class="desc-col">
+            <strong>What:</strong> Sets the wireless network name identifier.<br>
+            <strong>Why:</strong> Stations only associate with Access Points broadcasting an identical SSID string. Mismatched SSIDs cause stations to ignore beacon advertisements.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">mac.SetType ("ns3::ApWifiMac", "BeaconInterval", TimeValue (MicroSeconds (102400)));</td>
+          <td class="desc-col">
+            <strong>What:</strong> Configures the AP to broadcast periodic Beacon frames every 102.4 milliseconds (100 Time Units).<br>
+            <strong>Why:</strong> Beacons synchronize clock timers (TSF) across stations and announce traffic indication maps (TIM).
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">wifi.SetRemoteStationManager ("ns3::MinstrelHtWifiManager");</td>
+          <td class="desc-col">
+            <strong>What:</strong> Activates the Linux kernel standard <strong>Minstrel-HT</strong> rate adaptation algorithm.<br>
+            <strong>Why:</strong> Minstrel continuously probes different Modulation and Coding Schemes (MCS indices) to balance throughput with packet error rates under changing signal quality.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</details>
+
+<!-- MODULE 12: MOBILITY & PATH LOSS -->
+<details class="module-card" id="_wifi_mod3_mobility">
+  <summary class="module-summary">
+    <div><span class="module-badge">Module 12</span> Dynamic Node Mobility & RF Propagation Path Loss</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
+  </summary>
+  <div class="module-body">
+    <h3>12.1 Path Loss Physics & Node Kinematics</h3>
+    <p>
+      In wired Ethernet, a signal does not degrade whether a cable is 1 meter or 10 meters long. In wireless networking, received power attenuates exponentially with distance according to the <strong>Friis Transmission Formula</strong>:
+    </p>
+    <div class="paragraph" style="text-align: center; font-size: 15px;">
+      \[ P_{\text{rx}}(d) = P_{\text{tx}} \cdot G_{\text{tx}} \cdot G_{\text{rx}} \cdot \left(\frac{\lambda}{4\pi d}\right)^2 \]
+    </div>
+    <p>
+      As a mobile client walks away from the Access Point, the received signal power drops below the receiver sensitivity threshold (e.g. $-82\text{ dBm}$), leading to bit errors, packet retries, and eventual disconnect.
+    </p>
+
+    <h4>Full Canonical C++ Code (<code>wifi-mobility-loss.cc</code>):</h4>
+    <pre><code class="language-cpp">#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/mobility-module.h"
+#include "ns3/wifi-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/applications-module.h"
+
+using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE ("AeroWlanWifiMobilityLoss");
+
+static void
+CourseChangeCallback (std::string context, Ptr&lt;const MobilityModel&gt; model)
+{
+  Vector pos = model-&gt;GetPosition ();
+  Vector vel = model-&gt;GetVelocity ();
+  std::cout &lt;&lt; "[" &lt;&lt; Simulator::Now ().GetSeconds () &lt;&lt; "s] Mobile STA Position: ("
+            &lt;&lt; pos.x &lt;&lt; ", " &lt;&lt; pos.y &lt;&lt; ") Speed: " &lt;&lt; vel.x &lt;&lt; " m/s" &lt;&lt; std::endl;
+}
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  Time::SetResolution (Time::NS);
+
+  NodeContainer wifiApNode;
+  wifiApNode.Create (1);
+
+  NodeContainer wifiStaNode;
+  wifiStaNode.Create (1);
+
+  // STEP 1: Configure Explicit Propagation Loss (LogDistance Loss Model)
+  YansWifiChannelHelper channel;
+  channel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
+  channel.AddPropagationLoss ("ns3::LogDistancePropagationLossModel",
+                              "Exponent", DoubleValue (3.0), // Urban shadow path loss exponent
+                              "ReferenceDistance", DoubleValue (1.0),
+                              "ReferenceLoss", DoubleValue (46.67));
+
+  YansWifiPhyHelper phy;
+  phy.SetChannel (channel.Create ());
+
+  WifiHelper wifi;
+  wifi.SetStandard (WIFI_STANDARD_80211a);
+  wifi.SetRemoteStationManager ("ns3::ConstantRateWifiManager",
+                                "DataMode", StringValue ("OfdmRate6Mbps"));
+
+  WifiMacHelper mac;
+  Ssid ssid = Ssid ("Mobility-Network");
+
+  mac.SetType ("ns3::StaWifiMac", "Ssid", SsidValue (ssid));
+  NetDeviceContainer staDevice = wifi.Install (phy, mac, wifiStaNode);
+
+  mac.SetType ("ns3::ApWifiMac", "Ssid", SsidValue (ssid));
+  NetDeviceContainer apDevice = wifi.Install (phy, mac, wifiApNode);
+
+  // STEP 2: Configure Static AP and Moving STA
+  MobilityHelper mobility;
+
+  // AP is static at (0, 0, 0)
+  Ptr&lt;ListPositionAllocator&gt; apPos = CreateObject&lt;ListPositionAllocator&gt; ();
+  apPos-&gt;Add (Vector (0.0, 0.0, 0.0));
+  mobility.SetPositionAllocator (apPos);
+  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  mobility.Install (wifiApNode);
+
+  // STA starts at (5, 0, 0) and moves outward along the X-axis at 10 m/s
+  mobility.SetPositionAllocator ("ns3::GridPositionAllocator",
+                                 "MinX", DoubleValue (5.0),
+                                 "MinY", DoubleValue (0.0));
+  mobility.SetMobilityModel ("ns3::ConstantVelocityMobilityModel");
+  mobility.Install (wifiStaNode);
+
+  // Set velocity to +10 m/s along X-axis
+  Ptr&lt;ConstantVelocityMobilityModel&gt; cvmm =
+    wifiStaNode.Get (0)-&gt;GetObject&lt;ConstantVelocityMobilityModel&gt; ();
+  cvmm-&gt;SetVelocity (Vector (10.0, 0.0, 0.0));
+
+  // Connect mobility tracker callback
+  Config::Connect ("/NodeList/*/$ns3::MobilityModel/CourseChange",
+                   MakeCallback (&CourseChangeCallback));
+
+  InternetStackHelper stack;
+  stack.Install (wifiApNode);
+  stack.Install (wifiStaNode);
+
+  Ipv4AddressHelper address;
+  address.SetBase ("10.1.1.0", "255.255.255.0");
+  address.Assign (apDevice);
+  Ipv4InterfaceContainer staInterface = address.Assign (staDevice);
+
+  // Send packet stream every 100ms from AP to moving STA
+  OnOffHelper onoff ("ns3::UdpSocketFactory",
+                     Address (InetSocketAddress (staInterface.GetAddress (0), 5000)));
+  onoff.SetConstantRate (DataRate ("200Kbps"), 256);
+  ApplicationContainer serverApps = onoff.Install (wifiApNode.Get (0));
+  serverApps.Start (Seconds (1.0));
+  serverApps.Stop (Seconds (15.0));
+
+  // Install PacketSink on moving STA
+  PacketSinkHelper sink ("ns3::UdpSocketFactory",
+                         InetSocketAddress (Ipv4Address::GetAny (), 5000));
+  ApplicationContainer sinkApps = sink.Install (wifiStaNode.Get (0));
+  sinkApps.Start (Seconds (0.0));
+  sinkApps.Stop (Seconds (15.0));
+
+  Simulator::Stop (Seconds (15.0));
+  Simulator::Run ();
+
+  Ptr&lt;PacketSink&gt; sinkPtr = DynamicCast&lt;PacketSink&gt; (sinkApps.Get (0));
+  std::cout &lt;&lt; "Total bytes delivered to moving station: " &lt;&lt; sinkPtr-&gt;GetTotalRx () &lt;&lt; " bytes" &lt;&lt; std::endl;
+
+  Simulator::Destroy ();
+  return 0;
+}</code></pre>
+
+    <table class="code-explanation-table">
+      <thead>
+        <tr>
+          <th class="code-col">Code Statement</th>
+          <th class="desc-col">Exhaustive Architectural Breakdown (What, Why & Memory Model)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="code-col">channel.AddPropagationLoss ("ns3::LogDistancePropagationLossModel", "Exponent", DoubleValue (3.0));</td>
+          <td class="desc-col">
+            <strong>What:</strong> Configures signal attenuation using an urban path loss exponent ($n = 3.0$).<br>
+            <strong>Why:</strong> In free space, signals decay with $d^2$. In real office or urban environments with walls and obstacles, signals decay much faster ($d^3$ to $d^4$).
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">cvmm-&gt;SetVelocity (Vector (10.0, 0.0, 0.0));</td>
+          <td class="desc-col">
+            <strong>What:</strong> Gives the node a continuous velocity vector $(+10	ext{ m/s}, 0, 0)$.<br>
+            <strong>Why:</strong> At $t = 1	ext{s}$, $d = 15	ext{ m}$. At $t = 10	ext{s}$, $d = 105	ext{ m}$. As distance crosses the radio range threshold (~80 m), packet drops jump to 100%!
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</details>
+
+<!-- MODULE 13: QOS EDCA -->
+<details class="module-card" id="_wifi_mod4_qos">
+  <summary class="module-summary">
+    <div><span class="module-badge">Module 13</span> Wi-Fi QoS, EDCA Channel Access & Rate Control</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
+  </summary>
+  <div class="module-body">
+    <h3>13.1 Enhanced Distributed Channel Access (EDCA) Priority</h3>
+    <p>
+      In early Wi-Fi (802.11b), all packets competed equally. If someone was downloading a large torrent file, video conferences stuttered. <strong>IEEE 802.11e / 802.11n / 802.11ac / 802.11ax QoS</strong> solves this by mapping packets into four <strong>Access Categories (ACs)</strong>:
+    </p>
+    <ul>
+      <li><strong><code>AC_VO</code> (Voice):</strong> Smallest contention window ($CW_{\min}=3, CW_{\max}=7$), smallest AIFS ($2\text{ slots}$). Transmits first with near-zero latency.</li>
+      <li><strong><code>AC_VI</code> (Video):</strong> Medium-high priority ($CW_{\min}=7, CW_{\max}=15$).</li>
+      <li><strong><code>AC_BE</code> (Best Effort):</strong> Standard priority ($CW_{\min}=15, CW_{\max}=1023$).</li>
+      <li><strong><code>AC_BK</code> (Background):</strong> Lowest priority ($CW_{\min}=15, CW_{\max}=1023$, large AIFS). Defers channel access whenever Voice or Video packets are queued.</li>
+    </ul>
+
+    <h4>Full Canonical C++ Code (<code>wifi-qos-edca.cc</code>):</h4>
+    <pre><code class="language-cpp">#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/mobility-module.h"
+#include "ns3/wifi-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/applications-module.h"
+
+using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE ("AeroWlanWifiQosEdca");
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  Time::SetResolution (Time::NS);
+
+  NodeContainer wifiNodes;
+  wifiNodes.Create (2);
+
+  YansWifiChannelHelper channel = YansWifiChannelHelper::Default ();
+  YansWifiPhyHelper phy;
+  phy.SetChannel (channel.Create ());
+
+  WifiHelper wifi;
+  wifi.SetStandard (WIFI_STANDARD_80211ac); // Very High Throughput 802.11ac (5 GHz)
+  wifi.SetRemoteStationManager ("ns3::IdealWifiManager");
+
+  WifiMacHelper mac;
+  // Enable QoS MAC layer
+  mac.SetType ("ns3::AdhocWifiMac", "QosSupported", BooleanValue (true));
+
+  NetDeviceContainer devices = wifi.Install (phy, mac, wifiNodes);
+
+  MobilityHelper mobility;
+  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  mobility.Install (wifiNodes);
+
+  InternetStackHelper stack;
+  stack.Install (wifiNodes);
+
+  Ipv4AddressHelper address;
+  address.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfaces = address.Assign (devices);
+
+  uint16_t voicePort = 7000;
+  uint16_t bulkPort = 8000;
+
+  // Install Voice Sink and Bulk Sink on Node 1
+  PacketSinkHelper voiceSink ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), voicePort));
+  ApplicationContainer sinkApps1 = voiceSink.Install (wifiNodes.Get (1));
+  sinkApps1.Start (Seconds (0.0));
+  sinkApps1.Stop (Seconds (10.0));
+
+  PacketSinkHelper bulkSink ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), bulkPort));
+  ApplicationContainer sinkApps2 = bulkSink.Install (wifiNodes.Get (1));
+  sinkApps2.Start (Seconds (0.0));
+  sinkApps2.Stop (Seconds (10.0));
+
+  // Traffic 1: High Priority Voice (Tagged with DSCP EF: 0xb8)
+  OnOffHelper voiceApp ("ns3::UdpSocketFactory", InetSocketAddress (interfaces.GetAddress (1), voicePort));
+  voiceApp.SetConstantRate (DataRate ("64Kbps"), 160);
+  ApplicationContainer clientApp1 = voiceApp.Install (wifiNodes.Get (0));
+  clientApp1.Start (Seconds (1.0));
+  clientApp1.Stop (Seconds (10.0));
+
+  // Traffic 2: Heavy Background Bulk Download (Tagged with DSCP CS1: 0x20)
+  OnOffHelper bulkApp ("ns3::UdpSocketFactory", InetSocketAddress (interfaces.GetAddress (1), bulkPort));
+  bulkApp.SetConstantRate (DataRate ("20Mbps"), 1400);
+  ApplicationContainer clientApp2 = bulkApp.Install (wifiNodes.Get (0));
+  clientApp2.Start (Seconds (1.0));
+  clientApp2.Stop (Seconds (10.0));
+
+  Simulator::Run ();
+
+  Ptr&lt;PacketSink&gt; vSink = DynamicCast&lt;PacketSink&gt; (sinkApps1.Get (0));
+  Ptr&lt;PacketSink&gt; bSink = DynamicCast&lt;PacketSink&gt; (sinkApps2.Get (0));
+
+  std::cout &lt;&lt; "Voice Bytes Received: " &lt;&lt; vSink-&gt;GetTotalRx () &lt;&lt; " bytes" &lt;&lt; std::endl;
+  std::cout &lt;&lt; "Bulk Bytes Received: " &lt;&lt; bSink-&gt;GetTotalRx () &lt;&lt; " bytes" &lt;&lt; std::endl;
+
+  Simulator::Destroy ();
+  return 0;
+}</code></pre>
+
+    <table class="code-explanation-table">
+      <thead>
+        <tr>
+          <th class="code-col">Code Statement</th>
+          <th class="desc-col">Exhaustive Architectural Breakdown (What, Why & Memory Model)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="code-col">mac.SetType ("ns3::AdhocWifiMac", "QosSupported", BooleanValue (true));</td>
+          <td class="desc-col">
+            <strong>What:</strong> Instantiates <code>QosTxop</code> queues for all 4 EDCA access categories.<br>
+            <strong>Why:</strong> Without <code>QosSupported=true</code>, the MAC uses a single FIFO DCF queue. With QoS enabled, packets are classified into dedicated hardware queues with independent backoff timers.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">wifi.SetStandard (WIFI_STANDARD_80211ac);<br>wifi.SetRemoteStationManager ("ns3::IdealWifiManager");</td>
+          <td class="desc-col">
+            <strong>What:</strong> Enables IEEE 802.11ac VHT (256-QAM) and the <code>IdealWifiManager</code> rate adaptation engine.<br>
+            <strong>Why:</strong> <code>IdealWifiManager</code> uses closed-form SNR calculations to pick the fastest MCS that achieves $\le 10\%$ packet error rate in real time.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</details>
+
+<!-- MODULE 14: DEEP TRACING & NETANIM -->
+<details class="module-card" id="_wifi_mod5_tracing">
+  <summary class="module-summary">
+    <div><span class="module-badge">Module 14</span> Comprehensive Wireless Tracing, Wireshark PCAPs & NetAnim</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
+  </summary>
+  <div class="module-body">
+    <h3>14.1 The Wireless Tracing Ecosystem</h3>
+    <p>
+      Diagnosing wireless networks requires looking beyond IP logs into low-level PHY and MAC events:
+    </p>
+    <ul>
+      <li><strong><code>PhyRxDrop</code>:</strong> Emitted when an arriving wireless frame fails checksum (FCS), experiences low SNR, or collides with an overlapping transmission.</li>
+      <li><strong><code>MacTxDrop</code>:</strong> Emitted when a frame exceeds the maximum 802.11 retry limit (default: 7 attempts) and is dropped by the hardware queue.</li>
+      <li><strong>Wireshark Radiotap PCAPs:</strong> Injects physical metadata (antenna signal in dBm, noise floor, MCS index, channel frequency in MHz) as a Radiotap header at the head of every captured packet.</li>
+      <li><strong>NetAnim Trace Generation:</strong> Generates XML animation traces capturing node positions, packet flight paths, and transmission wavefront circles.</li>
+    </ul>
+
+    <h4>Full Canonical C++ Code (<code>wifi-deep-tracing.cc</code>):</h4>
+    <pre><code class="language-cpp">#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/mobility-module.h"
+#include "ns3/wifi-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/applications-module.h"
+#include "ns3/netanim-module.h"
+
+using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE ("AeroWlanWifiDeepTracing");
+
+// Global metrics counters
+static uint32_t g_macTxPackets = 0;
+static uint32_t g_phyDropPackets = 0;
+
+static void
+PhyRxDropCallback (Ptr&lt;const Packet&gt; packet, WifiPhyRxfailureReason reason)
+{
+  g_phyDropPackets++;
+  NS_LOG_UNCOND ("[" &lt;&lt; Simulator::Now ().GetSeconds () &lt;&lt; "s] PHY RX DROP! Size="
+                 &lt;&lt; packet-&gt;GetSize () &lt;&lt; " bytes, Reason Code=" &lt;&lt; reason);
+}
+
+static void
+MacTxCallback (Ptr&lt;const Packet&gt; packet)
+{
+  g_macTxPackets++;
+}
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  Time::SetResolution (Time::NS);
+
+  NodeContainer wifiNodes;
+  wifiNodes.Create (2);
+
+  YansWifiChannelHelper channel = YansWifiChannelHelper::Default ();
+  YansWifiPhyHelper phy;
+  phy.SetChannel (channel.Create ());
+
+  WifiHelper wifi;
+  wifi.SetStandard (WIFI_STANDARD_80211n);
+  wifi.SetRemoteStationManager ("ns3::ConstantRateWifiManager",
+                                "DataMode", StringValue ("HtMcs7"));
+
+  WifiMacHelper mac;
+  mac.SetType ("ns3::AdhocWifiMac");
+
+  NetDeviceContainer devices = wifi.Install (phy, mac, wifiNodes);
+
+  MobilityHelper mobility;
+  Ptr&lt;ListPositionAllocator&gt; positionAlloc = CreateObject&lt;ListPositionAllocator&gt; ();
+  positionAlloc-&gt;Add (Vector (10.0, 20.0, 0.0));
+  positionAlloc-&gt;Add (Vector (50.0, 20.0, 0.0));
+  mobility.SetPositionAllocator (positionAlloc);
+  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  mobility.Install (wifiNodes);
+
+  // Hook Trace Callbacks
+  Config::ConnectWithoutContext ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/PhyRxDrop",
+                                 MakeCallback (&PhyRxDropCallback));
+  Config::ConnectWithoutContext ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Mac/MacTx",
+                                 MakeCallback (&MacTxCallback));
+
+  // Enable Radiotap PCAP tracing for Wireshark
+  phy.SetPcapDataLinkType (WifiPhyHelper::DLT_IEEE802_11_RADIO);
+  phy.EnablePcapAll ("wifi-deep-trace");
+
+  InternetStackHelper stack;
+  stack.Install (wifiNodes);
+
+  Ipv4AddressHelper address;
+  address.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfaces = address.Assign (devices);
+
+  // Install NetAnim Visualizer
+  AnimationInterface anim ("scratch/aerowlan_exercises/wifi-animation.xml");
+  anim.SetConstantPosition (wifiNodes.Get (0), 10.0, 20.0);
+  anim.SetConstantPosition (wifiNodes.Get (1), 50.0, 20.0);
+  anim.UpdateNodeColor (wifiNodes.Get (0), 0, 120, 255); // Blue for Sender
+  anim.UpdateNodeColor (wifiNodes.Get (1), 0, 200, 80);  // Green for Receiver
+  anim.EnablePacketMetadata (true);
+
+  UdpEchoServerHelper echoServer (9);
+  ApplicationContainer serverApps = echoServer.Install (wifiNodes.Get (1));
+  serverApps.Start (Seconds (1.0));
+  serverApps.Stop (Seconds (5.0));
+
+  UdpEchoClientHelper echoClient (interfaces.GetAddress (1), 9);
+  echoClient.SetAttribute ("MaxPackets", UintegerValue (5));
+  echoClient.SetAttribute ("Interval", TimeValue (Seconds (0.5)));
+  echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
+
+  ApplicationContainer clientApps = echoClient.Install (wifiNodes.Get (0));
+  clientApps.Start (Seconds (2.0));
+  clientApps.Stop (Seconds (5.0));
+
+  Simulator::Run ();
+
+  std::cout &lt;&lt; "================ Wireless Tracing Summary ================" &lt;&lt; std::endl;
+  std::cout &lt;&lt; "Total MAC Frames Transmitted: " &lt;&lt; g_macTxPackets &lt;&lt; std::endl;
+  std::cout &lt;&lt; "Total PHY Frames Dropped:     " &lt;&lt; g_phyDropPackets &lt;&lt; std::endl;
+  std::cout &lt;&lt; "Animation Trace written to:   scratch/aerowlan_exercises/wifi-animation.xml" &lt;&lt; std::endl;
+  std::cout &lt;&lt; "Wireshark PCAP written to:    wifi-deep-trace-*.pcap" &lt;&lt; std::endl;
+
+  Simulator::Destroy ();
+  return 0;
+}</code></pre>
+
+    <table class="code-explanation-table">
+      <thead>
+        <tr>
+          <th class="code-col">Code Statement</th>
+          <th class="desc-col">Exhaustive Architectural Breakdown (What, Why & Memory Model)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="code-col">phy.SetPcapDataLinkType (WifiPhyHelper::DLT_IEEE802_11_RADIO);<br>phy.EnablePcapAll ("wifi-deep-trace");</td>
+          <td class="desc-col">
+            <strong>What:</strong> Generates PCAP traces with IEEE 802.11 Radiotap physical encapsulation.<br>
+            <strong>Why:</strong> Standard PCAP only saves Layer 2/3 headers. Radiotap headers include RF metrics: receiver antenna signal strength (dBm), carrier frequency (MHz), and MCS bitrates. Wireshark parses these automatically!
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">AnimationInterface anim ("scratch/aerowlan_exercises/wifi-animation.xml");<br>anim.EnablePacketMetadata (true);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Instantiates the NetAnim XML tracing engine.<br>
+            <strong>Why:</strong> Records node coordinate layouts, packet transmission arcs, and circular wireless RF propagation wavefronts for visual playback in the NetAnim graphical interface.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</details>
 
 </div>
 </div>
@@ -3332,7 +4123,7 @@ if __name__ == "__main__":
 <!-- MODULE 10 -->
 <details class="module-card" open id="_cpp_mod1_smart_pointers">
   <summary class="module-summary">
-    <div><span class="module-badge">Module 10</span> Memory Management & Ptr&lt;T&gt; Internals</div>
+    <div><span class="module-badge">Module 15</span> Memory Management & Ptr&lt;T&gt; Internals</div>
     <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
   <div class="module-body">
@@ -3706,7 +4497,7 @@ int main ()
 <!-- MODULE 12 -->
 <details class="module-card" open id="_cpp_mod2_callbacks">
   <summary class="module-summary">
-    <div><span class="module-badge">Module 11</span> Callbacks, Events & Object Aggregation</div>
+    <div><span class="module-badge">Module 16</span> Callbacks, Events & Object Aggregation</div>
     <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
   <div class="module-body">
