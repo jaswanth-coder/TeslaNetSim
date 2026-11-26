@@ -454,18 +454,22 @@ function collapseAll() {
 <li><a href="#_mod9_datacollection">Module 6: Data Collection & Performance Analytics</a></li>
 </ul>
 </li>
-<li><a href="#_part2_wireless"><strong>Part II: Wireless LAN & WiFi 7/8 Research</strong></a>
+<li><a href="#_part2_ns3gym"><strong>Part II: Machine Learning & Deep Learning with ns3-gym Integration</strong></a>
 <ul class="sectlevel2">
-<li><a href="#_wifi_mod1_phy">Module 7: Wireless Physical Layer & RF Propagation</a></li>
-<li><a href="#_wifi_mod2_mac">Module 8: 802.11 MAC Layer & EDCA QoS</a></li>
-<li><a href="#_wifi_mod3_wifi7">Module 9: WiFi 7 (802.11be) Multi-Link Operation (MLO)</a></li>
-<li><a href="#_wifi_mod4_wifi8">Module 10: WiFi 8 (802.11bn) Ultra High Reliability (UHR)</a></li>
+<li><a href="#_ns3gym_mod1_arch">Module 7: ns3-gym Architecture, IPC Subsystems & Repository Setup</a></li>
+<li><a href="#_ns3gym_mod2_cpp">Module 8: Building Custom Gym Environments in C++ (OpenGymInterface)</a></li>
+<li><a href="#_ns3gym_mod3_py">Module 9: Deep Reinforcement Learning (DQN / PPO) Training in Python</a></li>
 </ul>
 </li>
-<li><a href="#_part3_cpp"><strong>Part III: C++ Systems Foundations for ns-3</strong></a>
+<li><a href="#_part3_wireless"><strong>Part III: Wireless LAN & WiFi 7/8 Research</strong></a>
 <ul class="sectlevel2">
-<li><a href="#_cpp_mod1_smart_pointers">Module 11: Memory Management & Ptr&lt;T&gt; Internals</a></li>
-<li><a href="#_cpp_mod2_callbacks">Module 12: Callbacks, Events & Object Aggregation</a></li>
+<li><a href="#_part3_wireless">WiFi 7 & WiFi 8 Research Modules (Upcoming)</a></li>
+</ul>
+</li>
+<li><a href="#_part4_cpp"><strong>Part IV: C++ Systems Foundations for ns-3</strong></a>
+<ul class="sectlevel2">
+<li><a href="#_cpp_mod1_smart_pointers">Module 10: Memory Management & Ptr&lt;T&gt; Internals</a></li>
+<li><a href="#_cpp_mod2_callbacks">Module 11: Callbacks, Events & Object Aggregation</a></li>
 </ul>
 </li>
 </ul>
@@ -839,6 +843,621 @@ int main (int argc, char *argv[])
           <td class="desc-col">
             <strong>What:</strong> Executes the simulation event calendar and cleans up memory.<br>
             <strong>Why:</strong> <code>Simulator::Run()</code> hands execution over to the priority queue loop. Events run until $t = 10.0\text{ s}$. <code>Simulator::Destroy()</code> breaks circular reference loops (e.g. sockets referencing nodes) so that all <code>Ptr&lt;T&gt;</code> counters drop to 0, preventing memory leaks.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 32px 0;">
+
+    <!-- ==================== SCRIPT 2: p2p-error-onoff.cc ==================== -->
+    <h3>1.5 Progressive Script 2: <code>p2p-error-onoff.cc</code> (Packet Loss & Continuous Traffic)</h3>
+    <p>
+      In <code>first.cc</code>, the channel was 100% reliable and transmitted exactly 3 echo packets. In real telecommunication systems, channels suffer from electromagnetic interference and noise, leading to bit flips and packet drops. Furthermore, real applications generate continuous streams of traffic (like video calls or telemetry). This script introduces two fundamental building blocks:
+    </p>
+    <ul>
+      <li><strong><code>RateErrorModel</code>:</strong> Corrupts and drops packets randomly according to a uniform probability distribution, allowing you to test protocol robustness.</li>
+      <li><strong><code>OnOffApplication</code> & <code>PacketSink</code>:</strong> Generates constant-bit-rate (CBR) or exponential bursty traffic and consumes it at the destination, counting every received byte.</li>
+    </ul>
+
+    <div class="topology-box">
+      <div class="node-card">
+        <h5>Node 0 (CBR Sender)</h5>
+        <span class="node-tag">IP: 10.1.1.1</span>
+        <div class="node-spec">
+          <strong>Device:</strong> PointToPointNetDevice<br>
+          <strong>App:</strong> OnOffApplication (CBR 500 Kbps)<br>
+          <em>Start: 1.0s | Stop: 10.0s</em>
+        </div>
+      </div>
+
+      <div class="channel-link">
+        <span class="channel-label">P2P Channel with ErrorModel</span>
+        <div class="channel-line" style="border-top-style: dashed; border-color: #ef4444;"></div>
+        <span class="channel-sub" style="color: #ef4444;">Error Rate: 0.002 (0.2% drop) • 5 Mbps • 2 ms</span>
+      </div>
+
+      <div class="node-card server">
+        <h5>Node 1 (Packet Sink)</h5>
+        <span class="node-tag" style="background: #d1fae5; color: #065f46;">IP: 10.1.1.2</span>
+        <div class="node-spec">
+          <strong>Device:</strong> PointToPointNetDevice<br>
+          <strong>App:</strong> PacketSink (Port 8080)<br>
+          <em>Start: 0.0s | Stop: 10.0s</em>
+        </div>
+      </div>
+    </div>
+
+    <h4>Full Canonical C++ Code (<code>p2p-error-onoff.cc</code>):</h4>
+    <pre><code class="language-cpp">#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/applications-module.h"
+
+using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE ("AeroWlanP2pErrorOnOff");
+
+// Callback function executed whenever a packet is dropped by the ErrorModel
+static void
+RxDropCallback (Ptr&lt;const Packet&gt; p)
+{
+  NS_LOG_UNCOND ("[" &lt;&lt; Simulator::Now ().GetSeconds () &lt;&lt; "s] PACKET DROPPED! Size = " &lt;&lt; p-&gt;GetSize () &lt;&lt; " bytes");
+}
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  Time::SetResolution (Time::NS);
+
+  NodeContainer nodes;
+  nodes.Create (2);
+
+  PointToPointHelper p2p;
+  p2p.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));
+  p2p.SetChannelAttribute ("Delay", StringValue ("2ms"));
+
+  NetDeviceContainer devices = p2p.Install (nodes);
+
+  // STEP: Configure Error Model on Receiving Device (Node 1)
+  Ptr&lt;RateErrorModel&gt; em = CreateObject&lt;RateErrorModel&gt; ();
+  em-&gt;SetAttribute ("ErrorRate", DoubleValue (0.002)); // 0.2% packet error rate
+  em-&gt;SetAttribute ("ErrorUnit", StringValue ("ERROR_UNIT_PACKET"));
+  devices.Get (1)-&gt;SetAttribute ("ReceiveErrorModel", PointerValue (em));
+
+  // Hook drop trace to our custom C++ function
+  devices.Get (1)-&gt;TraceConnectWithoutContext ("PhyRxDrop", MakeCallback (&RxDropCallback));
+
+  InternetStackHelper stack;
+  stack.Install (nodes);
+
+  Ipv4AddressHelper address;
+  address.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfaces = address.Assign (devices);
+
+  // STEP: Install PacketSink on Node 1 (Receiver listening on Port 8080)
+  uint16_t port = 8080;
+  Address sinkLocalAddress (InetSocketAddress (Ipv4Address::GetAny (), port));
+  PacketSinkHelper sinkHelper ("ns3::UdpSocketFactory", sinkLocalAddress);
+  ApplicationContainer sinkApp = sinkHelper.Install (nodes.Get (1));
+  sinkApp.Start (Seconds (0.0));
+  sinkApp.Stop (Seconds (10.0));
+
+  // STEP: Install OnOffApplication on Node 0 (CBR 500 Kbps generator)
+  OnOffHelper onoff ("ns3::UdpSocketFactory", Address (InetSocketAddress (interfaces.GetAddress (1), port)));
+  onoff.SetConstantRate (DataRate ("500Kbps"), 512); // 512-byte packets at 500 Kbps
+  ApplicationContainer clientApp = onoff.Install (nodes.Get (0));
+  clientApp.Start (Seconds (1.0));
+  clientApp.Stop (Seconds (10.0));
+
+  Simulator::Run ();
+
+  // Query PacketSink for total bytes successfully received
+  Ptr&lt;PacketSink&gt; sink = DynamicCast&lt;PacketSink&gt; (sinkApp.Get (0));
+  std::cout &lt;&lt; "--- Simulation Summary ---" &lt;&lt; std::endl;
+  std::cout &lt;&lt; "Total Bytes Received at Node 1: " &lt;&lt; sink-&gt;GetTotalRx () &lt;&lt; " bytes" &lt;&lt; std::endl;
+
+  Simulator::Destroy ();
+  return 0;
+}</code></pre>
+
+    <table class="code-explanation-table">
+      <thead>
+        <tr>
+          <th class="code-col">Code Statement</th>
+          <th class="desc-col">Exhaustive Architectural Breakdown (What, Why & Memory Model)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="code-col">static void RxDropCallback (Ptr&lt;const Packet&gt; p)</td>
+          <td class="desc-col">
+            <strong>What:</strong> A C++ callback function triggered when an error occurs.<br>
+            <strong>Why:</strong> Decouples tracing logic from the core protocol stack. Instead of modifying ns-3 C++ engine classes, ns-3 notifies user code via callbacks whenever an event occurs.<br>
+            <strong>Under the Hood:</strong> The pointer to the immutable packet <code>Ptr&lt;const Packet&gt;</code> is passed by value, incrementing the packet's reference counter temporarily.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">Ptr&lt;RateErrorModel&gt; em = CreateObject&lt;RateErrorModel&gt; ();<br>em-&gt;SetAttribute ("ErrorRate", DoubleValue (0.002));<br>devices.Get (1)-&gt;SetAttribute ("ReceiveErrorModel", PointerValue (em));</td>
+          <td class="desc-col">
+            <strong>What:</strong> Instantiates an error generator and attaches it to Node 1's NIC.<br>
+            <strong>Why:</strong> Models imperfect physical mediums. <code>ERROR_UNIT_PACKET</code> causes the device to roll a pseudo-random number for each inbound frame; if the roll falls below 0.002, the frame is marked corrupted.<br>
+            <strong>Under the Hood:</strong> <code>PointToPointNetDevice::Receive()</code> checks <code>m_receiveErrorModel-&gt;IsCorrupt(packet)</code>. If true, the packet is discarded into the drop trace sink before reaching the IP stack!
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">devices.Get (1)-&gt;TraceConnectWithoutContext ("PhyRxDrop", MakeCallback (&RxDropCallback));</td>
+          <td class="desc-col">
+            <strong>What:</strong> Hooks the <code>PhyRxDrop</code> trace source to our C++ callback function.<br>
+            <strong>Why:</strong> Emits an instant console notification whenever a packet is dropped, enabling precise verification of drop times and packet sizes.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">PacketSinkHelper sinkHelper ("ns3::UdpSocketFactory", sinkLocalAddress);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Configures an open socket listener on port 8080 bound to any IP address.<br>
+            <strong>Why:</strong> The sink acts as a black hole that accepts traffic and maintains accurate running statistics (total bytes received, packet timestamps).
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">onoff.SetConstantRate (DataRate ("500Kbps"), 512);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Configures a Constant Bit Rate (CBR) traffic pattern.<br>
+            <strong>Why:</strong> Unlike the UDP Echo client which only sends individual bursts, <code>OnOffHelper</code> continuously calculates transmission intervals: $\Delta t = \frac{512 \text{ bytes} \times 8 \text{ bits}}{500,000 \text{ bps}} = 8.192 \text{ ms}$. Packets stream reliably every 8.192 ms!
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">Ptr&lt;PacketSink&gt; sink = DynamicCast&lt;PacketSink&gt; (sinkApp.Get (0));<br>sink-&gt;GetTotalRx ();</td>
+          <td class="desc-col">
+            <strong>What:</strong> Downcasts generic <code>Application</code> pointer to specific <code>PacketSink</code>.<br>
+            <strong>Why:</strong> <code>ApplicationContainer::Get()</code> returns a generic <code>Ptr&lt;Application&gt;</code>. To invoke sink-specific methods like <code>GetTotalRx()</code>, ns-3's <code>DynamicCast&lt;T&gt;()</code> provides safe RTTI downcasting.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 32px 0;">
+
+    <!-- ==================== SCRIPT 3: csma-broadcast.cc ==================== -->
+    <h3>1.6 Progressive Script 3: <code>csma-broadcast.cc</code> (Carrier Sense Shared Bus & ARP)</h3>
+    <p>
+      Point-to-point links only connect two hosts directly. In enterprise LANs and data centers, multiple computers share a common communication medium (Ethernet or Wi-Fi). This script introduces <strong>Carrier Sense Multiple Access (CSMA)</strong>:
+    </p>
+    <ul>
+      <li><strong>Shared Transmission Medium:</strong> All 4 nodes are connected to a single coaxial/twisted-pair cable (<code>CsmaChannel</code>).</li>
+      <li><strong>Broadcast & ARP:</strong> When Node 0 wants to communicate with Node 3's IP address, it must first send an <strong>ARP (Address Resolution Protocol) Request</strong> broadcast to discover Node 3's 48-bit MAC address.</li>
+      <li><strong>Carrier Sensing & Contention:</strong> Nodes sense the cable before transmitting; if the bus is busy, they back off to avoid collisions.</li>
+    </ul>
+
+    <div class="topology-box">
+      <div style="display: flex; flex-direction: column; width: 100%; gap: 16px; align-items: center;">
+        <div style="display: flex; justify-content: space-around; width: 100%; gap: 10px;">
+          <div class="node-card" style="flex: 1; max-width: 140px;">
+            <h5>Node 0</h5>
+            <span class="node-tag">10.1.1.1</span>
+            <span style="font-size: 10px; color: #64748b;">Client (Sender)</span>
+          </div>
+          <div class="node-card" style="flex: 1; max-width: 140px;">
+            <h5>Node 1</h5>
+            <span class="node-tag">10.1.1.2</span>
+            <span style="font-size: 10px; color: #64748b;">Idle Host</span>
+          </div>
+          <div class="node-card" style="flex: 1; max-width: 140px;">
+            <h5>Node 2</h5>
+            <span class="node-tag">10.1.1.3</span>
+            <span style="font-size: 10px; color: #64748b;">Idle Host</span>
+          </div>
+          <div class="node-card server" style="flex: 1; max-width: 140px;">
+            <h5>Node 3</h5>
+            <span class="node-tag" style="background: #d1fae5; color: #065f46;">10.1.1.4</span>
+            <span style="font-size: 10px; color: #065f46;">Server (Receiver)</span>
+          </div>
+        </div>
+        <div style="width: 90%; height: 6px; background: #3b82f6; border-radius: 3px; position: relative; box-shadow: 0 0 10px rgba(59,130,246,0.4);">
+          <span style="position: absolute; top: 12px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: bold; color: #1e40af;">
+            Shared CSMA Bus (100 Mbps • 6560 ns Propagation Delay)
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <h4>Full Canonical C++ Code (<code>csma-broadcast.cc</code>):</h4>
+    <pre><code class="language-cpp">#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/csma-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/applications-module.h"
+
+using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE ("AeroWlanCsmaBroadcast");
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  Time::SetResolution (Time::NS);
+  LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
+  LogComponentEnable ("UdpEchoServerApplication", LOG_LEVEL_INFO);
+
+  // STEP 1: Create 4 hosts on the bus
+  NodeContainer csmaNodes;
+  csmaNodes.Create (4);
+
+  // STEP 2: Configure CSMA Bus Helper
+  CsmaHelper csma;
+  csma.SetChannelAttribute ("DataRate", StringValue ("100Mbps"));
+  csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));
+
+  // STEP 3: Install CsmaNetDevices onto all 4 nodes
+  NetDeviceContainer csmaDevices = csma.Install (csmaNodes);
+
+  // STEP 4: Install Protocol Stack
+  InternetStackHelper stack;
+  stack.Install (csmaNodes);
+
+  // STEP 5: Assign IP Subnet (10.1.1.0/24)
+  Ipv4AddressHelper address;
+  address.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfaces = address.Assign (csmaDevices);
+
+  // STEP 6: Install Server on Node 3 (10.1.1.4)
+  UdpEchoServerHelper echoServer (9);
+  ApplicationContainer serverApps = echoServer.Install (csmaNodes.Get (3));
+  serverApps.Start (Seconds (1.0));
+  serverApps.Stop (Seconds (10.0));
+
+  // STEP 7: Install Client on Node 0 targeting Node 3 (10.1.1.4)
+  UdpEchoClientHelper echoClient (interfaces.GetAddress (3), 9);
+  echoClient.SetAttribute ("MaxPackets", UintegerValue (2));
+  echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+  echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
+
+  ApplicationContainer clientApps = echoClient.Install (csmaNodes.Get (0));
+  clientApps.Start (Seconds (2.0));
+  clientApps.Stop (Seconds (10.0));
+
+  // Enable PCAP tracing for Wireshark inspection
+  csma.EnablePcap ("csma-bus", csmaDevices.Get (0), true);
+
+  Simulator::Run ();
+  Simulator::Destroy ();
+  return 0;
+}</code></pre>
+
+    <table class="code-explanation-table">
+      <thead>
+        <tr>
+          <th class="code-col">Code Statement</th>
+          <th class="desc-col">Exhaustive Architectural Breakdown (What, Why & Memory Model)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="code-col">#include "ns3/csma-module.h"</td>
+          <td class="desc-col">
+            <strong>What:</strong> Imports the Carrier Sense Multiple Access subsystem headers.<br>
+            <strong>Why:</strong> Provides classes such as <code>CsmaHelper</code>, <code>CsmaNetDevice</code>, and <code>CsmaChannel</code> which implement IEEE 802.3 Ethernet-like bus behaviors.<br>
+            <strong>Under the Hood:</strong> CMake links against <code>libns3.45-csma-default.so</code>.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">CsmaHelper csma;<br>csma.SetChannelAttribute ("DataRate", StringValue ("100Mbps"));<br>csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));</td>
+          <td class="desc-col">
+            <strong>What:</strong> Sets the bus transmission speed to 100 Megabits/sec and electromagnetic propagation delay to 6560 nanoseconds.<br>
+            <strong>Why:</strong> 6560 ns corresponds to the propagation delay across approximately 1.3 kilometers of copper wire at $\frac{2}{3}c$.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">NetDeviceContainer csmaDevices = csma.Install (csmaNodes);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Installs 4 <code>CsmaNetDevice</code>s and binds them all to a single shared <code>CsmaChannel</code> instance.<br>
+            <strong>Why:</strong> In Point-to-Point, <code>Install()</code> attaches exactly 2 devices per channel. In CSMA, the single shared channel pointer is referenced by all 4 network interface cards.<br>
+            <strong>Under the Hood:</strong> When any node transmits, <code>CsmaChannel</code> broadcasts the signal to all attached devices, triggering carrier-sense busy flags across the entire bus.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">csma.EnablePcap ("csma-bus", csmaDevices.Get (0), true);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Generates a raw binary <code>.pcap</code> file named <code>csma-bus-0-0.pcap</code> in promiscuous mode (<code>true</code>).<br>
+            <strong>Why:</strong> Allows you to open the simulation trace directly inside **Wireshark**. You will visibly inspect ARP Request/Reply broadcast packets preceding the UDP Echo data exchange!
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 32px 0;">
+
+    <!-- ==================== SCRIPT 4: two-subnet-router.cc ==================== -->
+    <h3>1.7 Progressive Script 4: <code>two-subnet-router.cc</code> (Multi-Subnet Routing & Forwarding)</h3>
+    <p>
+      In internet networking, hosts in different IP subnets cannot communicate directly; their packets must cross an intermediary Layer 3 <strong>Router (Gateway)</strong>. This script teaches how to construct multiple subnets, install multiple network devices on a single router node, and configure dynamic or global routing tables:
+    </p>
+    <ul>
+      <li><strong>Dual-Homed Router:</strong> Node 1 acts as a router. It holds two distinct <code>NetDevice</code> interfaces: Device 0 attached to Subnet A (<code>10.1.1.0/24</code>) and Device 1 attached to Subnet B (<code>10.1.2.0/24</code>).</li>
+      <li><strong>IP Forwarding:</strong> The router inspects packet destination IP addresses, looks up its internal routing table, decrements the TTL (Time-To-Live), and forwards the packet to the next hop.</li>
+      <li><strong><code>Ipv4GlobalRoutingHelper</code>:</strong> Traverses the entire simulation topology, computes Dijkstra's shortest paths, and automatically populates the routing tables of all nodes.</li>
+    </ul>
+
+    <div class="topology-box">
+      <div class="node-card">
+        <h5>Node 0 (Client)</h5>
+        <span class="node-tag">10.1.1.1</span>
+        <div class="node-spec">Subnet A</div>
+      </div>
+
+      <div class="channel-link">
+        <span class="channel-label">Link A (10.1.1.0/24)</span>
+        <div class="channel-line"></div>
+        <span class="channel-sub">5 Mbps • 2 ms</span>
+      </div>
+
+      <div class="node-card" style="border: 2px solid #8b5cf6; background: #faf5ff;">
+        <h5>Node 1 (Router / Gateway)</h5>
+        <span class="node-tag" style="background: #ede9fe; color: #6d28d9;">dev0: 10.1.1.2</span>
+        <span class="node-tag" style="background: #ede9fe; color: #6d28d9;">dev1: 10.1.2.1</span>
+        <div class="node-spec" style="color: #6d28d9; font-weight: bold;">Dual-Homed Gateway</div>
+      </div>
+
+      <div class="channel-link">
+        <span class="channel-label">Link B (10.1.2.0/24)</span>
+        <div class="channel-line"></div>
+        <span class="channel-sub">5 Mbps • 2 ms</span>
+      </div>
+
+      <div class="node-card server">
+        <h5>Node 2 (Server)</h5>
+        <span class="node-tag" style="background: #d1fae5; color: #065f46;">10.1.2.2</span>
+        <div class="node-spec">Subnet B</div>
+      </div>
+    </div>
+
+    <h4>Full Canonical C++ Code (<code>two-subnet-router.cc</code>):</h4>
+    <pre><code class="language-cpp">#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/applications-module.h"
+
+using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE ("AeroWlanTwoSubnetRouter");
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  Time::SetResolution (Time::NS);
+  LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
+  LogComponentEnable ("UdpEchoServerApplication", LOG_LEVEL_INFO);
+
+  // STEP 1: Create 3 nodes (Node 0 = Client, Node 1 = Router, Node 2 = Server)
+  NodeContainer nodes;
+  nodes.Create (3);
+
+  NodeContainer linkANodes = NodeContainer (nodes.Get (0), nodes.Get (1));
+  NodeContainer linkBNodes = NodeContainer (nodes.Get (1), nodes.Get (2));
+
+  // STEP 2: Configure PointToPoint links
+  PointToPointHelper p2p;
+  p2p.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));
+  p2p.SetChannelAttribute ("Delay", StringValue ("2ms"));
+
+  NetDeviceContainer devicesA = p2p.Install (linkANodes);
+  NetDeviceContainer devicesB = p2p.Install (linkBNodes);
+
+  // STEP 3: Install Internet Stack across all nodes
+  InternetStackHelper stack;
+  stack.Install (nodes);
+
+  // STEP 4: Assign IP Subnets
+  Ipv4AddressHelper ipv4;
+
+  // Subnet A: 10.1.1.0/24 (Client & Router dev 0)
+  ipv4.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfacesA = ipv4.Assign (devicesA);
+
+  // Subnet B: 10.1.2.0/24 (Router dev 1 & Server)
+  ipv4.SetBase ("10.1.2.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfacesB = ipv4.Assign (devicesB);
+
+  // STEP 5: Populate Global Routing Tables
+  Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
+
+  // STEP 6: Install Server on Node 2 (10.1.2.2)
+  UdpEchoServerHelper echoServer (9);
+  ApplicationContainer serverApps = echoServer.Install (nodes.Get (2));
+  serverApps.Start (Seconds (1.0));
+  serverApps.Stop (Seconds (10.0));
+
+  // STEP 7: Install Client on Node 0 targeting Node 2 across the router
+  UdpEchoClientHelper echoClient (interfacesB.GetAddress (1), 9); // 10.1.2.2
+  echoClient.SetAttribute ("MaxPackets", UintegerValue (3));
+  echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+  echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
+
+  ApplicationContainer clientApps = echoClient.Install (nodes.Get (0));
+  clientApps.Start (Seconds (2.0));
+  clientApps.Stop (Seconds (10.0));
+
+  Simulator::Run ();
+  Simulator::Destroy ();
+  return 0;
+}</code></pre>
+
+    <table class="code-explanation-table">
+      <thead>
+        <tr>
+          <th class="code-col">Code Statement</th>
+          <th class="desc-col">Exhaustive Architectural Breakdown (What, Why & Memory Model)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="code-col">NodeContainer linkANodes = NodeContainer (nodes.Get (0), nodes.Get (1));<br>NodeContainer linkBNodes = NodeContainer (nodes.Get (1), nodes.Get (2));</td>
+          <td class="desc-col">
+            <strong>What:</strong> Groups nodes into two distinct point-to-point pairwise links.<br>
+            <strong>Why:</strong> A single point-to-point channel only accepts 2 nodes. By passing <code>nodes.Get(1)</code> to both containers, Node 1 participates in both communication links.<br>
+            <strong>Under the Hood:</strong> Node 1 now aggregates two separate <code>PointToPointNetDevice</code> objects: <code>dev0</code> connected to Channel A, and <code>dev1</code> connected to Channel B.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">ipv4.SetBase ("10.1.1.0", "255.255.255.0");<br>interfacesA = ipv4.Assign (devicesA);<br>ipv4.SetBase ("10.1.2.0", "255.255.255.0");<br>interfacesB = ipv4.Assign (devicesB);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Establishes two independent IP subnets.<br>
+            <strong>Why:</strong> Subnet A assigns <code>10.1.1.1</code> (Node 0) and <code>10.1.1.2</code> (Node 1). Subnet B assigns <code>10.1.2.1</code> (Node 1) and <code>10.1.2.2</code> (Node 2). Node 1 acts as the default gateway for both subnets.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">Ipv4GlobalRoutingHelper::PopulateRoutingTables ();</td>
+          <td class="desc-col">
+            <strong>What:</strong> Automatically builds routing tables for all nodes.<br>
+            <strong>Why:</strong> Without this line, Node 0 does not know where to send packets destined for <code>10.1.2.2</code> and drops them with <em>"No route to host"</em>. This helper runs an automated shortest-path search and installs next-hop routes on all nodes.<br>
+            <strong>Under the Hood:</strong> Populates the <code>Ipv4GlobalRouting</code> protocol object aggregated inside each node's Layer 3 stack.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 32px 0;">
+
+    <!-- ==================== SCRIPT 5: tcp-bulk-send.cc ==================== -->
+    <h3>1.8 Progressive Script 5: <code>tcp-bulk-send.cc</code> (Reliable Transport & Flow Control)</h3>
+    <p>
+      UDP is a connectionless, "fire-and-forget" protocol that provides zero delivery guarantees. In contrast, <strong>TCP (Transmission Control Protocol)</strong> is the backbone of the internet, guaranteeing in-order, lossless byte streams through connection establishment (3-way handshake), acknowledgments (ACKs), and congestion window dynamics. This script demonstrates how to set up reliable high-throughput bulk data transfers in ns-3:
+    </p>
+    <ul>
+      <li><strong><code>BulkSendApplication</code>:</strong> Simulates an FTP or large file download, attempting to pump data as fast as the TCP congestion window allows.</li>
+      <li><strong>TCP 3-Way Handshake:</strong> Nodes automatically exchange SYN, SYN-ACK, and ACK packets before data delivery begins.</li>
+      <li><strong>Flow Control & Bottlenecks:</strong> Observes how TCP dynamically throttles sending rates when packets are buffered in the bottleneck link.</li>
+    </ul>
+
+    <div class="topology-box">
+      <div class="node-card">
+        <h5>Node 0 (TCP Source)</h5>
+        <span class="node-tag">10.1.1.1</span>
+        <div class="node-spec">
+          <strong>App:</strong> BulkSendApplication<br>
+          <strong>Socket:</strong> ns3::TcpSocketFactory<br>
+          <em>MaxBytes: 500,000 bytes</em>
+        </div>
+      </div>
+
+      <div class="channel-link">
+        <span class="channel-label">Bottleneck P2P Link</span>
+        <div class="channel-line"></div>
+        <span class="channel-sub">1 Mbps • 10 ms Delay (Queue: 20 pkts)</span>
+      </div>
+
+      <div class="node-card server">
+        <h5>Node 1 (TCP Sink)</h5>
+        <span class="node-tag" style="background: #d1fae5; color: #065f46;">10.1.1.2</span>
+        <div class="node-spec">
+          <strong>App:</strong> PacketSink (Port 9000)<br>
+          <strong>Socket:</strong> ns3::TcpSocketFactory<br>
+          <em>Receives & ACKs bytes</em>
+        </div>
+      </div>
+    </div>
+
+    <h4>Full Canonical C++ Code (<code>tcp-bulk-send.cc</code>):</h4>
+    <pre><code class="language-cpp">#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/applications-module.h"
+
+using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE ("AeroWlanTcpBulkSend");
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  Time::SetResolution (Time::NS);
+
+  NodeContainer nodes;
+  nodes.Create (2);
+
+  PointToPointHelper p2p;
+  p2p.SetDeviceAttribute ("DataRate", StringValue ("1Mbps"));
+  p2p.SetChannelAttribute ("Delay", StringValue ("10ms"));
+  p2p.SetQueue ("ns3::DropTailQueue&lt;Packet&gt;", "MaxSize", StringValue ("20p"));
+
+  NetDeviceContainer devices = p2p.Install (nodes);
+
+  InternetStackHelper stack;
+  stack.Install (nodes);
+
+  Ipv4AddressHelper address;
+  address.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfaces = address.Assign (devices);
+
+  // STEP: Configure TCP PacketSink on Node 1 (Listening on port 9000)
+  uint16_t port = 9000;
+  Address sinkAddress (InetSocketAddress (interfaces.GetAddress (1), port));
+  PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), port));
+  ApplicationContainer sinkApp = sinkHelper.Install (nodes.Get (1));
+  sinkApp.Start (Seconds (0.0));
+  sinkApp.Stop (Seconds (20.0));
+
+  // STEP: Configure BulkSendApplication on Node 0 (Pumping 500 KB over TCP)
+  BulkSendHelper bulkSend ("ns3::TcpSocketFactory", sinkAddress);
+  bulkSend.SetAttribute ("MaxBytes", UintegerValue (500000)); // 500 KB file transfer
+  bulkSend.SetAttribute ("SendSize", UintegerValue (1460));    // Standard Ethernet MSS
+
+  ApplicationContainer sourceApp = bulkSend.Install (nodes.Get (0));
+  sourceApp.Start (Seconds (1.0));
+  sourceApp.Stop (Seconds (20.0));
+
+  // Enable PCAP to inspect TCP 3-way handshake and ACK frames
+  p2p.EnablePcapAll ("tcp-bulk-trace");
+
+  Simulator::Run ();
+
+  Ptr&lt;PacketSink&gt; sink = DynamicCast&lt;PacketSink&gt; (sinkApp.Get (0));
+  std::cout &lt;&lt; "--- TCP Bulk Transfer Finished ---" &lt;&lt; std::endl;
+  std::cout &lt;&lt; "Total Payload Bytes Received: " &lt;&lt; sink-&gt;GetTotalRx () &lt;&lt; " bytes" &lt;&lt; std::endl;
+
+  Simulator::Destroy ();
+  return 0;
+}</code></pre>
+
+    <table class="code-explanation-table">
+      <thead>
+        <tr>
+          <th class="code-col">Code Statement</th>
+          <th class="desc-col">Exhaustive Architectural Breakdown (What, Why & Memory Model)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="code-col">p2p.SetQueue ("ns3::DropTailQueue&lt;Packet&gt;", "MaxSize", StringValue ("20p"));</td>
+          <td class="desc-col">
+            <strong>What:</strong> Limits the network card output buffer queue to 20 packets.<br>
+            <strong>Why:</strong> Creates an intentional bottleneck queue. When TCP's transmission speed exceeds 1 Mbps, packets accumulate in this queue; once 20 packets are buffered, subsequent packets drop, triggering TCP congestion backoff.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">BulkSendHelper bulkSend ("ns3::TcpSocketFactory", sinkAddress);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Creates an application bound to <code>ns3::TcpSocketFactory</code> instead of UDP.<br>
+            <strong>Why:</strong> Instructs ns-3 to instantiate a full-featured TCP state machine (<code>TcpL4Protocol</code>, <code>TcpSocketBase</code>, and <code>TcpCongestionOps</code>) on Node 0.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">bulkSend.SetAttribute ("MaxBytes", UintegerValue (500000));<br>bulkSend.SetAttribute ("SendSize", UintegerValue (1460));</td>
+          <td class="desc-col">
+            <strong>What:</strong> Configures total data to transmit (500,000 bytes) and segment payload size (1460 bytes).<br>
+            <strong>Why:</strong> 1460 bytes is the Maximum Segment Size (MSS) for standard Ethernet (1500 bytes MTU minus 20 bytes IP header and 20 bytes TCP header).<br>
+            <strong>Under the Hood:</strong> The application automatically shuts down transmission when 500,000 bytes have been written into the TCP socket send buffer, followed by TCP FIN teardown.
           </td>
         </tr>
       </tbody>
@@ -2193,101 +2812,527 @@ int main (int argc, char *argv[])
 
 <!-- ======================================================== -->
 <div class="sect1">
-<h2 id="_part2_wireless">Part II: Wireless LAN & WiFi 7/8 Research</h2>
+<h2 id="_part2_ns3gym">Part II: Machine Learning & Deep Learning with ns3-gym Integration</h2>
 <div class="sectionbody">
 
 <!-- MODULE 7 -->
-<details class="module-card" id="_wifi_mod1_phy">
+<details class="module-card" open id="_ns3gym_mod1_arch">
   <summary class="module-summary">
-    <div><span class="module-badge">Module 7</span> Wireless Physical Layer & RF Propagation</div>
+    <div><span class="module-badge">Module 7</span> ns3-gym Architecture, IPC Subsystems & Repository Setup</div>
     <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
   <div class="module-body">
-    <h3>7.1 YansWifiPhy vs. SpectrumWifiPhy & Path Loss Models</h3>
-    <p>Modeling wireless signals requires calculating physical signal-to-interference-plus-noise ratios (SINR):</p>
-    <ul>
-      <li><strong><code>YansWifiPhy</code>:</strong> Fast single-carrier physical layer model ideal for basic 802.11a/b/g simulations.</li>
-      <li><strong><code>SpectrumWifiPhy</code>:</strong> Multi-carrier frequency-domain model. Crucial for modern 802.11ax (WiFi 6), 802.11be (WiFi 7), and 802.11bn (WiFi 8), accurately capturing subcarrier interference and OFDMA resource units (RUs).</li>
-      <li><strong>Path Loss Models:</strong> Calculate attenuation based on distance $d$ (e.g., <code>FriisPropagationLossModel</code>, <code>LogDistancePropagationLossModel</code>):</li>
-    </ul>
-    <div class="paragraph" style="text-align: center;">
-      \[ P_{\text{rx}}(d) = P_{\text{tx}} - 10 \cdot \gamma \cdot \log_{10}\left(\frac{d}{d_0}\right) - X_\sigma \]
+    <h3>7.1 Why Combine ns-3 with Machine Learning & Deep Learning?</h3>
+    <p>
+      Modern networking protocols—such as adaptive modulation and coding (AMC), 5G/6G beamforming, congestion control (BBR/RL-CC), and WiFi 7/8 Multi-Link scheduling—are increasingly driven by <strong>Reinforcement Learning (RL)</strong> and <strong>Deep Neural Networks (DNNs)</strong>.
+    </p>
+    <p>
+      However, a core architectural challenge exists: <strong>ns-3 is written in high-performance C++</strong> (for event-driven discrete simulation speed), while the <strong>modern Machine Learning ecosystem (PyTorch, TensorFlow, Gymnasium, Stable-Baselines3) is native to Python</strong>. Bridging these two worlds without compromising simulation speed requires an optimized Inter-Process Communication (IPC) framework known as <strong><code>ns3-gym</code></strong>.
+    </p>
+
+    <div class="topology-box" style="background: #0f172a; color: #f8fafc; border-color: #334155;">
+      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 16px;">
+        <div style="flex: 1; background: #1e293b; padding: 16px; border-radius: 8px; border: 1px solid #3b82f6; text-align: center;">
+          <h5 style="color: #60a5fa; margin: 0 0 8px 0;">ns-3 Simulation Engine (C++)</h5>
+          <span style="font-size: 11px; color: #94a3b8; display: block;">OpenGymInterface</span>
+          <span style="font-size: 11px; color: #94a3b8; display: block;">Event Scheduler & Protocols</span>
+          <div style="margin-top: 10px; background: #0f172a; padding: 6px; border-radius: 4px; font-size: 10px; color: #cbd5e1;">
+            Emits: Observations ($s_t$), Rewards ($r_t$)<br>Receives: Actions ($a_t$)
+          </div>
+        </div>
+
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+          <span style="font-size: 12px; font-weight: bold; color: #a5b4fc;">Fast IPC Layer</span>
+          <div style="width: 100%; height: 2px; background: #6366f1; position: relative;"></div>
+          <span style="font-size: 10px; color: #38bdf8;">ZeroMQ (ZMQ Sockets) / Shared Memory</span>
+          <span style="font-size: 10px; color: #fbbf24;">Google Protobuf Binary Serialization</span>
+          <div style="width: 100%; height: 2px; background: #6366f1; position: relative;"></div>
+          <span style="font-size: 10px; color: #94a3b8;">Sub-millisecond latency</span>
+        </div>
+
+        <div style="flex: 1; background: #1e293b; padding: 16px; border-radius: 8px; border: 1px solid #10b981; text-align: center;">
+          <h5 style="color: #34d399; margin: 0 0 8px 0;">AI / RL Environment (Python)</h5>
+          <span style="font-size: 11px; color: #94a3b8; display: block;">Gymnasium (gym.Env)</span>
+          <span style="font-size: 11px; color: #94a3b8; display: block;">PyTorch / Stable-Baselines3</span>
+          <div style="margin-top: 10px; background: #0f172a; padding: 6px; border-radius: 4px; font-size: 10px; color: #cbd5e1;">
+            Deep Q-Networks (DQN)<br>Proximal Policy Optimization (PPO)
+          </div>
+        </div>
+      </div>
     </div>
+
+    <h3>7.2 Recommended Repositories & Modern Compatibility</h3>
+    <p>Depending on your ns-3 version, select the corresponding repository:</p>
+    <ul>
+      <li>
+        <strong>Primary / Canonical Repository:</strong> <a href="https://github.com/tkn-tub/ns3-gym" target="_blank"><code>https://github.com/tkn-tub/ns3-gym</code></a><br>
+        <em>Developed by Piotr Gawłowicz and Anatolij Zubow (TU Berlin). The pioneering framework standardizing OpenAI Gym APIs for ns-3.</em>
+      </li>
+      <li>
+        <strong>CMake-Compatible ns-3.36+ / ns-3.45 Fork:</strong> <a href="https://github.com/pgawlowicz/ns3-gym" target="_blank"><code>https://github.com/pgawlowicz/ns3-gym</code></a><br>
+        <em>Updated by the authors to support CMake and Python 3.8+ / Gymnasium interfaces.</em>
+      </li>
+      <li>
+        <strong>High-Performance Alternative: <code>ns3-ai</code>:</strong> <a href="https://github.com/hust-diangroup/ns3-ai" target="_blank"><code>https://github.com/hust-diangroup/ns3-ai</code></a><br>
+        <em>Developed by HUST. Replaces socket IPC with high-speed Linux Shared Memory (SHM), delivering up to 100x faster inter-process data exchange for large-scale Deep RL training.</em>
+      </li>
+    </ul>
+
+    <h3>7.3 Step-by-Step Installation & Build Pipeline</h3>
+    <p>Execute the following shell commands to install prerequisites, clone ns3-gym, and compile the module into ns-3:</p>
+
+    <pre><code class="language-bash"># Step 1: Install system dependencies (Protobuf and ZeroMQ C++ libraries)
+sudo apt-get update
+sudo apt-get install -y protobuf-compiler libprotobuf-dev libzmq5-dev libzmq3-dev
+
+# Step 2: Install Python dependencies (Gymnasium, PyTorch, PyZMQ, Protobuf)
+pip install gymnasium pyzmq protobuf torch torchvision torchaudio
+
+# Step 3: Clone ns3-gym into the contrib/ directory of your ns-3 tree
+cd /home/jaswanth/Downloads/ns-allinone-3.45/ns-3.45/contrib/
+git clone https://github.com/tkn-tub/ns3-gym.git opengym
+
+# Step 4: Install the Python gym package in editable mode
+cd opengym/model/ns3gym/
+pip install -e .
+
+# Step 5: Reconfigure and compile ns-3 with the opengym module enabled
+cd /home/jaswanth/Downloads/ns-allinone-3.45/ns-3.45/
+./ns3 configure --enable-examples --enable-tests --build-profile=debug
+./ns3 build</code></pre>
   </div>
 </details>
 
 <!-- MODULE 8 -->
-<details class="module-card" id="_wifi_mod2_mac">
+<details class="module-card" id="_ns3gym_mod2_cpp">
   <summary class="module-summary">
-    <div><span class="module-badge">Module 8</span> 802.11 MAC Layer & EDCA QoS</div>
+    <div><span class="module-badge">Module 8</span> Building Custom Gym Environments in C++ (OpenGymInterface)</div>
     <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
   <div class="module-body">
-    <h3>8.1 FrameExchangeManager, RTS/CTS & A-MPDU Aggregation</h3>
-    <p>In ns-3.45, Wi-Fi channel access and handshakes are orchestrated by the <code>FrameExchangeManager</code>:</p>
-    <ul>
-      <li><strong>EDCA (Enhanced Distributed Channel Access):</strong> Maps packets into 4 Access Categories (AC_VO for Voice, AC_VI for Video, AC_BE for Best Effort, AC_BK for Background) with distinct contention windows ($CW_{\min}, CW_{\max}$) and AIFS timers.</li>
-      <li><strong>A-MPDU Aggregation:</strong> Bundles multiple MAC frames into a single physical transmission burst, reducing PHY preamble overhead.</li>
-      <li><strong>BlockAck:</strong> Replaces individual ACKs with a single bitmap confirming receipt of dozens of subframes.</li>
-    </ul>
+    <h3>8.1 The C++ <code>OpenGymInterface</code> Architecture</h3>
+    <p>
+      In <code>ns3-gym</code>, the C++ simulation exposes a virtual OpenAI Gym environment by subclassing <code>OpenGymInterface</code>. The C++ class defines:
+    </p>
+    <ol>
+      <li><strong>Observation Space:</strong> The state variables observable by the ML model (e.g. current SNR, packet loss rate, queue buffer backlog).</li>
+      <li><strong>Action Space:</strong> The actions available to the ML agent (e.g. choose Modulation and Coding Scheme [MCS 0 to 11], adjust contention window $CW_{\min}$, or adjust transmit power).</li>
+      <li><strong>Step Lifecycle Callbacks:</strong> Methods that package state into Protobuf messages, compute rewards, and apply agent decisions to ns-3 protocol layers.</li>
+    </ol>
+
+    <h4>Full Canonical C++ Code (<code>ns3gym-wifi-agent.cc</code>):</h4>
+    <pre><code class="language-cpp">#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/opengym-module.h"
+
+using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE ("AeroWlanNs3GymEnv");
+
+class NetworkGymEnv : public OpenGymInterface
+{
+public:
+  NetworkGymEnv ();
+  virtual ~NetworkGymEnv ();
+
+  static TypeId GetTypeId (void);
+
+  // Mandatory OpenGymInterface Pure Virtual Methods:
+  Ptr&lt;OpenGymSpaceContainer&gt; GetActionSpace ();
+  Ptr&lt;OpenGymSpaceContainer&gt; GetObservationSpace ();
+  Ptr&lt;OpenGymDataContainer&gt;  GetObservation ();
+  float                      GetReward ();
+  bool                       GetGameOver ();
+  std::string                GetExtraInfo ();
+  bool                       ExecuteActions (Ptr&lt;OpenGymDataContainer&gt; action);
+
+  void SetNodeContext (Ptr&lt;Node&gt; node, Ptr&lt;PointToPointNetDevice&gt; device);
+  void NotifyPacketReceived (uint32_t bytes);
+
+private:
+  Ptr&lt;Node&gt;                   m_node;
+  Ptr&lt;PointToPointNetDevice&gt;  m_device;
+  uint32_t                    m_currentRxBytes;
+  uint32_t                    m_queueOccupancy;
+  float                       m_lastReward;
+};
+
+NS_OBJECT_ENSURE_REGISTERED (NetworkGymEnv);
+
+TypeId
+NetworkGymEnv::GetTypeId (void)
+{
+  static TypeId tid = TypeId ("NetworkGymEnv")
+    .SetParent&lt;OpenGymInterface&gt; ()
+    .SetGroupName ("OpenGym")
+    .AddConstructor&lt;NetworkGymEnv&gt; ();
+  return tid;
+}
+
+NetworkGymEnv::NetworkGymEnv ()
+  : m_currentRxBytes (0), m_queueOccupancy (0), m_lastReward (0.0f)
+{
+}
+
+NetworkGymEnv::~NetworkGymEnv ()
+{
+}
+
+// STEP 1: Define what decisions the ML agent can make (Discrete: 4 transmission rates)
+Ptr&lt;OpenGymSpaceContainer&gt;
+NetworkGymEnv::GetActionSpace ()
+{
+  // Action: Choose Rate Index [0 = 1Mbps, 1 = 2Mbps, 2 = 5Mbps, 3 = 10Mbps]
+  uint32_t numActions = 4;
+  Ptr&lt;OpenGymDiscreteSpace&gt; space = CreateObject&lt;OpenGymDiscreteSpace&gt; (numActions);
+  return space;
+}
+
+// STEP 2: Define what features the ML agent observes (Box: Queue Length & Rx Throughput)
+Ptr&lt;OpenGymSpaceContainer&gt;
+NetworkGymEnv::GetObservationSpace ()
+{
+  std::vector&lt;uint32_t&gt; shape = {2}; // 2 continuous state features
+  Ptr&lt;OpenGymBoxSpace&gt; space = CreateObject&lt;OpenGymBoxSpace&gt; (0.0, 100000.0, shape, "FLOAT");
+  return space;
+}
+
+// STEP 3: Package current simulation metrics into observation tensor
+Ptr&lt;OpenGymDataContainer&gt;
+NetworkGymEnv::GetObservation ()
+{
+  std::vector&lt;uint32_t&gt; shape = {2};
+  Ptr&lt;OpenGymBoxDataContainer&lt;float&gt;&gt; data = CreateObject&lt;OpenGymBoxDataContainer&lt;float&gt;&gt; (shape);
+  
+  float queuePktCount = static_cast&lt;float&gt; (m_device-&gt;GetQueue ()-&gt;GetNPackets ());
+  float throughputKbps = (m_currentRxBytes * 8.0f) / 1000.0f; // in Kbps
+
+  data-&gt;AddValue (queuePktCount);
+  data-&gt;AddValue (throughputKbps);
+
+  m_currentRxBytes = 0; // Reset byte counter for the next interval
+  return data;
+}
+
+// STEP 4: Compute reward function: R = Throughput - (10.0 * QueueDelayPenalty)
+float
+NetworkGymEnv::GetReward ()
+{
+  float queueCount = static_cast&lt;float&gt; (m_device-&gt;GetQueue ()-&gt;GetNPackets ());
+  float reward = (m_currentRxBytes * 8.0f) / 1000.0f - (10.0f * queueCount);
+  m_lastReward = reward;
+  return reward;
+}
+
+bool
+NetworkGymEnv::GetGameOver ()
+{
+  return Simulator::IsFinished ();
+}
+
+std::string
+NetworkGymEnv::GetExtraInfo ()
+{
+  return "ns3-gym NetworkGymEnv state";
+}
+
+// STEP 5: Apply ML Action to the ns-3 C++ Device
+bool
+NetworkGymEnv::ExecuteActions (Ptr&lt;OpenGymDataContainer&gt; action)
+{
+  Ptr&lt;OpenGymDiscreteDataContainer&gt; discreteAction = DynamicCast&lt;OpenGymDiscreteDataContainer&gt; (action);
+  uint32_t selectedAction = discreteAction-&gt;GetValue ();
+
+  std::string newRate = "1Mbps";
+  if (selectedAction == 1) newRate = "2Mbps";
+  else if (selectedAction == 2) newRate = "5Mbps";
+  else if (selectedAction == 3) newRate = "10Mbps";
+
+  m_device-&gt;SetDataRate (DataRate (newRate));
+  return true;
+}
+
+void
+NetworkGymEnv::SetNodeContext (Ptr&lt;Node&gt; node, Ptr&lt;PointToPointNetDevice&gt; device)
+{
+  m_node = node;
+  m_device = device;
+}
+
+int main (int argc, char *argv[])
+{
+  uint32_t openGymPort = 5555;
+  CommandLine cmd (__FILE__);
+  cmd.AddValue ("openGymPort", "Port number for OpenGym IPC", openGymPort);
+  cmd.Parse (argc, argv);
+
+  NodeContainer nodes;
+  nodes.Create (2);
+
+  PointToPointHelper p2p;
+  p2p.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));
+  p2p.SetChannelAttribute ("Delay", StringValue ("2ms"));
+
+  NetDeviceContainer devices = p2p.Install (nodes);
+
+  InternetStackHelper stack;
+  stack.Install (nodes);
+
+  Ipv4AddressHelper address;
+  address.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfaces = address.Assign (devices);
+
+  // Initialize and register OpenGym Interface
+  Ptr&lt;NetworkGymEnv&gt; gymEnv = CreateObject&lt;NetworkGymEnv&gt; ();
+  gymEnv-&gt;SetOpenGymPort (openGymPort);
+  gymEnv-&gt;SetNodeContext (nodes.Get (0), DynamicCast&lt;PointToPointNetDevice&gt; (devices.Get (0)));
+
+  Simulator::Stop (Seconds (60.0));
+  Simulator::Run ();
+  Simulator::Destroy ();
+  return 0;
+}</code></pre>
+
+    <table class="code-explanation-table">
+      <thead>
+        <tr>
+          <th class="code-col">C++ Method / Statement</th>
+          <th class="desc-col">Exhaustive Architectural Breakdown (What, Why & Memory Model)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="code-col">class NetworkGymEnv : public OpenGymInterface</td>
+          <td class="desc-col">
+            <strong>What:</strong> Inherits from the base <code>OpenGymInterface</code> class.<br>
+            <strong>Why:</strong> Implements the contract required by the ZeroMQ IPC layer. Whenever Python calls <code>env.step(action)</code>, <code>OpenGymInterface</code> pauses simulation virtual time, invokes your C++ callbacks, applies actions, and returns results.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">GetActionSpace () & GetObservationSpace ()</td>
+          <td class="desc-col">
+            <strong>What:</strong> Defines the dimensional geometry and data types of inputs and outputs.<br>
+            <strong>Why:</strong> The Python Gymnasium agent uses this metadata to instantiate neural network input layers ($2$ features: queue length and throughput) and output classification heads ($4$ actions: transmission rate index).
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">ExecuteActions (Ptr&lt;OpenGymDataContainer&gt; action)</td>
+          <td class="desc-col">
+            <strong>What:</strong> Unpacks action tensor chosen by the neural network and modifies ns-3 attributes.<br>
+            <strong>Why:</strong> This is where AI interacts with networking hardware! The chosen action alters the <code>DataRate</code> attribute of the <code>PointToPointNetDevice</code> in virtual simulation time.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">gymEnv-&gt;SetOpenGymPort (openGymPort);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Opens a ZeroMQ TCP socket on <code>127.0.0.1:5555</code>.<br>
+            <strong>Why:</strong> Allows the Python reinforcement learning process to connect and orchestrate simulation episodes asynchronously.
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </details>
 
 <!-- MODULE 9 -->
-<details class="module-card" id="_wifi_mod3_wifi7">
+<details class="module-card" id="_ns3gym_mod3_py">
   <summary class="module-summary">
-    <div><span class="module-badge">Module 9</span> WiFi 7 (802.11be) Multi-Link Operation (MLO)</div>
+    <div><span class="module-badge">Module 9</span> Deep Reinforcement Learning (DQN / PPO) Training in Python</div>
     <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
   <div class="module-body">
-    <h3>9.1 Multi-Link Devices (MLD), STR/NSTR & 320 MHz Channels</h3>
-    <p>The defining innovation of <strong>IEEE 802.11be (WiFi 7)</strong> is <strong>Multi-Link Operation (MLO)</strong>:</p>
-    <ul>
-      <li><strong>Multi-Link Device (MLD):</strong> An AP or Station containing multiple physical radios operating simultaneously across 2.4 GHz, 5 GHz, and 6 GHz bands.</li>
-      <li><strong>Simultaneous Transmit and Receive (STR):</strong> Enables a device to transmit on Link 1 (e.g. 5 GHz) while receiving data concurrently on Link 2 (e.g. 6 GHz) without self-interference.</li>
-      <li><strong>Non-Simultaneous Transmit and Receive (NSTR):</strong> Lower-cost hardware where transmission on one link blinds adjacent bands.</li>
-      <li><strong>Multiple Resource Units (Multi-RU):</strong> Assigns punctured or non-contiguous chunks of 320 MHz spectrum to a single client to avoid localized interference.</li>
-    </ul>
-    <h4>Configuring WiFi 7 in ns-3:</h4>
-    <pre><code class="language-cpp">WifiHelper wifi;
-wifi.SetStandard (WIFI_STANDARD_80211be); // EHT Standard
+    <h3>9.1 Python Gymnasium & PyTorch Deep Q-Network (DQN) Agent</h3>
+    <p>
+      With the C++ simulation acting as an environment server, the Python script connects via <code>gym.make('ns3-v0')</code> and trains a Deep Q-Network (DQN) agent with experience replay to maximize throughput while minimizing queue bufferbloat.
+    </p>
 
-// Configure Multi-Link Device with 2 links:
-WifiMacHelper mac;
-mac.SetMultiLinkOperation (true);</code></pre>
-  </div>
-</details>
+    <h4>Full Canonical Python Code (<code>train_ns3_dqn.py</code>):</h4>
+    <pre><code class="language-python">import gymnasium as gym
+import ns3gym
+from ns3gym import ns3env
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import random
+import numpy as np
+from collections import deque
 
-<!-- MODULE 10 -->
-<details class="module-card" id="_wifi_mod4_wifi8">
-  <summary class="module-summary">
-    <div><span class="module-badge">Module 10</span> WiFi 8 (802.11bn) Ultra High Reliability (UHR)</div>
-    <span style="font-size: 14px; color: #64748b;">▼</span>
-  </summary>
-  <div class="module-body">
-    <h3>10.1 Multi-AP Coordination (MAPC) & Deterministic Latency</h3>
-    <p>While WiFi 7 prioritized raw peak data rate (46 Gbps), <strong>IEEE 802.11bn (WiFi 8 UHR)</strong> focuses on <strong>extreme reliability ($99.999\%$) and sub-5ms bounded latency</strong>:</p>
-    <ul>
-      <li><strong>Multi-AP Coordination (MAPC):</strong> Neighboring Access Points synchronize over wired backhauls to schedule transmissions cooperatively, eliminating uncoordinated collisions in dense enterprise spaces.</li>
-      <li><strong>Coordinated Spatial Reuse (CoSR):</strong> Dynamically adjusts AP transmit power to allow parallel transmissions without causing destructive interference.</li>
-      <li><strong>Coordinated Beamforming (CoBF):</strong> Multiple APs steer spatial nulls toward adjacent stations while beamforming peak energy toward their desired client.</li>
-    </ul>
+# STEP 1: Deep Q-Network Architecture
+class QNetwork(nn.Module):
+    def __init__(self, state_dim, action_dim):
+        super(QNetwork, self).__init__()
+        self.fc = nn.Sequential(
+            nn.Linear(state_dim, 64),
+            nn.ReLU(),
+            nn.Linear(64, 64),
+            nn.ReLU(),
+            nn.Linear(64, action_dim)
+        )
+
+    def forward(self, x):
+        return self.fc(x)
+
+# STEP 2: Replay Buffer for Off-Policy RL
+class ReplayBuffer:
+    def __init__(self, capacity=10000):
+        self.buffer = deque(maxlen=capacity)
+
+    def push(self, state, action, reward, next_state, done):
+        self.buffer.append((state, action, reward, next_state, done))
+
+    def sample(self, batch_size):
+        states, actions, rewards, next_states, dones = zip(*random.sample(self.buffer, batch_size))
+        return (torch.FloatTensor(np.array(states)),
+                torch.LongTensor(actions),
+                torch.FloatTensor(rewards),
+                torch.FloatTensor(np.array(next_states)),
+                torch.FloatTensor(dones))
+
+    def __len__(self):
+        return len(self.buffer)
+
+# STEP 3: Main Training Loop
+def train():
+    port = 5555
+    sim_time = 60 # seconds
+    step_time = 0.1 # 100 ms step duration
+
+    # Initialize ns-3 gym environment
+    env = ns3env.Ns3Env(port=port, stepTime=step_time, startSim=True, simSeed=42)
+    state_dim = env.observation_space.shape[0] # 2 features
+    action_dim = env.action_space.n           # 4 discrete rates
+
+    policy_net = QNetwork(state_dim, action_dim)
+    target_net = QNetwork(state_dim, action_dim)
+    target_net.load_state_dict(policy_net.state_dict())
+
+    optimizer = optim.Adam(policy_net.parameters(), lr=1e-3)
+    memory = ReplayBuffer(10000)
+
+    gamma = 0.99
+    epsilon = 1.0
+    epsilon_min = 0.05
+    epsilon_decay = 0.995
+    batch_size = 32
+
+    num_episodes = 20
+    print("🚀 Starting Deep Reinforcement Learning Training with ns-3...")
+
+    for episode in range(num_episodes):
+        state = env.reset()
+        total_reward = 0.0
+        done = False
+
+        while not done:
+            # Epsilon-greedy action selection
+            if random.random() < epsilon:
+                action = env.action_space.sample()
+            else:
+                with torch.no_grad():
+                    state_t = torch.FloatTensor(state).unsqueeze(0)
+                    action = policy_net(state_t).argmax().item()
+
+            # Execute action inside ns-3 simulation!
+            next_state, reward, done, info = env.step(action)
+            memory.push(state, action, reward, next_state, done)
+
+            state = next_state
+            total_reward += reward
+
+            # Train Deep Q-Network
+            if len(memory) >= batch_size:
+                states, actions, rewards, next_states, dones = memory.sample(batch_size)
+
+                q_values = policy_net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+                with torch.no_grad():
+                    max_next_q = target_net(next_states).max(1)[0]
+                    target_q = rewards + (1 - dones) * gamma * max_next_q
+
+                loss = nn.MSELoss()(q_values, target_q)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+        # Decay exploration rate
+        epsilon = max(epsilon_min, epsilon * epsilon_decay)
+        # Update target network
+        if episode % 2 == 0:
+            target_net.load_state_dict(policy_net.state_dict())
+
+        print(f"Episode {episode + 1}/{num_episodes} - Total Reward: {total_reward:.2f} - Epsilon: {epsilon:.3f}")
+
+    print("🎉 Training Complete! Model converged successfully.")
+    torch.save(policy_net.state_dict(), "ns3_dqn_policy.pth")
+    env.close()
+
+if __name__ == "__main__":
+    train()</code></pre>
+
+    <table class="code-explanation-table">
+      <thead>
+        <tr>
+          <th class="code-col">Python Operation</th>
+          <th class="desc-col">Exhaustive Architectural Breakdown (What, Why & Deep Learning Workflow)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="code-col">env = ns3env.Ns3Env(port=5555, startSim=True)</td>
+          <td class="desc-col">
+            <strong>What:</strong> Connects to the ns-3 simulation over ZeroMQ and automatically bootstraps the C++ binary.<br>
+            <strong>Why:</strong> Abstracted to follow the standard Gymnasium API, making it 100% plug-and-play with external libraries like Stable-Baselines3 (PPO, SAC, A2C).
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">next_state, reward, done, info = env.step(action)</td>
+          <td class="desc-col">
+            <strong>What:</strong> Sends the action to ns-3, advances simulation virtual time by <code>stepTime</code> (100 ms), and receives the new observation and reward.<br>
+            <strong>Under the Hood:</strong> The ZMQ socket synchronizes execution locks between the Python thread and ns-3's discrete event loop.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">loss = nn.MSELoss()(q_values, target_q)<br>loss.backward()<br>optimizer.step()</td>
+          <td class="desc-col">
+            <strong>What:</strong> Backpropagates Bellman error through the PyTorch neural network.<br>
+            <strong>Why:</strong> Teaches the neural network to associate high throughput and zero buffer queueing with maximum cumulative rewards, learning optimal rate control without human rules.
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </details>
 
 </div>
 </div>
 
-<!-- ======================================================== -->
 <!-- ======================================================== -->
 <div class="sect1">
-<h2 id="_part3_cpp">Part III: C++ Systems Foundations for ns-3</h2>
+<h2 id="_part3_wireless">Part III: Wireless LAN & WiFi 7/8 Research</h2>
 <div class="sectionbody">
 
-<!-- MODULE 11 -->
+  <div style="background: rgba(99, 102, 241, 0.05); border: 2px dashed #6366f1; border-radius: 12px; padding: 36px 24px; text-align: center; margin: 24px 0;">
+    <div style="font-size: 38px; margin-bottom: 12px;">📡</div>
+    <h3 style="color: #4f46e5; margin: 0 0 10px 0;">WiFi 7 (802.11be) & WiFi 8 (802.11bn) Research Modules</h3>
+    <p style="color: #64748b; max-width: 620px; margin: 0 auto 16px auto; font-size: 14px; line-height: 1.6;">
+      This section is reserved for upcoming modules covering Multi-Link Operation (MLO), Multi-RU, 320 MHz channels, Multi-AP Coordination (MAPC), and Coordinated Beamforming. Content will be populated here in subsequent updates as requested.
+    </p>
+    <span style="display: inline-block; background: #e0e7ff; color: #4338ca; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;">Status: Reserved for Upcoming Updates</span>
+  </div>
+
+</div>
+</div>
+
+<!-- ======================================================== -->
+<div class="sect1">
+<h2 id="_part4_cpp">Part IV: C++ Systems Foundations for ns-3</h2>
+<div class="sectionbody">
+
+<!-- MODULE 10 -->
 <details class="module-card" open id="_cpp_mod1_smart_pointers">
   <summary class="module-summary">
-    <div><span class="module-badge">Module 11</span> Memory Management & Ptr&lt;T&gt; Internals</div>
+    <div><span class="module-badge">Module 10</span> Memory Management & Ptr&lt;T&gt; Internals</div>
     <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
   <div class="module-body">
@@ -2661,7 +3706,7 @@ int main ()
 <!-- MODULE 12 -->
 <details class="module-card" open id="_cpp_mod2_callbacks">
   <summary class="module-summary">
-    <div><span class="module-badge">Module 12</span> Callbacks, Events & Object Aggregation</div>
+    <div><span class="module-badge">Module 11</span> Callbacks, Events & Object Aggregation</div>
     <span style="font-size: 14px; color: #64748b;">▼</span>
   </summary>
   <div class="module-body">
