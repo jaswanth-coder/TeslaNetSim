@@ -476,6 +476,15 @@ function collapseAll() {
 <li><a href="#_cpp_mod2_callbacks">Module 16: Callbacks, Events & Object Aggregation</a></li>
 </ul>
 </li>
+<li><a href="#_part5_extending"><strong>Part V: Extending ns-3 Internal Architecture & Custom Protocol Engineering</strong></a>
+<ul class="sectlevel2">
+<li><a href="#_ext_mod1_tree">Module 17: Source Tree Layout, Module Anatomy & CMake Registration</a></li>
+<li><a href="#_ext_mod2_phy">Module 18: PHY Layer: Custom Channels & Propagation Loss Models</a></li>
+<li><a href="#_ext_mod3_mac">Module 19: MAC Layer: Custom Rate Adaptation & Frame Schedulers</a></li>
+<li><a href="#_ext_mod4_l34">Module 20: Layer 2.5/3/4: Custom QueueDiscs, Routing & TCP Congestion</a></li>
+<li><a href="#_ext_mod5_tests">Module 21: Unit Testing Framework & Build Verification</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </div>
@@ -4818,6 +4827,437 @@ int main ()
         </li>
       </ol>
     </div>
+  </div>
+</details>
+
+</div>
+</div>
+
+<!-- ======================================================== -->
+<div class="sect1">
+<h2 id="_part5_extending">Part V: Extending ns-3 Internal Architecture & Custom Protocol Engineering</h2>
+<div class="sectionbody">
+
+<!-- MODULE 17: SOURCE TREE & CMAKE -->
+<details class="module-card" open id="_ext_mod1_tree">
+  <summary class="module-summary">
+    <div><span class="module-badge">Module 17</span> Source Tree Layout, Module Anatomy & CMake Registration</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
+  </summary>
+  <div class="module-body">
+    <h3>17.1 The ns-3 Internal Directory Map</h3>
+    <p>
+      To write custom networking models in ns-3, you must understand the repository hierarchy. All core network models live inside the <code>src/</code> directory, organized into autonomous modular libraries:
+    </p>
+
+    <div class="topology-box" style="background: #0f172a; color: #f8fafc; border-color: #334155; font-family: monospace; font-size: 12px; line-height: 1.6;">
+      <span style="color: #60a5fa; font-weight: bold;">ns-3.45/</span><br>
+      ├── <span style="color: #38bdf8; font-weight: bold;">src/</span> (Core simulation engine and protocol libraries)<br>
+      │   ├── <span style="color: #4ade80;">core/</span>           → Event scheduler (Simulator), Time, Ptr&lt;T&gt;, TypeId, Logging, Random variables<br>
+      │   ├── <span style="color: #4ade80;">network/</span>        → Node, NetDevice, Channel, Packet, Buffer, Header, Tag, Socket abstractions<br>
+      │   ├── <span style="color: #4ade80;">internet/</span>       → IPv4/IPv6, ARP, ICMP, TCP (NewReno, BBR, Cubic), UDP, Routing protocols<br>
+      │   ├── <span style="color: #4ade80;">traffic-control/</span>→ QueueDisc (CoDel, RED, FIFO, FQ-CoDel, PfifoFast), Packet filters<br>
+      │   ├── <span style="color: #4ade80;">propagation/</span>    → PropagationLossModel (Friis, LogDistance, Nakagami, Jakes, ConstantSpeed)<br>
+      │   ├── <span style="color: #4ade80;">mobility/</span>       → MobilityModel (ConstantPosition, ConstantVelocity, RandomWalk2d, Waypoint)<br>
+      │   ├── <span style="color: #4ade80;">wifi/</span>           → WifiPhy, WifiMac, FrameExchangeManager, WifiRemoteStationManager, EDCA, MLO<br>
+      │   └── <span style="color: #4ade80;">point-to-point/</span> → PointToPointNetDevice, PointToPointChannel, DropTailQueue<br>
+      ├── <span style="color: #f472b6; font-weight: bold;">contrib/</span>        → Third-party plug-in modules (e.g. opengym, custom research extensions)<br>
+      ├── <span style="color: #fbbf24; font-weight: bold;">scratch/</span>        → User simulation scripts (.cc). Dynamically compiled as executables target<br>
+      └── <span style="color: #a78bfa; font-weight: bold;">examples/</span>       → Canonical reference scripts demonstrating standard protocols<br>
+    </div>
+
+    <h3>17.2 The Universal 4-Step Registration Protocol</h3>
+    <p>
+      Whenever you author a new protocol class, channel, or scheduler, you must follow the <strong>Universal 4-Step Protocol</strong>:
+    </p>
+    <ol>
+      <li><strong>Inheritance:</strong> Inherit from the designated base class (e.g., <code>class MyModel : public PropagationLossModel</code> or <code>public WifiRemoteStationManager</code>).</li>
+      <li><strong>TypeId Definition:</strong> Provide <code>GetTypeId()</code> registering the class name, parent class, and any user-configurable <code>Attributes</code> and <code>TraceSources</code>.</li>
+      <li><strong>CMake Registration:</strong> Register your new <code>.cc</code> and <code>.h</code> files inside the module's <code>CMakeLists.txt</code> (under <code>target_sources(...)</code>).</li>
+      <li><strong>Compilation:</strong> Recompile the shared library using <code>./ns3 build</code>.</li>
+    </ol>
+  </div>
+</details>
+
+<!-- MODULE 18: PHY & PROPAGATION LAYER -->
+<details class="module-card" id="_ext_mod2_phy">
+  <summary class="module-summary">
+    <div><span class="module-badge">Module 18</span> PHY Layer: Custom Channels & Propagation Loss Models</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
+  </summary>
+  <div class="module-body">
+    <h3>18.1 Target Directory & Subclassing PropagationLossModel</h3>
+    <p>
+      In ns-3 wireless networks, received power is computed by chainable loss models. To create a custom path loss model (e.g., a two-slope obstacle attenuation model or a custom satellite shadowing model):
+    </p>
+    <ul>
+      <li><strong>Target Directory:</strong> <code>src/propagation/model/</code> (or inside your module)</li>
+      <li><strong>Header to Include:</strong> <code>#include "ns3/propagation-loss-model.h"</code></li>
+      <li><strong>Base Class:</strong> <code>ns3::PropagationLossModel</code></li>
+      <li><strong>Mandatory Method to Override:</strong>
+        <pre><code class="language-cpp">virtual double DoCalcRxPower (double txPowerDbm,
+                              Ptr&lt;MobilityModel&gt; a,
+                              Ptr&lt;MobilityModel&gt; b) const;</code></pre>
+      </li>
+    </ul>
+
+    <h4>Full Canonical C++ Code (<code>custom-two-slope-loss-model.h/cc</code>):</h4>
+    <pre><code class="language-cpp">#include "ns3/propagation-loss-model.h"
+#include "ns3/mobility-model.h"
+#include "ns3/double.h"
+#include &lt;cmath&gt;
+
+namespace ns3 {
+
+class CustomTwoSlopeLossModel : public PropagationLossModel
+{
+public:
+  static TypeId GetTypeId (void);
+  CustomTwoSlopeLossModel ();
+  virtual ~CustomTwoSlopeLossModel ();
+
+  void SetBreakDistance (double d);
+  double GetBreakDistance (void) const;
+
+private:
+  virtual double DoCalcRxPower (double txPowerDbm,
+                                Ptr&lt;MobilityModel&gt; a,
+                                Ptr&lt;MobilityModel&gt; b) const override;
+  virtual int64_t DoAssignStreams (int64_t stream) override;
+
+  double m_breakDistance; // Distance breakpoint where path loss exponent shifts
+  double m_exponent1;     // Path loss exponent before breakpoint (e.g., 2.0 Free Space)
+  double m_exponent2;     // Path loss exponent after breakpoint (e.g., 4.0 Shadowed)
+};
+
+NS_OBJECT_ENSURE_REGISTERED (CustomTwoSlopeLossModel);
+
+TypeId
+CustomTwoSlopeLossModel::GetTypeId (void)
+{
+  static TypeId tid = TypeId ("ns3::CustomTwoSlopeLossModel")
+    .SetParent&lt;PropagationLossModel&gt; ()
+    .SetGroupName ("Propagation")
+    .AddConstructor&lt;CustomTwoSlopeLossModel&gt; ()
+    .AddAttribute ("BreakDistance", "Distance threshold where path loss slope steepens",
+                   DoubleValue (30.0),
+                   MakeDoubleAccessor (&CustomTwoSlopeLossModel::m_breakDistance),
+                   MakeDoubleChecker&lt;double&gt; ())
+    .AddAttribute ("Exponent1", "Path loss exponent before breakpoint",
+                   DoubleValue (2.0),
+                   MakeDoubleAccessor (&CustomTwoSlopeLossModel::m_exponent1),
+                   MakeDoubleChecker&lt;double&gt; ())
+    .AddAttribute ("Exponent2", "Path loss exponent after breakpoint",
+                   DoubleValue (4.0),
+                   MakeDoubleAccessor (&CustomTwoSlopeLossModel::m_exponent2),
+                   MakeDoubleChecker&lt;double&gt; ());
+  return tid;
+}
+
+CustomTwoSlopeLossModel::CustomTwoSlopeLossModel ()
+  : m_breakDistance (30.0), m_exponent1 (2.0), m_exponent2 (4.0)
+{
+}
+
+CustomTwoSlopeLossModel::~CustomTwoSlopeLossModel () {}
+
+double
+CustomTwoSlopeLossModel::DoCalcRxPower (double txPowerDbm,
+                                       Ptr&lt;MobilityModel&gt; a,
+                                       Ptr&lt;MobilityModel&gt; b) const
+{
+  double dist = a-&gt;GetDistanceFrom (b);
+  if (dist &lt;= 0.0) dist = 0.001; // Avoid division by zero
+
+  double lossDb = 0.0;
+  if (dist &lt;= m_breakDistance) {
+    // Stage 1: Standard Line-of-sight free space loss
+    lossDb = 10.0 * m_exponent1 * std::log10 (dist);
+  } else {
+    // Stage 2: Steeper path loss slope due to multi-path ground bounce and obstacles
+    double lossAtBreak = 10.0 * m_exponent1 * std::log10 (m_breakDistance);
+    lossDb = lossAtBreak + 10.0 * m_exponent2 * std::log10 (dist / m_breakDistance);
+  }
+
+  return txPowerDbm - lossDb;
+}
+
+int64_t
+CustomTwoSlopeLossModel::DoAssignStreams (int64_t stream)
+{
+  return 0; // Deterministic model without random fading streams
+}
+
+} // namespace ns3</code></pre>
+
+    <table class="code-explanation-table">
+      <thead>
+        <tr>
+          <th class="code-col">Code Statement</th>
+          <th class="desc-col">Exhaustive Architectural Breakdown (What, Why & Memory Model)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="code-col">double dist = a-&gt;GetDistanceFrom (b);</td>
+          <td class="desc-col">
+            <strong>What:</strong> Queries spatial positions of sender and receiver.<br>
+            <strong>Why:</strong> ns-3 calculates Cartesian Euclidean distance dynamically from the nodes' aggregated <code>MobilityModel</code> instances.
+          </td>
+        </tr>
+        <tr>
+          <td class="code-col">return txPowerDbm - lossDb;</td>
+          <td class="desc-col">
+            <strong>What:</strong> Returns received signal power $P_{\text{rx}}$ in dBm.<br>
+            <strong>Why:</strong> The downstream <code>WifiPhy</code> compares this returned power against its noise floor and interference tables to compute SINR and determine if the packet passes or drops.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</details>
+
+<!-- MODULE 19: MAC LAYER & WIFI SCHEDULING -->
+<details class="module-card" id="_ext_mod3_mac">
+  <summary class="module-summary">
+    <div><span class="module-badge">Module 19</span> MAC Layer: Custom Rate Adaptation & Frame Schedulers</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
+  </summary>
+  <div class="module-body">
+    <h3>19.1 Target Directory & Subclassing WifiRemoteStationManager</h3>
+    <p>
+      In 802.11 Wi-Fi, the algorithm choosing the Modulation and Coding Scheme (MCS) data rate for every transmitted frame is decoupled from the PHY. To write a custom rate control algorithm (like ARF, AARF, ONOE, Minstrel, or ML-based rate control):
+    </p>
+    <ul>
+      <li><strong>Target Directory:</strong> <code>src/wifi/model/rate-control/</code></li>
+      <li><strong>Header to Include:</strong> <code>#include "ns3/wifi-remote-station-manager.h"</code></li>
+      <li><strong>Base Class:</strong> <code>ns3::WifiRemoteStationManager</code></li>
+      <li><strong>Core Methods to Implement:</strong>
+        <ul>
+          <li><code>DoCreateStationState()</code>: Allocates a custom state struct tracking per-client statistics (success counts, failure counts).</li>
+          <li><code>DoGetDataTxVector(Ptr&lt;const WifiMacHeader&gt; header, ...)</code>: Returns the <code>WifiTxVector</code> (MCS index, channel width, guard interval) for the packet.</li>
+          <li><code>DoReportRxOk(station, rxSnr, mode)</code>: Called when an ACK arrives, confirming delivery.</li>
+          <li><code>DoReportFinalDataFailed(station)</code>: Called when frame retries are exhausted.</li>
+        </ul>
+      </li>
+    </ul>
+
+    <h4>Full Canonical C++ Code (<code>custom-threshold-rate-manager.cc</code>):</h4>
+    <pre><code class="language-cpp">#include "ns3/wifi-remote-station-manager.h"
+#include "ns3/uinteger.h"
+
+namespace ns3 {
+
+struct CustomStationState : public WifiRemoteStationState
+{
+  uint32_t m_consecutiveSuccess;
+  uint32_t m_currentRateIndex;
+};
+
+class CustomThresholdRateManager : public WifiRemoteStationManager
+{
+public:
+  static TypeId GetTypeId (void);
+  CustomThresholdRateManager ();
+  virtual ~CustomThresholdRateManager ();
+
+private:
+  virtual WifiRemoteStation* DoCreateStation (void) const override;
+  virtual WifiTxVector DoGetDataTxVector (WifiRemoteStation *station,
+                                          uint16_t allowedWidth) override;
+  virtual void DoReportRxOk (WifiRemoteStation *station,
+                             double rxSnr,
+                             WifiMode txMode) override;
+  virtual void DoReportDataFailed (WifiRemoteStation *station) override;
+
+  uint32_t m_upThreshold;   // Successes required before stepping up MCS
+};
+
+NS_OBJECT_ENSURE_REGISTERED (CustomThresholdRateManager);
+
+TypeId
+CustomThresholdRateManager::GetTypeId (void)
+{
+  static TypeId tid = TypeId ("ns3::CustomThresholdRateManager")
+    .SetParent&lt;WifiRemoteStationManager&gt; ()
+    .SetGroupName ("Wifi")
+    .AddConstructor&lt;CustomThresholdRateManager&gt; ()
+    .AddAttribute ("UpThreshold", "Number of consecutive successes before increasing MCS rate",
+                   UintegerValue (10),
+                   MakeUintegerAccessor (&CustomThresholdRateManager::m_upThreshold),
+                   MakeUintegerChecker&lt;uint32_t&gt; ());
+  return tid;
+}
+
+CustomThresholdRateManager::CustomThresholdRateManager ()
+  : m_upThreshold (10)
+{
+}
+
+CustomThresholdRateManager::~CustomThresholdRateManager () {}
+
+WifiRemoteStation*
+CustomThresholdRateManager::DoCreateStation (void) const
+{
+  CustomStationState *station = new CustomStationState ();
+  station-&gt;m_consecutiveSuccess = 0;
+  station-&gt;m_currentRateIndex = 0; // Start at lowest safe MCS rate
+  return station;
+}
+
+WifiTxVector
+CustomThresholdRateManager::DoGetDataTxVector (WifiRemoteStation *st, uint16_t allowedWidth)
+{
+  CustomStationState *station = static_cast&lt;CustomStationState*&gt; (st);
+  WifiMode mode = GetSupported (station, station-&gt;m_currentRateIndex);
+
+  return WifiTxVector (mode,
+                       GetDefaultTxPowerLevel (),
+                       GetPreambleForTransmission (GetStandard (), mode),
+                       800, // 800ns standard guard interval
+                       1,   // 1 spatial stream (SISO)
+                       1,
+                       20,  // 20 MHz channel width
+                       false,
+                       false);
+}
+
+void
+CustomThresholdRateManager::DoReportRxOk (WifiRemoteStation *st, double rxSnr, WifiMode txMode)
+{
+  CustomStationState *station = static_cast&lt;CustomStationState*&gt; (st);
+  station-&gt;m_consecutiveSuccess++;
+
+  // If 10 consecutive packets succeed, shift up to faster MCS!
+  if (station-&gt;m_consecutiveSuccess &gt;= m_upThreshold) {
+    if (station-&gt;m_currentRateIndex + 1 &lt; GetNSupported (station)) {
+      station-&gt;m_currentRateIndex++;
+    }
+    station-&gt;m_consecutiveSuccess = 0;
+  }
+}
+
+void
+CustomThresholdRateManager::DoReportDataFailed (WifiRemoteStation *st)
+{
+  CustomStationState *station = static_cast&lt;CustomStationState*&gt; (st);
+  station-&gt;m_consecutiveSuccess = 0;
+
+  // On packet drop, immediately fall back to lowest robust rate
+  if (station-&gt;m_currentRateIndex &gt; 0) {
+    station-&gt;m_currentRateIndex--;
+  }
+}
+
+} // namespace ns3</code></pre>
+  </div>
+</details>
+
+<!-- MODULE 20: LAYER 2.5 / 3 / 4 PROTOCOLS -->
+<details class="module-card" id="_ext_mod4_l34">
+  <summary class="module-summary">
+    <div><span class="module-badge">Module 20</span> Layer 2.5/3/4: Custom QueueDiscs, Routing & TCP Congestion</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
+  </summary>
+  <div class="module-body">
+    <h3>20.1 Active Queue Management: Subclassing QueueDisc (Layer 2.5)</h3>
+    <p>
+      In modern Linux and ns-3, queueing is handled by the <strong>Traffic Control Layer</strong> (between Layer 2 and Layer 3). To implement custom queue disciplines (like CoDel, RED, or Token Bucket Shaping):
+    </p>
+    <ul>
+      <li><strong>Target Directory:</strong> <code>src/traffic-control/model/</code></li>
+      <li><strong>Base Class:</strong> <code>ns3::QueueDisc</code></li>
+      <li><strong>Mandatory Overrides:</strong> <code>DoEnqueue(Ptr&lt;QueueDiscItem&gt; item)</code> and <code>DoDequeue()</code></li>
+    </ul>
+
+    <h3>20.2 Custom Layer 3 IP Routing Protocol</h3>
+    <ul>
+      <li><strong>Target Directory:</strong> <code>src/internet/model/</code> (e.g. AODV, DSDV, OLSR)</li>
+      <li><strong>Base Class:</strong> <code>ns3::Ipv4RoutingProtocol</code></li>
+      <li><strong>Mandatory Overrides:</strong>
+        <ul>
+          <li><code>RouteOutput()</code>: Determines egress device and next-hop IP for locally generated packets.</li>
+          <li><code>RouteInput()</code>: Forwards transit packets or delivers locally addressed packets up to the TCP/UDP transport stack.</li>
+        </ul>
+      </li>
+    </ul>
+
+    <h3>20.3 Custom Layer 4 TCP Congestion Control</h3>
+    <ul>
+      <li><strong>Target Directory:</strong> <code>src/internet/model/</code> (e.g. <code>tcp-bbr.cc</code>, <code>tcp-cubic.cc</code>)</li>
+      <li><strong>Base Class:</strong> <code>ns3::TcpCongestionOps</code></li>
+      <li><strong>Mandatory Overrides:</strong>
+        <ul>
+          <li><code>PktsAcked(Ptr&lt;TcpSocketState&gt; tcb, uint32_t segmentsAcked, const Time&amp; rtt)</code>: Updates congestion window based on ACK round-trip timing.</li>
+          <li><code>CongestionAvoidance(Ptr&lt;TcpSocketState&gt; tcb, uint32_t segmentsAcked)</code>: Adjusts <code>tcb-&gt;m_cWnd</code> (Additive Increase).</li>
+          <li><code>GetSsThresh(Ptr&lt;const TcpSocketState&gt; tcb, uint32_t bytesInFlight)</code>: Backoff multiplier upon packet drop.</li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+</details>
+
+<!-- MODULE 21: UNIT TESTS & CMAKE REGISTRATION -->
+<details class="module-card" id="_ext_mod5_tests">
+  <summary class="module-summary">
+    <div><span class="module-badge">Module 21</span> Unit Testing Framework & Build Verification</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
+  </summary>
+  <div class="module-body">
+    <h3>21.1 Registering Custom Files in CMake</h3>
+    <p>
+      Whenever you add new <code>.cc</code> and <code>.h</code> files to an existing module (e.g. <code>src/wifi/</code>), you must register them in that module's <code>CMakeLists.txt</code>:
+    </p>
+
+    <pre><code class="language-cmake"># Inside src/wifi/CMakeLists.txt:
+target_sources(${libwifi} PRIVATE
+    model/rate-control/custom-threshold-rate-manager.cc
+    # ... other sources
+)
+
+target_include_directories(${libwifi} PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/model/rate-control/custom-threshold-rate-manager.h
+    # ... other headers
+)</code></pre>
+
+    <h3>21.2 Writing Automated Unit Tests</h3>
+    <p>
+      ns-3 includes an automated test framework. Test suites subclass <code>TestCase</code> and are grouped inside a <code>TestSuite</code>:
+    </p>
+    <pre><code class="language-cpp">#include "ns3/test.h"
+
+class CustomModelTestCase : public TestCase
+{
+public:
+  CustomModelTestCase () : TestCase ("Verifying Custom Model Mechanics") {}
+  virtual void DoRun (void) override
+  {
+    // ns-3 test assertion macros:
+    NS_TEST_ASSERT_MSG_EQ (1 + 1, 2, "Math error in simulator!");
+    NS_TEST_EXPECT_MSG_LT (0.5, 1.0, "Float comparison failed!");
+  }
+};
+
+class CustomModelTestSuite : public TestSuite
+{
+public:
+  CustomModelTestSuite () : TestSuite ("custom-model-test-suite", UNIT)
+  {
+    AddTestCase (new CustomModelTestCase, TestCase::QUICK);
+  }
+};
+
+static CustomModelTestSuite g_customModelTestSuite;</code></pre>
+
+    <h3>21.3 Terminal Build & Verification Workflow</h3>
+    <pre><code class="language-bash"># 1. Compile the newly added files
+./ns3 build
+
+# 2. Run the targeted unit test suite
+./ns3 run "test-runner --suite=custom-model-test-suite"
+
+# 3. Verify in your scratch script
+./ns3 run scratch/my-simulation</code></pre>
   </div>
 </details>
 
