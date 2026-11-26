@@ -214,6 +214,324 @@ int main (int argc, char *argv[])
             `
           },
           {
+            id: "T1-M1-L2B",
+            title: "1.2.1 Progressive Script: p2p-error-onoff.cc (RateErrorModel & CBR Traffic)",
+            moduleTitle: "Track 1 • Module 1 • Lesson 2B",
+            body: `
+              <p>In <code>first.cc</code>, the channel had zero packet loss and sent 3 packets. In reality, channels suffer from bit errors and noise. This lesson introduces <strong>RateErrorModel</strong> and <strong>OnOffApplication</strong> for continuous Constant Bit Rate (CBR) streaming.</p>
+
+              <h4>Topology & Flow:</h4>
+              <p><strong>Node 0 (10.1.1.1, OnOff CBR 500 Kbps)</strong> ──[ P2P Channel: 5 Mbps, 2 ms, ErrorRate: 0.2% ]──> <strong>Node 1 (10.1.1.2, PacketSink Port 8080)</strong></p>
+
+              <h4>Full Canonical C++ Code (<code>p2p-error-onoff.cc</code>):</h4>
+              <pre><code>#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/applications-module.h"
+
+using namespace ns3;
+
+static void RxDropCallback (Ptr&lt;const Packet&gt; p)
+{
+  NS_LOG_UNCOND ("[" &lt;&lt; Simulator::Now ().GetSeconds () &lt;&lt; "s] PACKET DROPPED! Size = " &lt;&lt; p-&gt;GetSize () &lt;&lt; " bytes");
+}
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  Time::SetResolution (Time::NS);
+
+  NodeContainer nodes;
+  nodes.Create (2);
+
+  PointToPointHelper p2p;
+  p2p.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));
+  p2p.SetChannelAttribute ("Delay", StringValue ("2ms"));
+
+  NetDeviceContainer devices = p2p.Install (nodes);
+
+  // Attach Error Model to Node 1's NIC
+  Ptr&lt;RateErrorModel&gt; em = CreateObject&lt;RateErrorModel&gt; ();
+  em-&gt;SetAttribute ("ErrorRate", DoubleValue (0.002)); // 0.2% drop probability
+  em-&gt;SetAttribute ("ErrorUnit", StringValue ("ERROR_UNIT_PACKET"));
+  devices.Get (1)-&gt;SetAttribute ("ReceiveErrorModel", PointerValue (em));
+  devices.Get (1)-&gt;TraceConnectWithoutContext ("PhyRxDrop", MakeCallback (&RxDropCallback));
+
+  InternetStackHelper stack;
+  stack.Install (nodes);
+
+  Ipv4AddressHelper address;
+  address.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfaces = address.Assign (devices);
+
+  // Receiver: PacketSink on Node 1 (port 8080)
+  uint16_t port = 8080;
+  Address sinkAddress (InetSocketAddress (Ipv4Address::GetAny (), port));
+  PacketSinkHelper sinkHelper ("ns3::UdpSocketFactory", sinkAddress);
+  ApplicationContainer sinkApp = sinkHelper.Install (nodes.Get (1));
+  sinkApp.Start (Seconds (0.0));
+  sinkApp.Stop (Seconds (10.0));
+
+  // Sender: OnOffApplication on Node 0 (500 Kbps constant rate)
+  OnOffHelper onoff ("ns3::UdpSocketFactory", Address (InetSocketAddress (interfaces.GetAddress (1), port)));
+  onoff.SetConstantRate (DataRate ("500Kbps"), 512);
+  ApplicationContainer clientApp = onoff.Install (nodes.Get (0));
+  clientApp.Start (Seconds (1.0));
+  clientApp.Stop (Seconds (10.0));
+
+  Simulator::Run ();
+
+  Ptr&lt;PacketSink&gt; sink = DynamicCast&lt;PacketSink&gt; (sinkApp.Get (0));
+  std::cout &lt;&lt; "Total Received: " &lt;&lt; sink-&gt;GetTotalRx () &lt;&lt; " bytes" &lt;&lt; std::endl;
+
+  Simulator::Destroy ();
+  return 0;
+}</code></pre>
+
+              <h4>Line-by-Line Architectural Explanation:</h4>
+              <ul>
+                <li><strong><code>RateErrorModel</code>:</strong> Randomly marks inbound packets as corrupted based on a pseudo-random seed. Corrupted packets trigger the <code>PhyRxDrop</code> trace source.</li>
+                <li><strong><code>OnOffHelper::SetConstantRate()</code>:</strong> Automatically schedules periodic send events at fixed intervals: $\Delta t = \frac{\text{PacketSize} \times 8}{\text{DataRate}}$.</li>
+                <li><strong><code>PacketSink::GetTotalRx()</code>:</strong> Accumulates received bytes in real-time, providing an easy way to compute goodput ($G = \text{TotalRx} \times 8 / \text{Duration}$).</li>
+              </ul>
+            `
+          },
+          {
+            id: "T1-M1-L2C",
+            title: "1.2.2 Progressive Script: csma-broadcast.cc (Shared Bus & ARP Broadcast)",
+            moduleTitle: "Track 1 • Module 1 • Lesson 2C",
+            body: `
+              <p>In multi-access local area networks (Ethernet/LAN), multiple computers share a common transmission bus. This lesson teaches <strong>CsmaHelper</strong>, carrier sensing, and how <strong>ARP</strong> resolves IP addresses to 48-bit MAC addresses.</p>
+
+              <h4>Topology & Flow:</h4>
+              <p><strong>[Node 0: 10.1.1.1]</strong>, <strong>[Node 1: 10.1.1.2]</strong>, <strong>[Node 2: 10.1.1.3]</strong>, <strong>[Node 3: 10.1.1.4]</strong> ── Connected to a single <strong>CsmaChannel (100 Mbps, 6560 ns delay)</strong>.</p>
+
+              <h4>Full Canonical C++ Code (<code>csma-broadcast.cc</code>):</h4>
+              <pre><code>#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/csma-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/applications-module.h"
+
+using namespace ns3;
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  Time::SetResolution (Time::NS);
+  LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
+  LogComponentEnable ("UdpEchoServerApplication", LOG_LEVEL_INFO);
+
+  NodeContainer csmaNodes;
+  csmaNodes.Create (4);
+
+  CsmaHelper csma;
+  csma.SetChannelAttribute ("DataRate", StringValue ("100Mbps"));
+  csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));
+
+  NetDeviceContainer csmaDevices = csma.Install (csmaNodes);
+
+  InternetStackHelper stack;
+  stack.Install (csmaNodes);
+
+  Ipv4AddressHelper address;
+  address.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfaces = address.Assign (csmaDevices);
+
+  // Server on Node 3 (10.1.1.4)
+  UdpEchoServerHelper echoServer (9);
+  ApplicationContainer serverApps = echoServer.Install (csmaNodes.Get (3));
+  serverApps.Start (Seconds (1.0));
+  serverApps.Stop (Seconds (10.0));
+
+  // Client on Node 0 targeting Node 3
+  UdpEchoClientHelper echoClient (interfaces.GetAddress (3), 9);
+  echoClient.SetAttribute ("MaxPackets", UintegerValue (2));
+  echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+  echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
+
+  ApplicationContainer clientApps = echoClient.Install (csmaNodes.Get (0));
+  clientApps.Start (Seconds (2.0));
+  clientApps.Stop (Seconds (10.0));
+
+  csma.EnablePcap ("csma-bus", csmaDevices.Get (0), true);
+
+  Simulator::Run ();
+  Simulator::Destroy ();
+  return 0;
+}</code></pre>
+
+              <h4>Line-by-Line Architectural Explanation:</h4>
+              <ul>
+                <li><strong><code>CsmaHelper::Install(csmaNodes)</code>:</strong> Installs a <code>CsmaNetDevice</code> on all 4 nodes, binding all of them to one shared <code>CsmaChannel</code> instance in memory.</li>
+                <li><strong>Carrier Sensing:</strong> When Node 0 starts transmitting, the channel status switches to BUSY, preventing other nodes from talking simultaneously.</li>
+                <li><strong>ARP Resolution:</strong> Before sending the first UDP packet, Node 0 automatically broadcasts an ARP Request (<code>Who has 10.1.1.4? Tell 10.1.1.1</code>) across all 4 nodes. Node 3 replies with its MAC address.</li>
+              </ul>
+            `
+          },
+          {
+            id: "T1-M1-L2D",
+            title: "1.2.3 Progressive Script: two-subnet-router.cc (Gateway Router & IP Forwarding)",
+            moduleTitle: "Track 1 • Module 1 • Lesson 2D",
+            body: `
+              <p>Hosts in different IP subnets cannot exchange packets without an intermediate <strong>Router (Gateway)</strong>. This lesson demonstrates dual-homed nodes and automatic route table population.</p>
+
+              <h4>Topology & Flow:</h4>
+              <p><strong>Node 0 (10.1.1.1)</strong> ──[ Subnet A: 10.1.1.0/24 ]──> <strong>Node 1 (Router: 10.1.1.2 & 10.1.2.1)</strong> ──[ Subnet B: 10.1.2.0/24 ]──> <strong>Node 2 (10.1.2.2)</strong></p>
+
+              <h4>Full Canonical C++ Code (<code>two-subnet-router.cc</code>):</h4>
+              <pre><code>#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/applications-module.h"
+
+using namespace ns3;
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  Time::SetResolution (Time::NS);
+  LogComponentEnable ("UdpEchoClientApplication", LOG_LEVEL_INFO);
+  LogComponentEnable ("UdpEchoServerApplication", LOG_LEVEL_INFO);
+
+  NodeContainer nodes;
+  nodes.Create (3);
+
+  NodeContainer linkANodes (nodes.Get (0), nodes.Get (1));
+  NodeContainer linkBNodes (nodes.Get (1), nodes.Get (2));
+
+  PointToPointHelper p2p;
+  p2p.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));
+  p2p.SetChannelAttribute ("Delay", StringValue ("2ms"));
+
+  NetDeviceContainer devicesA = p2p.Install (linkANodes);
+  NetDeviceContainer devicesB = p2p.Install (linkBNodes);
+
+  InternetStackHelper stack;
+  stack.Install (nodes);
+
+  Ipv4AddressHelper ipv4;
+  ipv4.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfacesA = ipv4.Assign (devicesA);
+
+  ipv4.SetBase ("10.1.2.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfacesB = ipv4.Assign (devicesB);
+
+  // Automatically compute shortest paths and configure routing tables
+  Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
+
+  UdpEchoServerHelper echoServer (9);
+  ApplicationContainer serverApps = echoServer.Install (nodes.Get (2));
+  serverApps.Start (Seconds (1.0));
+  serverApps.Stop (Seconds (10.0));
+
+  UdpEchoClientHelper echoClient (interfacesB.GetAddress (1), 9);
+  echoClient.SetAttribute ("MaxPackets", UintegerValue (3));
+  echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+  echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
+
+  ApplicationContainer clientApps = echoClient.Install (nodes.Get (0));
+  clientApps.Start (Seconds (2.0));
+  clientApps.Stop (Seconds (10.0));
+
+  Simulator::Run ();
+  Simulator::Destroy ();
+  return 0;
+}</code></pre>
+
+              <h4>Line-by-Line Architectural Explanation:</h4>
+              <ul>
+                <li><strong>Dual-Homed Node:</strong> Node 1 possesses two <code>PointToPointNetDevice</code>s attached to two different channels.</li>
+                <li><strong><code>Ipv4GlobalRoutingHelper::PopulateRoutingTables()</code>:</strong> Inspects all configured IPv4 addresses across the simulation graph, builds forwarding tables, and sets the default gateway for Node 0 to <code>10.1.1.2</code>.</li>
+                <li><strong>Hop-by-Hop Forwarding:</strong> As packets traverse Node 1, its IP protocol decrements TTL and looks up the next hop in its routing table.</li>
+              </ul>
+            `
+          },
+          {
+            id: "T1-M1-L2E",
+            title: "1.2.4 Progressive Script: tcp-bulk-send.cc (Reliable TCP & Congestion Window)",
+            moduleTitle: "Track 1 • Module 1 • Lesson 2E",
+            body: `
+              <p>Unlike UDP, TCP provides connection-oriented reliable byte delivery with flow control and congestion window backoff. This lesson teaches <strong>BulkSendApplication</strong> and TCP socket management.</p>
+
+              <h4>Topology & Flow:</h4>
+              <p><strong>Node 0 (10.1.1.1, TCP BulkSend 500 KB)</strong> ──[ Bottleneck P2P: 1 Mbps, 10 ms, Queue: 20 pkts ]──> <strong>Node 1 (10.1.1.2, TCP PacketSink Port 9000)</strong></p>
+
+              <h4>Full Canonical C++ Code (<code>tcp-bulk-send.cc</code>):</h4>
+              <pre><code>#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/applications-module.h"
+
+using namespace ns3;
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd (__FILE__);
+  cmd.Parse (argc, argv);
+
+  Time::SetResolution (Time::NS);
+
+  NodeContainer nodes;
+  nodes.Create (2);
+
+  PointToPointHelper p2p;
+  p2p.SetDeviceAttribute ("DataRate", StringValue ("1Mbps"));
+  p2p.SetChannelAttribute ("Delay", StringValue ("10ms"));
+  p2p.SetQueue ("ns3::DropTailQueue&lt;Packet&gt;", "MaxSize", StringValue ("20p"));
+
+  NetDeviceContainer devices = p2p.Install (nodes);
+
+  InternetStackHelper stack;
+  stack.Install (nodes);
+
+  Ipv4AddressHelper address;
+  address.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer interfaces = address.Assign (devices);
+
+  uint16_t port = 9000;
+  PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), port));
+  ApplicationContainer sinkApp = sinkHelper.Install (nodes.Get (1));
+  sinkApp.Start (Seconds (0.0));
+  sinkApp.Stop (Seconds (20.0));
+
+  BulkSendHelper bulkSend ("ns3::TcpSocketFactory", InetSocketAddress (interfaces.GetAddress (1), port));
+  bulkSend.SetAttribute ("MaxBytes", UintegerValue (500000)); // 500 KB
+  bulkSend.SetAttribute ("SendSize", UintegerValue (1460));    // MSS
+
+  ApplicationContainer sourceApp = bulkSend.Install (nodes.Get (0));
+  sourceApp.Start (Seconds (1.0));
+  sourceApp.Stop (Seconds (20.0));
+
+  p2p.EnablePcapAll ("tcp-bulk-trace");
+
+  Simulator::Run ();
+
+  Ptr&lt;PacketSink&gt; sink = DynamicCast&lt;PacketSink&gt; (sinkApp.Get (0));
+  std::cout &lt;&lt; "Total TCP Bytes Received: " &lt;&lt; sink-&gt;GetTotalRx () &lt;&lt; " bytes" &lt;&lt; std::endl;
+
+  Simulator::Destroy ();
+  return 0;
+}</code></pre>
+
+              <h4>Line-by-Line Architectural Explanation:</h4>
+              <ul>
+                <li><strong><code>ns3::TcpSocketFactory</code>:</strong> Binds the application to full TCP protocol semantics (handling SYN, ACK, sliding windows, and retransmissions).</li>
+                <li><strong><code>DropTailQueue MaxSize="20p"</code>:</strong> Creates a bottleneck buffer queue. When the queue fills up, packet drops force TCP to halve its congestion window (<code>cwnd</code>).</li>
+                <li><strong>MaxBytes & MSS:</strong> <code>BulkSendApplication</code> pumps segments of 1460 bytes until 500,000 bytes are sent, then executes a graceful TCP FIN closure.</li>
+              </ul>
+            `
+          },
+          {
             id: "T1-M1-L3",
             title: "1.3 Build Systems & Compilation Configuration",
             moduleTitle: "Track 1 • Module 1 • Lesson 3",
@@ -1635,422 +1953,272 @@ int main (int argc, char *argv[])
     ]
   },
   {
-    name: "Track 2: WiFi 7/8 Research Pro",
+    name: "Track 2: Machine Learning & ns3-gym Integration",
     modules: [
       {
         id: 1,
-        title: "Module 1: Wireless PHY & Propagation",
-        description: "Modeling physical channels, propagation loss, fading, and spectrum frequencies.",
+        title: "Module 1: ns3-gym Architecture & Repositories Setup",
+        description: "ZeroMQ/Protobuf IPC, shared memory bridges, repository ecosystems, and Python environment setup.",
         lessons: [
           {
             id: "T2-M1-L1",
-            title: "Spectrum Channel Models vs Yans",
+            title: "1.1 The ns3-gym IPC Architecture & Deep Learning Bridges",
             moduleTitle: "Track 2 • Module 1 • Lesson 1",
             body: `
-              <p>In wireless simulations, modeling signal propagation accurately is critical. ns-3 offers two physical layer helpers:</p>
+              <p>Reinforcement Learning (RL) and Deep Learning (DL) have become essential for modern wireless networking (e.g. adaptive modulation, WiFi 7/8 link selection, and 5G beamforming). However, a core challenge exists:</p>
               <ul>
-                <li><strong>[[YansWifiPhyHelper]]:</strong> Packet-based model. Simulates transmissions as single-channel blocks. It is fast and simple but cannot simulate frequency-selective fading or subcarrier allocation. Also configures the [[YansWifiChannelHelper]].</li>
-                <li><strong>[[SpectrumWifiPhyHelper]]:</strong> Frequency-selective model. Simulates signal Power Spectral Density (PSD) across distinct subcarriers. This is required for modern multi-subcarrier standards (802.11ax/be) employing OFDMA and [[MLO]].</li>
+                <li><strong>ns-3 Core:</strong> Written in high-performance C++ for accurate discrete-event network simulation.</li>
+                <li><strong>AI Ecosystem:</strong> Built on Python (PyTorch, TensorFlow, Gymnasium, Stable-Baselines3).</li>
               </ul>
+              <p><strong><code>ns3-gym</code></strong> connects these worlds via high-speed Inter-Process Communication (IPC):</p>
+              <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 8px; padding: 16px; margin: 16px 0;">
+                <h5 style="color: #818cf8; margin-top: 0;">How ns3-gym Works Under the Hood:</h5>
+                <ol style="padding-left: 20px; line-height: 1.6; color: #cbd5e1;">
+                  <li><strong>ZeroMQ (ZMQ) Sockets:</strong> Establish a duplex TCP socket channel between C++ and Python on <code>127.0.0.1:5555</code>.</li>
+                  <li><strong>Google Protocol Buffers (Protobuf):</strong> State observations ($s_t$), actions ($a_t$), and rewards ($r_t$) are serialized into compact binary streams.</li>
+                  <li><strong>Virtual Clock Synchronization:</strong> While Python trains or computes actions, ns-3 virtual simulation time pauses, guaranteeing determinism!</li>
+                </ol>
+              </div>
             `
           },
           {
             id: "T2-M1-L2",
-            title: "Propagation Loss and Delay Models",
+            title: "1.2 Recommended Repositories & Installation Workflow",
             moduleTitle: "Track 2 • Module 1 • Lesson 2",
             body: `
-              <p>Signal attenuation over distance is configured via propagation helpers:</p>
-              <ul>
-                <li><strong>FriisPropagationLossModel:</strong> Models signal decay in clean, line-of-sight free space.</li>
-                <li><strong>LogDistancePropagationLossModel:</strong> Computes path loss using a path loss exponent (n) to model various environments (e.g. indoor vs outdoor).</li>
+              <h4>Official & Recommended GitHub Repositories:</h4>
+              <ul style="line-height: 1.7;">
+                <li><strong>Canonical ns3-gym (TU Berlin):</strong> <a href="https://github.com/tkn-tub/ns3-gym" target="_blank" style="color: #60a5fa;"><code>https://github.com/tkn-tub/ns3-gym</code></a><br>Created by Piotr Gawłowicz and Anatolij Zubow. Standardized OpenAI Gym API bindings.</li>
+                <li><strong>CMake-Compatible Fork (ns-3.36+ & ns-3.45):</strong> <a href="https://github.com/pgawlowicz/ns3-gym" target="_blank" style="color: #60a5fa;"><code>https://github.com/pgawlowicz/ns3-gym</code></a><br>Updated for modern CMake builds and Python 3.8+ / Gymnasium.</li>
+                <li><strong>High-Speed Alternative (ns3-ai):</strong> <a href="https://github.com/hust-diangroup/ns3-ai" target="_blank" style="color: #60a5fa;"><code>https://github.com/hust-diangroup/ns3-ai</code></a><br>Developed by HUST. Uses Linux Shared Memory (SHM) for ultra-low latency transfers.</li>
               </ul>
+
+              <h4>Step-by-Step Installation Commands:</h4>
+              <pre><code># 1. System prerequisites
+sudo apt-get update && sudo apt-get install -y protobuf-compiler libprotobuf-dev libzmq5-dev
+
+# 2. Python environment
+pip install gymnasium pyzmq protobuf torch torchvision
+
+# 3. Clone into contrib/
+cd /home/jaswanth/Downloads/ns-allinone-3.45/ns-3.45/contrib/
+git clone https://github.com/tkn-tub/ns3-gym.git opengym
+
+# 4. Install python gym module
+cd opengym/model/ns3gym/
+pip install -e .
+
+# 5. Build ns-3 with gym
+cd ../../../
+./ns3 configure --enable-examples --enable-tests --build-profile=debug
+./ns3 build</code></pre>
             `
-          },
-          {
-            id: "T2-M1-Q",
-            title: "Track 2 Module 1 Review Quiz",
-            isQuizOnly: true,
-            moduleTitle: "Track 2 • Module 1 • Assessment",
-            quiz: [
-              {
-                question: "1. Which WiFi physical layer helper must be used to model OFDMA subcarriers in ns-3?",
-                options: [
-                  { text: "YansWifiPhyHelper", isCorrect: false },
-                  { text: "SpectrumWifiPhyHelper", isCorrect: true }
-                ],
-                feedbackSuccess: "Correct! Spectrum model resolves Power Spectral Density across frequency subcarriers.",
-                feedbackError: "Incorrect. Yans cannot model subcarrier granularity. You must use SpectrumWifiPhyHelper. Try again!"
-              },
-              {
-                question: "2. What physical effect does FriisPropagationLossModel simulate?",
-                options: [
-                  { text: "Signal diffraction around buildings", isCorrect: false },
-                  { text: "Free-space signal attenuation over distance with line-of-sight", isCorrect: true },
-                  { text: "Multipath fading on mobile nodes", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! Friis models path loss in clean free space.",
-                feedbackError: "Incorrect. Friis models free-space propagation attenuation. Try again!"
-              },
-              {
-                question: "3. What three frequency bands are supported in WiFi 7 (802.11be)?",
-                options: [
-                  { text: "900 MHz, 2.4 GHz, and 5 GHz", isCorrect: false },
-                  { text: "2.4 GHz, 5 GHz, and 6 GHz", isCorrect: true },
-                  { text: "5 GHz, 60 GHz, and 70 GHz", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! WiFi 7 operates in the 2.4 GHz, 5 GHz, and 6 GHz spectrum bands.",
-                feedbackError: "Incorrect. WiFi 7 extends coverage to the 2.4, 5, and 6 GHz bands. Try again!"
-              },
-              {
-                question: "4. How is propagation delay calculated in ConstantSpeedPropagationDelayModel?",
-                options: [
-                  { text: "By using the speed of light in a vacuum", isCorrect: true },
-                  { text: "It is set to a constant value independent of distance", isCorrect: false },
-                  { text: "By simulating acoustic delays", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! The model divides distance by speed of light to determine delay.",
-                feedbackError: "Incorrect. The delay is calculated dynamically as distance divided by the speed of light. Try again!"
-              },
-              {
-                question: "5. What class represents the physical channel in spectrum-based wireless simulations?",
-                options: [
-                  { text: "YansWifiChannel", isCorrect: false },
-                  { text: "MultiModelSpectrumChannel", isCorrect: true },
-                  { text: "PointToPointChannel", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! MultiModelSpectrumChannel acts as the medium for PSD spectrum signals.",
-                feedbackError: "Incorrect. Spectrum simulations utilize MultiModelSpectrumChannel as the medium. Try again!"
-              }
-            ]
-          },
-          {
-            id: "T2-M1-A",
-            title: "Track 2 Module 1 Assignment",
-            isAssignmentOnly: true,
-            moduleTitle: "Track 2 • Module 1 • Assignment",
-            assignmentInstructions: `
-              <h4>Assignment Objective:</h4>
-              <p>Configure node positioning and execute the Yans WiFi simulation.</p>
-              
-              <h4>Step 1: Open Terminal</h4>
-              
-              <h4>Step 2: Run the simple-wifi simulation</h4>
-              <pre><code>./ns3 run scratch/aerowlan_exercises/simple-wifi > scratch/aerowlan_exercises/t2_m1_output.txt 2>&1</code></pre>
-              
-              <h4>Step 3: Submit output</h4>
-              <p>Paste the contents of <code>t2_m1_output.txt</code> below to verify your run.</p>
-            `,
-            assignmentVerifyKeyword: "Wifi Simulation completed.",
-            practiceFile: "scratch/aerowlan_exercises/simple-wifi.cc"
           }
         ]
       },
       {
         id: 2,
-        title: "Module 2: WiFi MAC Layer & QoS EDCA",
-        description: "QoS prioritization, traffic categories, contention window sizes, and frame aggregation.",
+        title: "Module 2: Custom Gym Environments in C++ (OpenGymInterface)",
+        description: "Implementing observation/action spaces, reward shaping, and action execution in ns-3 C++.",
         lessons: [
           {
             id: "T2-M2-L1",
-            title: "EDCA Access Categories & Contention",
+            title: "2.1 OpenGymInterface Methods & Space Definitions",
             moduleTitle: "Track 2 • Module 2 • Lesson 1",
             body: `
-              <p>IEEE 802.11 QoS is implemented via Enhanced Distributed Channel Access (EDCA). It provides prioritized medium access by defining four Access Categories (ACs):</p>
+              <p>To turn an ns-3 simulation into an RL Gym environment, your C++ class subclasses <code>OpenGymInterface</code> and implements these core methods:</p>
               <ul>
-                <li><strong>AC_VO (Voice):</strong> Shortest contention window and arbitration interframe space (AIFS). Highest priority.</li>
-                <li><strong>AC_VI (Video):</strong> High priority.</li>
-                <li><strong>AC_BE (Best Effort):</strong> Default medium access.</li>
-                <li><strong>AC_BK (Background):</strong> Longest backoff values. Lowest priority.</li>
+                <li><code>GetObservationSpace()</code>: Defines dimensions of input features (e.g. <code>OpenGymBoxSpace</code> for queue size and throughput).</li>
+                <li><code>GetActionSpace()</code>: Defines agent decisions (e.g. <code>OpenGymDiscreteSpace(4)</code> for 4 rate levels).</li>
+                <li><code>GetObservation()</code>: Samples metrics from network devices and packages them into a Protobuf message.</li>
+                <li><code>GetReward()</code>: Computes scalar reinforcement feedback: $R = \\text{Throughput} - \\alpha \\times \\text{BufferbloatDelay}$.</li>
+                <li><code>ExecuteActions(action)</code>: Alters simulation parameters (e.g. <code>SetDataRate()</code> or contention window) dynamically.</li>
               </ul>
             `
           },
           {
             id: "T2-M2-L2",
-            title: "Frame Aggregation: MSDU and MPDU",
+            title: "2.2 Complete Canonical C++ Environment Code",
             moduleTitle: "Track 2 • Module 2 • Lesson 2",
             body: `
-              <p>To reduce MAC layer overhead (headers and preambles), high-throughput standards employ frame aggregation:</p>
-              <ul>
-                <li><strong>A-MSDU (Aggregate MAC Service Data Unit):</strong> Combines multiple logical payloads under a single MAC header.</li>
-                <li><strong>A-MPDU (Aggregate MAC Protocol Data Unit):</strong> Combines multiple MAC frames (each with header and CRC) inside a single physical packet.</li>
-              </ul>
+              <pre><code>#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/opengym-module.h"
+
+using namespace ns3;
+
+class NetworkGymEnv : public OpenGymInterface
+{
+public:
+  NetworkGymEnv () : m_currentRxBytes (0) {}
+  virtual ~NetworkGymEnv () {}
+
+  static TypeId GetTypeId (void) {
+    static TypeId tid = TypeId ("NetworkGymEnv")
+      .SetParent&lt;OpenGymInterface&gt; ()
+      .AddConstructor&lt;NetworkGymEnv&gt; ();
+    return tid;
+  }
+
+  Ptr&lt;OpenGymSpaceContainer&gt; GetActionSpace () {
+    return CreateObject&lt;OpenGymDiscreteSpace&gt; (4); // 4 transmission rates
+  }
+
+  Ptr&lt;OpenGymSpaceContainer&gt; GetObservationSpace () {
+    std::vector&lt;uint32_t&gt; shape = {2};
+    return CreateObject&lt;OpenGymBoxSpace&gt; (0.0, 100000.0, shape, "FLOAT");
+  }
+
+  Ptr&lt;OpenGymDataContainer&gt; GetObservation () {
+    std::vector&lt;uint32_t&gt; shape = {2};
+    Ptr&lt;OpenGymBoxDataContainer&lt;float&gt;&gt; data = CreateObject&lt;OpenGymBoxDataContainer&lt;float&gt;&gt; (shape);
+    float queueLength = m_device-&gt;GetQueue ()-&gt;GetNPackets ();
+    float kbps = (m_currentRxBytes * 8.0f) / 1000.0f;
+    data-&gt;AddValue (queueLength);
+    data-&gt;AddValue (kbps);
+    m_currentRxBytes = 0;
+    return data;
+  }
+
+  float GetReward () {
+    float queueLength = m_device-&gt;GetQueue ()-&gt;GetNPackets ();
+    return (m_currentRxBytes * 8.0f) / 1000.0f - (10.0f * queueLength);
+  }
+
+  bool GetGameOver () { return Simulator::IsFinished (); }
+
+  bool ExecuteActions (Ptr&lt;OpenGymDataContainer&gt; action) {
+    uint32_t act = DynamicCast&lt;OpenGymDiscreteDataContainer&gt; (action)-&gt;GetValue ();
+    std::string rate = (act == 0) ? "1Mbps" : (act == 1) ? "2Mbps" : (act == 2) ? "5Mbps" : "10Mbps";
+    m_device-&gt;SetDataRate (DataRate (rate));
+    return true;
+  }
+
+  void SetDevice (Ptr&lt;PointToPointNetDevice&gt; dev) { m_device = dev; }
+
+private:
+  Ptr&lt;PointToPointNetDevice&gt; m_device;
+  uint32_t m_currentRxBytes;
+};
+
+NS_OBJECT_ENSURE_REGISTERED (NetworkGymEnv);</code></pre>
             `
-          },
-          {
-            id: "T2-M2-Q",
-            title: "Track 2 Module 2 Review Quiz",
-            isQuizOnly: true,
-            moduleTitle: "Track 2 • Module 2 • Assessment",
-            quiz: [
-              {
-                question: "1. Which EDCA Access Category is configured with the shortest backoff time?",
-                options: [
-                  { text: "AC_BE", isCorrect: false },
-                  { text: "AC_VI", isCorrect: false },
-                  { text: "AC_VO", isCorrect: true }
-                ],
-                feedbackSuccess: "Correct! AC_VO (Voice) gets priority access to minimize latency.",
-                feedbackError: "Incorrect. Voice (AC_VO) has the shortest arbitration Interframe Space (AIFS). Try again!"
-              },
-              {
-                question: "2. How many EDCA Access Categories are defined in standard 802.11 QoS?",
-                options: [
-                  { text: "2", isCorrect: false },
-                  { text: "4", isCorrect: true },
-                  { text: "8", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! The standard defines 4 queues: VO, VI, BE, and BK.",
-                feedbackError: "Incorrect. The IEEE 802.11 standard specifies 4 AC categories. Try again!"
-              },
-              {
-                question: "3. What is the main difference between A-MSDU and A-MPDU aggregation?",
-                options: [
-                  { text: "A-MSDU groups packets before the MAC header is added; A-MPDU groups complete MAC frames", isCorrect: true },
-                  { text: "A-MPDU is only used for voice traffic", isCorrect: false },
-                  { text: "A-MSDU is performed at the physical layer", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! A-MSDU aggregates payloads; A-MPDU aggregates formatted frames.",
-                feedbackError: "Incorrect. A-MSDU aggregates MSDU payloads under one MAC header; A-MPDU aggregates MAC frames. Try again!"
-              },
-              {
-                question: "4. What socket parameter is configured to route packets to specific EDCA queues in ns-3?",
-                options: [
-                  { text: "Type of Service (TOS) byte", isCorrect: true },
-                  { text: "Port number", isCorrect: false },
-                  { text: "TTL field", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! The TOS field in the IP header maps packets to EDCA access categories.",
-                feedbackError: "Incorrect. The TOS (Type of Service) attribute maps packets to EDCA queues. Try again!"
-              },
-              {
-                question: "5. What is the role of Block Acknowledgment (Block Ack) in frame aggregation?",
-                options: [
-                  { text: "It acknowledges a whole train of aggregate frames (A-MPDU) with a single response frame", isCorrect: true },
-                  { text: "It disables packet transmission during collisions", isCorrect: false },
-                  { text: "It routes packets to the wired stack", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! Block Ack groups multiple frame acknowledgments to reduce overhead.",
-                feedbackError: "Incorrect. Block Ack acknowledges multiple MPDUs inside an A-MPDU to save channel overhead. Try again!"
-              }
-            ]
-          },
-          {
-            id: "T2-M2-A",
-            title: "Track 2 Module 2 Assignment",
-            isAssignmentOnly: true,
-            moduleTitle: "Track 2 • Module 2 • Assignment",
-            assignmentInstructions: `
-              <h4>Assignment Objective:</h4>
-              <p>Map application packets to priority queues using the TOS socket parameter.</p>
-              
-              <h4>Step 1: Open Terminal</h4>
-              
-              <h4>Step 2: Run the simple-wifi simulation with TOS logging enabled</h4>
-              <pre><code>./ns3 run scratch/aerowlan_exercises/simple-wifi > scratch/aerowlan_exercises/t2_m2_output.txt 2>&1</code></pre>
-              
-              <h4>Step 3: Submit output</h4>
-              <p>Paste the contents of <code>t2_m2_output.txt</code> below to verify your run.</p>
-            `,
-            assignmentVerifyKeyword: "Wifi Simulation completed.",
-            practiceFile: "scratch/aerowlan_exercises/simple-wifi.cc"
           }
         ]
       },
       {
         id: 3,
-        title: "Module 3: WiFi 7 & MLO",
-        description: "Multi-Link Operation (MLO) configurations, 320 MHz channel allocation, and 4096-QAM.",
+        title: "Module 3: Deep Reinforcement Learning (DQN / PyTorch) Training",
+        description: "Implementing Deep Q-Networks in Python to train agents directly inside ns-3 episodes.",
         lessons: [
           {
             id: "T2-M3-L1",
-            title: "WiFi 7 Multi-Link Operation (MLO)",
+            title: "3.1 Python Gymnasium & PyTorch DQN Training Script",
             moduleTitle: "Track 2 • Module 3 • Lesson 1",
             body: `
-              <p><strong>[[MLO]] (Multi-Link Operation)</strong> allows a single Multi-Link Device (MLD) to utilize multiple physical links (e.g. 5 GHz and 6 GHz links) simultaneously.</p>
-              <p>In ns-3.45, [[MLO]] is enabled by configuring multi-link devices using the <code>[[EhtFrameExchangeManager]]</code> and defining links on the <code>[[WifiHelper]]</code>:</p>
-              <pre><code>wifi.SetStandard (WIFI_STANDARD_80211be);
-wifi.SetMultiLinkType (WifiHelper::DEFAULT_MLD);</code></pre>
+              <p>The Python agent connects to the ns-3 simulation using <code>ns3env.Ns3Env</code>, queries the observation space, and runs standard PyTorch gradient updates.</p>
+
+              <pre><code>import gymnasium as gym
+import ns3gym
+from ns3gym import ns3env
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import random
+
+class QNetwork(nn.Module):
+    def __init__(self, in_dim, out_dim):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(in_dim, 64),
+            nn.ReLU(),
+            nn.Linear(64, 64),
+            nn.ReLU(),
+            nn.Linear(64, out_dim)
+        )
+    def forward(self, x): return self.net(x)
+
+# Connect to running ns-3 simulation
+env = ns3env.Ns3Env(port=5555, stepTime=0.1, startSim=True)
+policy_net = QNetwork(env.observation_space.shape[0], env.action_space.n)
+optimizer = optim.Adam(policy_net.parameters(), lr=1e-3)
+
+for ep in range(10):
+    state = env.reset()
+    done = False
+    total_reward = 0
+    while not done:
+        action = random.randint(0, env.action_space.n - 1) if random.random() < 0.2 else policy_net(torch.FloatTensor(state)).argmax().item()
+        next_state, reward, done, _ = env.step(action)
+        state = next_state
+        total_reward += reward
+    print(f"Episode {ep+1} finished, reward = {total_reward:.2f}")
+
+env.close()</code></pre>
             `
           },
           {
             id: "T2-M3-Q",
-            title: "Track 2 Module 3 Review Quiz",
+            title: "Track 2 Module Review Quiz",
             isQuizOnly: true,
-            moduleTitle: "Track 2 • Module 3 • Assessment",
+            moduleTitle: "Track 2 • Assessment",
             quiz: [
               {
-                question: "1. In WiFi 7 MLO, how is the device represented to the IP stack?",
+                question: "1. What protocol/library provides low-latency socket communication between ns-3 C++ and Python in ns3-gym?",
                 options: [
-                  { text: "As multiple independent network interfaces", isCorrect: false },
-                  { text: "As a single logical MAC interface managing multiple physical links", isCorrect: true },
-                  { text: "As a wired CSMA connection", isCorrect: false }
+                  { text: "HTTP REST API", isCorrect: false },
+                  { text: "ZeroMQ (ZMQ) & Google Protobuf", isCorrect: true },
+                  { text: "WebSocket", isCorrect: false }
                 ],
-                feedbackSuccess: "Correct! The MLD exposes a single MAC interface to upper layers while splitting traffic over physical links.",
-                feedbackError: "Incorrect. An MLD appears as a single logical network interface to the IP layer. Try again!"
+                feedbackSuccess: "Correct! ZeroMQ sockets serialize data via Google Protobuf binaries.",
+                feedbackError: "Incorrect. ns3-gym uses ZeroMQ and Protobuf for low-latency IPC. Try again!"
               },
               {
-                question: "2. What is the maximum single-channel bandwidth supported in 802.11be?",
+                question: "2. Which C++ method must be implemented to apply the ML action to ns-3 network devices?",
                 options: [
-                  { text: "80 MHz", isCorrect: false },
-                  { text: "160 MHz", isCorrect: false },
-                  { text: "320 MHz", isCorrect: true }
+                  { text: "GetObservation()", isCorrect: false },
+                  { text: "ExecuteActions()", isCorrect: true },
+                  { text: "GetReward()", isCorrect: false }
                 ],
-                feedbackSuccess: "Correct! WiFi 7 supports 320 MHz channels in the 6 GHz band.",
-                feedbackError: "Incorrect. 802.11be doubles bandwidth limits up to 320 MHz. Try again!"
-              },
-              {
-                question: "3. What modulation scheme is introduced in WiFi 7?",
-                options: [
-                  { text: "256-QAM", isCorrect: false },
-                  { text: "1024-QAM", isCorrect: false },
-                  { text: "4096-QAM", isCorrect: true }
-                ],
-                feedbackSuccess: "Correct! 4096-QAM allows 12 bits per symbol transmissions.",
-                feedbackError: "Incorrect. WiFi 7 introduces 4096-QAM (EhtMcs12 to 15). Try again!"
-              },
-              {
-                question: "4. What does STR stand for in the context of Multi-Link Operation?",
-                options: [
-                  { text: "Simultaneous Transmission and Reception", isCorrect: true },
-                  { text: "Single Traffic Router", isCorrect: false },
-                  { text: "Spectrum Temporal Reuse", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! STR allows the device to transmit on one link while receiving on another link simultaneously.",
-                feedbackError: "Incorrect. STR is Simultaneous Transmission and Reception. Try again!"
-              },
-              {
-                question: "5. What FrameExchangeManager class handles WiFi 7 frames in ns-3.45?",
-                options: [
-                  { text: "HeFrameExchangeManager", isCorrect: false },
-                  { text: "EhtFrameExchangeManager", isCorrect: true },
-                  { text: "VhtFrameExchangeManager", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! EhtFrameExchangeManager is the EHT-specific control frame manager.",
-                feedbackError: "Incorrect. WiFi 7 (EHT) utilizes EhtFrameExchangeManager. Try again!"
+                feedbackSuccess: "Correct! ExecuteActions receives the action tensor and modifies simulation attributes.",
+                feedbackError: "Incorrect. ExecuteActions is the callback responsible for applying actions. Try again!"
               }
             ]
-          },
-          {
-            id: "T2-M3-A",
-            title: "Track 2 Module 3 Assignment",
-            isAssignmentOnly: true,
-            moduleTitle: "Track 2 • Module 3 • Assignment",
-            assignmentInstructions: `
-              <h4>Assignment Objective:</h4>
-              <p>Verify that multi-link operation negotiates multiple links and routes traffic.</p>
-              
-              <h4>Step 1: Open Terminal</h4>
-              
-              <h4>Step 2: Run the wifi7-mlo simulation</h4>
-              <pre><code>./ns3 run scratch/aerowlan_exercises/wifi7-mlo > scratch/aerowlan_exercises/t2_m3_output.txt 2>&1</code></pre>
-              
-              <h4>Step 3: Submit output</h4>
-              <p>Paste the contents of <code>t2_m3_output.txt</code> below to verify your MLO run.</p>
-            `,
-            assignmentVerifyKeyword: "Starting WiFi 7 Multi-Link Operation (MLO) simulation...",
-            practiceFile: "scratch/aerowlan_exercises/wifi7-mlo.cc"
-          }
-        ]
-      },
-      {
-        id: 4,
-        title: "Module 4: WiFi 8 & Advanced Research",
-        description: "Multi-AP Coordinated Spatial Reuse (CoSR), Coordinated Beamforming (CoBF), and UHR models.",
-        lessons: [
-          {
-            id: "T2-M4-L1",
-            title: "Multi-AP Spatial Reuse (CoSR)",
-            moduleTitle: "Track 2 • Module 4 • Lesson 1",
-            body: `
-              <p>IEEE 802.11bn (WiFi 8) is named **Ultra High Reliability (UHR)**. The primary research direction focuses on coordination between Access Points (APs) to resolve cell-edge interference.</p>
-              <p>Adjacent APs coordinate transmit power dynamically using [[COSR]] (Coordinated Spatial Reuse). By backing off Tx power slightly, both APs can transmit simultaneously to nearby stations on the same channel, bypassing standard CCA threshold backoffs.</p>
-              <p>Such models are simulated at the PHY layer using custom extensions like [[UhrPhy]].</p>
-            `
-          },
-          {
-            id: "T2-M4-Q",
-            title: "Track 2 Module 4 Review Quiz",
-            isQuizOnly: true,
-            moduleTitle: "Track 2 • Module 4 • Assessment",
-            quiz: [
-              {
-                question: "1. What is the key focus area of the candidate IEEE 802.11bn (WiFi 8) standard?",
-                options: [
-                  { text: "Ultra High Reliability (UHR) and latency guarantees", isCorrect: true },
-                  { text: "Extremely High Throughput (EHT)", isCorrect: false },
-                  { text: "Extending range to long distances", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! WiFi 8 focuses on reliability (UHR) and ultra-low latency guarantees.",
-                feedbackError: "Incorrect. WiFi 8's focus is Ultra High Reliability. Try again!"
-              },
-              {
-                question: "2. How does Coordinated Spatial Reuse (CoSR) facilitate parallel transmissions?",
-                options: [
-                  { text: "By assigning distinct IP addresses to APs", isCorrect: false },
-                  { text: "By dynamically adjusting transmitter power to reduce OBSS interference", isCorrect: true },
-                  { text: "By using wired cables", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! Power control allows parallel transmissions on overlapping frequencies.",
-                feedbackError: "Incorrect. CoSR adjusts Tx power dynamically to enable parallel transmission. Try again!"
-              },
-              {
-                question: "3. What is the function of Coordinated Beamforming (CoBF) in WiFi 8?",
-                options: [
-                  { text: "To shape multi-antenna radiation patterns to place nulls at neighbor station positions", isCorrect: true },
-                  { text: "To increase data rates to 10 Gbps", isCorrect: false },
-                  { text: "To increase transmission range", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! Spatial nulling prevents cross-talk on overlapping cells.",
-                feedbackError: "Incorrect. CoBF coordinates multi-antenna beam vectors to shield neighboring STAs. Try again!"
-              },
-              {
-                question: "4. How does Coordinated OFDMA avoid packet collisions?",
-                options: [
-                  { text: "By sharing the frequency spectrum orthogonally across basic service sets", isCorrect: true },
-                  { text: "By disabling WiFi transmission entirely", isCorrect: false },
-                  { text: "By encrypting packets", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! Orthogonal frequency allocation prevents OBSS collisions.",
-                feedbackError: "Incorrect. Co-OFDMA partitions subcarriers orthogonally across neighboring cells. Try again!"
-              },
-              {
-                question: "5. Where are custom WiFi 8 prototype models usually implemented in the ns-3 directory structure?",
-                options: [
-                  { text: "In src/wifi or as modular additions in the contrib/ directory", isCorrect: true },
-                  { text: "In the build/ folder directly", isCorrect: false },
-                  { text: "Inside the doc/ directory", isCorrect: false }
-                ],
-                feedbackSuccess: "Correct! Developers subclass EHT modules in src/wifi or place prototypes in contrib.",
-                feedbackError: "Incorrect. Custom models are placed under src/wifi or in the contrib/ directory. Try again!"
-              }
-            ]
-          },
-          {
-            id: "T2-M4-A",
-            title: "Track 2 Module 4 Assignment",
-            isAssignmentOnly: true,
-            moduleTitle: "Track 2 • Module 4 • Assignment",
-            assignmentInstructions: `
-              <h4>Assignment Objective:</h4>
-              <p>Simulate Coordinated Spatial Reuse overlapping cells and verify packet transmission.</p>
-              
-              <h4>Step 1: Open Terminal</h4>
-              
-              <h4>Step 2: Run the wifi8-cosr simulation</h4>
-              <pre><code>./ns3 run scratch/aerowlan_exercises/wifi8-cosr > scratch/aerowlan_exercises/t2_m4_output.txt 2>&1</code></pre>
-              
-              <h4>Step 3: Submit output</h4>
-              <p>Paste the contents of <code>t2_m4_output.txt</code> below to verify your WiFi 8 run.</p>
-            `,
-            assignmentVerifyKeyword: "Starting WiFi 8 Coordinated Spatial Reuse (CoSR) simulation...",
-            practiceFile: "scratch/aerowlan_exercises/wifi8-cosr.cc"
           }
         ]
       }
     ]
   },
   {
-    name: "Track 3: C++ Foundations for ns-3",
+    name: "Track 3: Wireless LAN & WiFi 7/8 Research (Pending)",
+    modules: [
+      {
+        id: 1,
+        title: "Module 1: WiFi 7 & WiFi 8 Research Modules (Pending)",
+        description: "Reserved section for upcoming WiFi 7 (802.11be) and WiFi 8 (802.11bn) research content.",
+        lessons: [
+          {
+            id: "T3-PENDING-L1",
+            title: "WiFi 7 & WiFi 8 Research Updates",
+            moduleTitle: "Track 3 • Module 1 • Reserved",
+            body: `
+              <div style="background: rgba(99, 102, 241, 0.08); border: 2px dashed #6366f1; border-radius: 12px; padding: 32px; text-align: center; margin: 20px 0;">
+                <div style="font-size: 36px; margin-bottom: 12px;">📡</div>
+                <h3 style="color: #818cf8; margin-top: 0;">WiFi 7 & WiFi 8 Research Content Reserved</h3>
+                <p style="color: #cbd5e1; max-width: 600px; margin: 0 auto 16px auto; font-size: 14px; line-height: 1.6;">
+                  This track is reserved for upcoming modules covering Multi-Link Operation (MLO), Multi-RU, 320 MHz channels, Multi-AP Coordination (MAPC), and Coordinated Beamforming. Content will be populated here in subsequent updates as requested.
+                </p>
+                <span style="display: inline-block; background: rgba(99, 102, 241, 0.2); color: #a5b4fc; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;">Status: Pending Upcoming Content</span>
+              </div>
+            `
+          }
+        ]
+      }
+    ]
+  },
+  {
+    name: "Track 4: C++ Foundations for ns-3",
     modules: [
       {
         id: 1,

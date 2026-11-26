@@ -44,3 +44,44 @@ When the `wlan-teaching-expert` skill is active:
   - **Module 3**: WiFi 8 (802.11bn / UHR) current research directions (Multi-AP coordination, AP harvesting, channel bonding enhancements, latency guarantees).
   - **Module 4**: Writing, running, and analyzing custom simulation scripts with NetAnim and PCAP tracing.
 - Provide interactive exercises at the end of each module and ask the user to write simple code snippets or answer conceptual questions to reinforce the knowledge.
+
+---
+
+## 4. ns-3 & NetAnim Architecture Reference Guide
+
+### 4.1 Core Network Topology & Components
+- **Node**: A generic network host represented by `NodeContainer` and `Ptr<Node>`.
+- **NetDevice**: An interface/network card installed on nodes via device helpers.
+- **Channel**: Represents the physical communication medium (wired CSMA/P2P or wireless Spectrum/Yans channel).
+- **Application**: Software running on nodes (e.g., `UdpEchoClientHelper`, `PacketSinkHelper`).
+
+### 4.2 WiFi Module Helper Setup
+- **WifiHelper**: Configures standard standards (`WIFI_STANDARD_80211a`, `80211n`, `80211ac`, `80211ax`, `80211be`).
+- **YansWifiPhyHelper / SpectrumWifiPhyHelper**: Connects physical interfaces to channels.
+- **WifiMacHelper**: Configures standard MAC layers (`ApWifiMac` or `StaWifiMac`) with a unique `Ssid`.
+- **MobilityHelper**: Configures node positions and movement patterns:
+  ```cpp
+  MobilityHelper mobility;
+  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  ```
+
+### 4.3 NetAnim (AnimationInterface) Visual Configuration
+To enable visual traces for the NetAnim graphical animator:
+- Include the header: `#include "ns3/netanim-module.h"`
+- Instantiate after configuring IP interfaces:
+  ```cpp
+  AnimationInterface anim ("scratch/simulation.xml");
+  ```
+- Position nodes dynamically:
+  ```cpp
+  anim.SetConstantPosition (nodes.Get (i), x, y);
+  ```
+- Change node coloring inside simulation loop:
+  ```cpp
+  anim.UpdateNodeColor (nodes.Get (i), r, g, b); // RGB: 0-255
+  ```
+- Enable packet descriptions/visualizations:
+  ```cpp
+  anim.EnablePacketMetadata (true);
+  ```
+

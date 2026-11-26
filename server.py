@@ -115,6 +115,108 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_header('Access-Control-Allow-Origin', '*')
                 self.end_headers()
                 self.wfile.write(json.dumps({'status': 'error', 'message': str(e)}).encode('utf-8'))
+        elif self.path == '/api/multiagent/generate':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            try:
+                data = json.loads(post_data.decode('utf-8'))
+                prompt = data.get('prompt')
+                api_key = data.get('api_key')
+                if not prompt:
+                    raise ValueError("prompt is required")
+                
+                if api_key:
+                    code = self.call_gemini(prompt, api_key)
+                    response = {"status": "success", "code": code}
+                else:
+                    response = {"status": "no_key", "message": "Using fallback template generator"}
+                
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps(response).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({'status': 'error', 'message': str(e)}).encode('utf-8'))
+        elif self.path == '/api/multiagent/repair':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            try:
+                data = json.loads(post_data.decode('utf-8'))
+                code = data.get('code')
+                error = data.get('error')
+                api_key = data.get('api_key')
+                if not code or not error or not api_key:
+                    raise ValueError("code, error, and api_key are required fields")
+                
+                repaired_code = self.call_gemini_repair(code, error, api_key)
+                response = {"status": "success", "code": repaired_code}
+                
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps(response).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({'status': 'error', 'message': str(e)}).encode('utf-8'))
+        elif self.path == '/api/multiagent/compile':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            try:
+                data = json.loads(post_data.decode('utf-8'))
+                code = data.get('code')
+                plan_id = data.get('plan_id', 'custom')
+                if not code:
+                    raise ValueError("code is required")
+                
+                project_root = os.path.abspath(os.path.dirname(__file__))
+                submissions_dir = os.path.join(project_root, 'scratch', 'aerowlan_exercises', 'submissions')
+                os.makedirs(submissions_dir, exist_ok=True)
+                
+                filepath = os.path.join(submissions_dir, f"multiagent_{plan_id}.cc")
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    f.write(code)
+                
+                print(f"[QA Debugger] Compiling multiagent_{plan_id}.cc...")
+                build_cmd = ["./ns3", "build"]
+                build_res = subprocess.run(build_cmd, capture_output=True, text=True, cwd=project_root, timeout=45)
+                
+                if build_res.returncode != 0:
+                    response = {
+                        "status": "compile_error",
+                        "output": build_res.stderr if build_res.stderr.strip() else build_res.stdout
+                    }
+                else:
+                    print(f"[QA Debugger] Running simulation multiagent_{plan_id}...")
+                    target_path = f"scratch/aerowlan_exercises/submissions/multiagent_{plan_id}"
+                    run_cmd = ["./ns3", "run", target_path]
+                    run_res = subprocess.run(run_cmd, capture_output=True, text=True, cwd=project_root, timeout=15)
+                    
+                    response = {
+                        "status": "success",
+                        "output": run_res.stdout,
+                        "errors": run_res.stderr
+                    }
+                
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps(response).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({'status': 'error', 'message': str(e)}).encode('utf-8'))
         else:
             self.send_response(404)
             self.end_headers()
@@ -197,6 +299,68 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
+
+    def call_gemini(self, prompt, api_key):
+        import urllib.request
+        import json
+        import re
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+        headers = {"Content-Type": "application/json"}
+        system_instruction = (
+            "You are the ns-3 Simulation Designer subagent. "
+            "Your task is to write a single compilable C++ simulation script for ns-3.45. "
+            "Strictly follow the ns-3 style (CamelCase, m_ member variables, smart pointers like Ptr<Node>). "
+            "Ensure all required headers like core-module.h, wifi-module.h, mobility-module.h, internet-module.h are included. "
+            "Always include NetAnim visualization using AnimationInterface if the prompt requests it or standard visualization. "
+            "Only return the raw C++ code inside a block, do not include markdown backticks or explanations outside of the code."
+        )
+        data = {
+            "contents": [{
+                "parts": [{"text": f"System Instructions: {system_instruction}\n\nUser Request: {prompt}"}]
+            }]
+        }
+        req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers, method="POST")
+        try:
+            with urllib.request.urlopen(req) as response:
+                res_data = json.loads(response.read().decode('utf-8'))
+                text = res_data['candidates'][0]['content']['parts'][0]['text']
+                if "```" in text:
+                    match = re.search(r'```(?:cpp)?\s*(.*?)\s*```', text, re.DOTALL)
+                    if match:
+                        text = match.group(1)
+                return text
+        except Exception as e:
+            raise RuntimeError(f"Gemini API call failed: {str(e)}")
+
+    def call_gemini_repair(self, code, error, api_key):
+        import urllib.request
+        import json
+        import re
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+        headers = {"Content-Type": "application/json"}
+        system_instruction = (
+            "You are the ns-3 QA Debugger subagent. "
+            "Your task is to fix compilation or execution errors in the provided ns-3 C++ code. "
+            "Strictly output only the repaired, fully corrected, compilable C++ code without explanations or markdown backticks."
+        )
+        prompt = f"Original Code:\n{code}\n\nCompilation Error:\n{error}\n\nPlease fix the compilation errors and return the corrected C++ code."
+        data = {
+            "contents": [{
+                "parts": [{"text": f"System Instructions: {system_instruction}\n\nTask: {prompt}"}]
+            }]
+        }
+        req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers, method="POST")
+        try:
+            with urllib.request.urlopen(req) as response:
+                res_data = json.loads(response.read().decode('utf-8'))
+                text = res_data['candidates'][0]['content']['parts'][0]['text']
+                if "```" in text:
+                    match = re.search(r'```(?:cpp)?\s*(.*?)\s*```', text, re.DOTALL)
+                    if match:
+                        text = match.group(1)
+                return text
+        except Exception as e:
+            raise RuntimeError(f"Gemini Auto-Repair API call failed: {str(e)}")
 
 if __name__ == '__main__':
     # Change working directory to the project root where this script resides
