@@ -914,6 +914,102 @@ for (const auto&amp; size : packetSizes) {
       </li>
     </ul>
 
+        <!-- SVG: Figure 10.2 Control Flow Decision &amp; Loop Execution Flowchart -->
+    <div style="margin: 28px 0; text-align: center;">
+      <svg viewBox="0 0 880 250" width="100%" height="250" xmlns="http://www.w3.org/2000/svg" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <rect x="0" y="0" width="880" height="34" fill="#2c3e50" rx="8" ry="8"/>
+        <text x="440" y="22" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">Figure 10.2: Control Flow Decision Tree (Branching) &amp; Loop Execution Cycle</text>
+
+        <!-- Left: Branching Decision Tree -->
+        <g transform="translate(15, 48)">
+          <rect x="0" y="0" width="415" height="185" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-dasharray="4,4"/>
+          <text x="207" y="18" text-anchor="middle" font-size="11" font-weight="bold" fill="#ba3925">1. Conditional Branching (if / else if / else)</text>
+
+          <!-- Node 1: Condition 1 -->
+          <polygon points="120,32 195,50 120,68 45,50" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/>
+          <text x="120" y="53" text-anchor="middle" font-size="9" font-weight="bold" fill="#92400e">RSSI &gt;= -65 dBm?</text>
+          
+          <!-- True branch 1 -->
+          <path d="M 195 50 L 260 50" stroke="#16a34a" stroke-width="1.5" marker-end="url(#arrow-green-102)"/>
+          <text x="225" y="44" text-anchor="middle" font-size="8" font-weight="bold" fill="#16a34a">TRUE</text>
+          <rect x="265" y="36" width="135" height="28" rx="3" fill="#dcfce7" stroke="#16a34a"/>
+          <text x="332" y="54" text-anchor="middle" font-size="8" font-weight="bold" fill="#15803d">320 MHz / 4096-QAM</text>
+
+          <!-- False branch 1 -->
+          <path d="M 120 68 L 120 95" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrow-red-102)"/>
+          <text x="140" y="84" text-anchor="middle" font-size="8" font-weight="bold" fill="#ef4444">FALSE</text>
+
+          <!-- Node 2: Condition 2 -->
+          <polygon points="120,95 195,113 120,131 45,113" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/>
+          <text x="120" y="116" text-anchor="middle" font-size="9" font-weight="bold" fill="#92400e">RSSI &gt;= -75 dBm?</text>
+
+          <!-- True branch 2 -->
+          <path d="M 195 113 L 260 113" stroke="#16a34a" stroke-width="1.5" marker-end="url(#arrow-green-102)"/>
+          <text x="225" y="107" text-anchor="middle" font-size="8" font-weight="bold" fill="#16a34a">TRUE</text>
+          <rect x="265" y="99" width="135" height="28" rx="3" fill="#eff6ff" stroke="#3b82f6"/>
+          <text x="332" y="117" text-anchor="middle" font-size="8" font-weight="bold" fill="#1e40af">160 MHz / 1024-QAM</text>
+
+          <!-- False branch 2: Fallback -->
+          <path d="M 120 131 L 120 155" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrow-red-102)"/>
+          <text x="140" y="146" text-anchor="middle" font-size="8" font-weight="bold" fill="#ef4444">FALSE</text>
+          <rect x="55" y="155" width="130" height="24" rx="3" fill="#fee2e2" stroke="#ef4444"/>
+          <text x="120" y="171" text-anchor="middle" font-size="8" font-weight="bold" fill="#991b1b">else: Disconnect Station</text>
+        </g>
+
+        <!-- Right: Loop Execution Cycle -->
+        <g transform="translate(450, 48)">
+          <rect x="0" y="0" width="415" height="185" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-dasharray="4,4"/>
+          <text x="207" y="18" text-anchor="middle" font-size="11" font-weight="bold" fill="#0369a1">2. Loop Execution Cycle (for / while)</text>
+
+          <!-- Start Init -->
+          <rect x="20" y="32" width="100" height="28" rx="4" fill="#e0f2fe" stroke="#0284c7"/>
+          <text x="70" y="50" text-anchor="middle" font-size="9" font-weight="bold" fill="#0369a1">Init: int i = 0;</text>
+
+          <path d="M 120 46 L 160 46" stroke="#0284c7" stroke-width="1.5" marker-end="url(#arrow-blue-102)"/>
+
+          <!-- Condition Diamond -->
+          <polygon points="215,30 270,46 215,62 160,46" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/>
+          <text x="215" y="49" text-anchor="middle" font-size="9" font-weight="bold" fill="#92400e">Test: i &lt; 5?</text>
+
+          <!-- Loop Body -->
+          <path d="M 215 62 L 215 95" stroke="#16a34a" stroke-width="1.5" marker-end="url(#arrow-green-102)"/>
+          <text x="235" y="80" text-anchor="middle" font-size="8" font-weight="bold" fill="#16a34a">TRUE</text>
+          
+          <rect x="140" y="95" width="150" height="34" rx="4" fill="#ffffff" stroke="#16a34a" stroke-width="1.5"/>
+          <text x="215" y="110" text-anchor="middle" font-size="9" font-weight="bold" fill="#15803d">Execute Loop Body</text>
+          <text x="215" y="122" text-anchor="middle" font-size="7" fill="#64748b">Transmit packet frame</text>
+
+          <!-- Increment -->
+          <path d="M 215 129 L 215 152" stroke="#0284c7" stroke-width="1.5" marker-end="url(#arrow-blue-102)"/>
+          <rect x="155" y="152" width="120" height="26" rx="3" fill="#e0f2fe" stroke="#0284c7"/>
+          <text x="215" y="169" text-anchor="middle" font-size="8" font-weight="bold" fill="#0369a1">Increment: ++i;</text>
+
+          <!-- Loop back arc -->
+          <path d="M 155 165 L 100 165 L 100 70 L 170 53" fill="none" stroke="#0284c7" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#arrow-blue-102)"/>
+          <text x="75" y="120" text-anchor="middle" font-size="7" fill="#0284c7">Loop Back</text>
+
+          <!-- Exit Loop False branch -->
+          <path d="M 270 46 L 320 46" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrow-red-102)"/>
+          <text x="295" y="40" text-anchor="middle" font-size="8" font-weight="bold" fill="#ef4444">FALSE</text>
+          <rect x="320" y="34" width="80" height="24" rx="3" fill="#fee2e2" stroke="#ef4444"/>
+          <text x="360" y="50" text-anchor="middle" font-size="8" font-weight="bold" fill="#991b1b">Exit Loop</text>
+        </g>
+
+        <!-- Defs -->
+        <defs>
+          <marker id="arrow-green-102" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#16a34a"/>
+          </marker>
+          <marker id="arrow-red-102" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444"/>
+          </marker>
+          <marker id="arrow-blue-102" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#0284c7"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
+
     <h4>Loop Controls: <code>break</code> and <code>continue</code></h4>
     <ul>
       <li><code>break</code>: Instantly terminates the loop and jumps out of it. (e.g. "Stop processing because the buffer is 100% full").</li>
@@ -986,6 +1082,74 @@ std::cout &lt;&lt; "New packetId value: " &lt;&lt; packetId &lt;&lt; std::endl; 
       </li>
     </ol>
 
+        <!-- SVG: Figure 10.3 The Pointer Indirection &amp; Memory Lookup Flow -->
+    <div style="margin: 28px 0; text-align: center;">
+      <svg viewBox="0 0 880 230" width="100%" height="230" xmlns="http://www.w3.org/2000/svg" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <rect x="0" y="0" width="880" height="34" fill="#2c3e50" rx="8" ry="8"/>
+        <text x="440" y="22" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">Figure 10.3: Pointer Memory Indirection, Address Resolution &amp; Safe Dereferencing Flow</text>
+
+        <!-- Step 1: Variable in RAM -->
+        <g transform="translate(30, 50)">
+          <rect x="0" y="0" width="230" height="150" rx="5" fill="#f0f9ff" stroke="#0284c7" stroke-width="1.5"/>
+          <text x="115" y="20" text-anchor="middle" font-size="11" font-weight="bold" fill="#0369a1">1. Variable Declaration in RAM</text>
+          
+          <rect x="15" y="32" width="200" height="50" rx="4" fill="#ffffff" stroke="#0284c7"/>
+          <text x="115" y="52" text-anchor="middle" font-size="10" font-family="monospace" font-weight="bold" fill="#0f172a">int packetId = 42;</text>
+          <text x="115" y="68" text-anchor="middle" font-size="9" fill="#64748b">RAM Address: 0x7ffd50 (4 Bytes)</text>
+
+          <rect x="15" y="92" width="200" height="42" rx="4" fill="#e0f2fe"/>
+          <text x="115" y="110" text-anchor="middle" font-size="9" font-weight="bold" fill="#0369a1">&amp;packetId operator</text>
+          <text x="115" y="124" text-anchor="middle" font-size="8" fill="#0284c7">Extracts address: 0x7ffd50</text>
+        </g>
+
+        <!-- Arrow 1 to 2 -->
+        <path d="M 265 110 L 320 110" stroke="#0284c7" stroke-width="2" marker-end="url(#arrow-blue-103)"/>
+        <text x="292" y="102" text-anchor="middle" font-size="8" font-weight="bold" fill="#0284c7">Assign Address</text>
+
+        <!-- Step 2: Pointer Variable -->
+        <g transform="translate(325, 50)">
+          <rect x="0" y="0" width="230" height="150" rx="5" fill="#fefce8" stroke="#ca8a04" stroke-width="1.5"/>
+          <text x="115" y="20" text-anchor="middle" font-size="11" font-weight="bold" fill="#854d0e">2. Pointer Variable (The Address)</text>
+          
+          <rect x="15" y="32" width="200" height="50" rx="4" fill="#ffffff" stroke="#ca8a04"/>
+          <text x="115" y="52" text-anchor="middle" font-size="10" font-family="monospace" font-weight="bold" fill="#854d0e">int* ptr = &amp;packetId;</text>
+          <text x="115" y="68" text-anchor="middle" font-size="9" fill="#64748b">Stores Address: 0x7ffd50 (8 Bytes)</text>
+
+          <rect x="15" y="92" width="200" height="42" rx="4" fill="#fef9c3"/>
+          <text x="115" y="110" text-anchor="middle" font-size="9" font-weight="bold" fill="#854d0e">Pointer Check (Null Safety)</text>
+          <text x="115" y="124" text-anchor="middle" font-size="8" fill="#a16207">if (ptr != nullptr) { ... }</text>
+        </g>
+
+        <!-- Arrow 2 to 3 -->
+        <path d="M 560 110 L 615 110" stroke="#16a34a" stroke-width="2" marker-end="url(#arrow-green-103)"/>
+        <text x="587" y="102" text-anchor="middle" font-size="8" font-weight="bold" fill="#16a34a">Dereference</text>
+
+        <!-- Step 3: Dereferencing &amp; Mutation -->
+        <g transform="translate(620, 50)">
+          <rect x="0" y="0" width="230" height="150" rx="5" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+          <text x="115" y="20" text-anchor="middle" font-size="11" font-weight="bold" fill="#166534">3. Dereference Operator (*ptr)</text>
+          
+          <rect x="15" y="32" width="200" height="50" rx="4" fill="#ffffff" stroke="#16a34a"/>
+          <text x="115" y="52" text-anchor="middle" font-size="10" font-family="monospace" font-weight="bold" fill="#15803d">*ptr = 99;</text>
+          <text x="115" y="68" text-anchor="middle" font-size="9" fill="#166534">Travels to 0x7ffd50 &amp; overwrites</text>
+
+          <rect x="15" y="92" width="200" height="42" rx="4" fill="#dcfce7"/>
+          <text x="115" y="110" text-anchor="middle" font-size="9" font-weight="bold" fill="#15803d">Result in packetId</text>
+          <text x="115" y="124" text-anchor="middle" font-size="8" fill="#166534">packetId value is now 99!</text>
+        </g>
+
+        <!-- Defs -->
+        <defs>
+          <marker id="arrow-blue-103" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#0284c7"/>
+          </marker>
+          <marker id="arrow-green-103" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#16a34a"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
+
     <h4>What is <code>nullptr</code>?</h4>
     <p>In modern C++, never leave a pointer uninitialized! An uninitialized pointer contains random garbage bits from whatever was previously in RAM. If you try to dereference it (<code>*ptr = 10;</code>), your operating system will detect an unauthorized memory access and instantly terminate your program with a <strong>Segmentation Fault (core dumped)</strong> crash.</p>
     <p>Always initialize unused pointers to <code>nullptr</code> (a universal safe value representing "pointing to nothing"):</p>
@@ -1006,6 +1170,93 @@ if (safePtr != nullptr) {
     <h4>Mode 3: Pass-by-Const-Reference (The Gold Standard)</h4>
     <p>What if you want the high-speed performance of zero-copy references, but you want to guarantee that the function does NOT accidentally modify your packet? You combine <code>const</code> and <code>&amp;</code>: <code>void Inspect(const std::string&amp; data)</code>.</p>
     <p><strong>The Universal ns-3 Engineering Rule:</strong> When passing objects larger than a primitive (such as Packets, Headers, MAC Addresses, or Strings), <strong>ALWAYS pass by <code>const Type&amp;</code></strong> unless the function explicitly needs to modify the object in place!</p>
+
+        <!-- SVG: Figure 10.4 Function Parameter Passing Stack Flow -->
+    <div style="margin: 28px 0; text-align: center;">
+      <svg viewBox="0 0 880 230" width="100%" height="230" xmlns="http://www.w3.org/2000/svg" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <rect x="0" y="0" width="880" height="34" fill="#2c3e50" rx="8" ry="8"/>
+        <text x="440" y="22" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">Figure 10.4: Function Parameter Passing Modes — Stack Frame Allocation &amp; Memory Impact</text>
+
+        <!-- Mode 1: Pass by Value -->
+        <g transform="translate(15, 48)">
+          <rect x="0" y="0" width="265" height="165" rx="5" fill="#fee2e2" stroke="#ef4444" stroke-width="1.5"/>
+          <text x="132" y="18" text-anchor="middle" font-size="10" font-weight="bold" fill="#991b1b">1. Pass-by-Value (Copy)</text>
+          
+          <rect x="12" y="30" width="110" height="45" rx="3" fill="#ffffff" stroke="#ef4444"/>
+          <text x="67" y="48" text-anchor="middle" font-size="8" font-weight="bold" fill="#334155">Caller Stack</text>
+          <text x="67" y="62" text-anchor="middle" font-size="8" fill="#dc2626">1500 Bytes</text>
+
+          <path d="M 125 52 L 140 52" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrow-red-104)"/>
+
+          <rect x="145" y="30" width="110" height="45" rx="3" fill="#ffffff" stroke="#ef4444"/>
+          <text x="200" y="48" text-anchor="middle" font-size="8" font-weight="bold" fill="#334155">Callee Stack</text>
+          <text x="200" y="62" text-anchor="middle" font-size="8" fill="#dc2626">Clone 1500 Bytes</text>
+
+          <rect x="12" y="85" width="241" height="68" rx="3" fill="#ffffff"/>
+          <text x="132" y="103" text-anchor="middle" font-size="8" font-weight="bold" fill="#991b1b">CPU Heavy Memory Duplication</text>
+          <text x="132" y="118" text-anchor="middle" font-size="7" fill="#64748b">• 10,000,000 packets = 15 GB copied</text>
+          <text x="132" y="132" text-anchor="middle" font-size="7" fill="#64748b">• Changes vanish when callee returns</text>
+          <text x="132" y="146" text-anchor="middle" font-size="7" font-weight="bold" fill="#dc2626">Avoid for large objects!</text>
+        </g>
+
+        <!-- Mode 2: Pass by Reference -->
+        <g transform="translate(295, 48)">
+          <rect x="0" y="0" width="280" height="165" rx="5" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+          <text x="140" y="18" text-anchor="middle" font-size="10" font-weight="bold" fill="#166534">2. Pass-by-Reference (&amp;)</text>
+          
+          <rect x="12" y="30" width="115" height="45" rx="3" fill="#ffffff" stroke="#16a34a"/>
+          <text x="69" y="48" text-anchor="middle" font-size="8" font-weight="bold" fill="#334155">Caller Stack</text>
+          <text x="69" y="62" text-anchor="middle" font-size="8" fill="#15803d">Original 1500B</text>
+
+          <path d="M 130 52 L 155 52" stroke="#16a34a" stroke-width="1.5" marker-end="url(#arrow-green-104)"/>
+
+          <rect x="160" y="30" width="110" height="45" rx="3" fill="#ffffff" stroke="#16a34a"/>
+          <text x="215" y="48" text-anchor="middle" font-size="8" font-weight="bold" fill="#334155">Callee Stack</text>
+          <text x="215" y="62" text-anchor="middle" font-size="8" fill="#15803d">8-Byte Pointer</text>
+
+          <rect x="12" y="85" width="256" height="68" rx="3" fill="#ffffff"/>
+          <text x="140" y="103" text-anchor="middle" font-size="8" font-weight="bold" fill="#15803d">Zero Copy: Direct In-Place Mutation</text>
+          <text x="140" y="118" text-anchor="middle" font-size="7" fill="#64748b">• 0 extra packet bytes allocated</text>
+          <text x="140" y="132" text-anchor="middle" font-size="7" fill="#64748b">• Callee directly alters caller's fields</text>
+          <text x="140" y="146" text-anchor="middle" font-size="7" font-weight="bold" fill="#15803d">Use when function must modify object</text>
+        </g>
+
+        <!-- Mode 3: Pass by Const-Reference -->
+        <g transform="translate(590, 48)">
+          <rect x="0" y="0" width="275" height="165" rx="5" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+          <text x="137" y="18" text-anchor="middle" font-size="10" font-weight="bold" fill="#1d4ed8">3. Pass-by-Const-Ref (const &amp;)</text>
+          
+          <rect x="12" y="30" width="115" height="45" rx="3" fill="#ffffff" stroke="#2563eb"/>
+          <text x="69" y="48" text-anchor="middle" font-size="8" font-weight="bold" fill="#334155">Caller Stack</text>
+          <text x="69" y="62" text-anchor="middle" font-size="8" fill="#1e40af">Original 1500B</text>
+
+          <path d="M 130 52 L 155 52" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arrow-blue-104)"/>
+
+          <rect x="160" y="30" width="105" height="45" rx="3" fill="#ffffff" stroke="#2563eb"/>
+          <text x="212" y="48" text-anchor="middle" font-size="8" font-weight="bold" fill="#334155">Callee Stack</text>
+          <text x="212" y="62" text-anchor="middle" font-size="8" fill="#1e40af">8B + Read Lock</text>
+
+          <rect x="12" y="85" width="251" height="68" rx="3" fill="#ffffff"/>
+          <text x="137" y="103" text-anchor="middle" font-size="8" font-weight="bold" fill="#1d4ed8">Peak Speed + Total Read Safety</text>
+          <text x="137" y="118" text-anchor="middle" font-size="7" fill="#64748b">• 0 extra bytes copied in memory</text>
+          <text x="137" y="132" text-anchor="middle" font-size="7" fill="#64748b">• Compiler prevents accidental edits</text>
+          <text x="137" y="146" text-anchor="middle" font-size="7" font-weight="bold" fill="#1d4ed8">The Universal ns-3 Inspection Standard</text>
+        </g>
+
+        <!-- Defs -->
+        <defs>
+          <marker id="arrow-red-104" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444"/>
+          </marker>
+          <marker id="arrow-green-104" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#16a34a"/>
+          </marker>
+          <marker id="arrow-blue-104" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#2563eb"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
 
     <h4>Code Example: Direct Side-by-Side Comparison</h4>
     <pre><code class="language-cpp">#include &lt;iostream&gt;
@@ -1091,6 +1342,79 @@ Inspecting Read-Only: Ethernet Payload [Modified in Original]</code></pre>
       <li><strong>Dangling Pointer:</strong> If you call <code>delete ptr;</code>, the memory is released back to the operating system. If you try to read <code>*ptr</code> afterward, you are reading "dead" memory.</li>
       <li><strong>Double Free:</strong> Calling <code>delete ptr;</code> twice on the exact same address causes an instant fatal abort: <code>double free or corruption (fasttop)</code>.</li>
     </ol>
+
+        <!-- SVG: Figure 10.5 Stack Frame vs. Heap Allocation Lifecycle -->
+    <div style="margin: 28px 0; text-align: center;">
+      <svg viewBox="0 0 880 250" width="100%" height="250" xmlns="http://www.w3.org/2000/svg" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <rect x="0" y="0" width="880" height="34" fill="#2c3e50" rx="8" ry="8"/>
+        <text x="440" y="22" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">Figure 10.5: Hardware Memory Lifecycle — Stack Auto-Cleanup vs. Heap Allocation &amp; Leak Decision Tree</text>
+
+        <!-- Left: Stack Lifecycle -->
+        <g transform="translate(15, 48)">
+          <rect x="0" y="0" width="415" height="185" rx="6" fill="#f0f9ff" stroke="#0284c7" stroke-width="1.5"/>
+          <text x="207" y="18" text-anchor="middle" font-size="11" font-weight="bold" fill="#0369a1">The Stack: Automatic Scope Lifecycle</text>
+
+          <rect x="15" y="32" width="385" height="32" rx="3" fill="#ffffff" stroke="#0284c7"/>
+          <text x="207" y="52" text-anchor="middle" font-size="9" fill="#0369a1">1. Scope Begins: { int packetCount = 10; }</text>
+
+          <path d="M 207 65 L 207 85" stroke="#0284c7" stroke-width="1.5" marker-end="url(#arrow-blue-105)"/>
+
+          <rect x="15" y="86" width="385" height="36" rx="3" fill="#ffffff" stroke="#0284c7"/>
+          <text x="207" y="102" text-anchor="middle" font-size="9" font-weight="bold" fill="#0f172a">Stack Pointer (RSP) decrements automatically</text>
+          <text x="207" y="115" text-anchor="middle" font-size="8" fill="#64748b">Instant allocation (1 CPU cycle)</text>
+
+          <path d="M 207 123 L 207 143" stroke="#0284c7" stroke-width="1.5" marker-end="url(#arrow-blue-105)"/>
+
+          <rect x="15" y="144" width="385" height="32" rx="3" fill="#dcfce7" stroke="#16a34a"/>
+          <text x="207" y="164" text-anchor="middle" font-size="9" font-weight="bold" fill="#15803d">2. Scope Ends: } -&gt; RSP increments, memory freed 100% automatically!</text>
+        </g>
+
+        <!-- Right: Heap Lifecycle -->
+        <g transform="translate(450, 48)">
+          <rect x="0" y="0" width="415" height="185" rx="6" fill="#fefce8" stroke="#ca8a04" stroke-width="1.5"/>
+          <text x="207" y="18" text-anchor="middle" font-size="11" font-weight="bold" fill="#854d0e">The Heap: Dynamic Lifecycle &amp; Leak Decision Tree</text>
+
+          <rect x="15" y="32" width="385" height="32" rx="3" fill="#ffffff" stroke="#ca8a04"/>
+          <text x="207" y="52" text-anchor="middle" font-size="9" font-weight="bold" fill="#854d0e">1. Allocate via: Packet* p = new Packet();</text>
+
+          <path d="M 207 65 L 207 85" stroke="#ca8a04" stroke-width="1.5" marker-end="url(#arrow-amber-105)"/>
+
+          <!-- Decision Diamond -->
+          <polygon points="207,85 275,102 207,119 139,102" fill="#ffffff" stroke="#ca8a04" stroke-width="1.5"/>
+          <text x="207" y="105" text-anchor="middle" font-size="8" font-weight="bold" fill="#854d0e">delete p; called?</text>
+
+          <!-- Branch Yes: Safe -->
+          <path d="M 275 102 L 320 102 L 320 135" stroke="#16a34a" stroke-width="1.5" marker-end="url(#arrow-green-105)"/>
+          <text x="295" y="96" text-anchor="middle" font-size="8" font-weight="bold" fill="#16a34a">YES</text>
+          <rect x="235" y="137" width="165" height="38" rx="3" fill="#dcfce7" stroke="#16a34a"/>
+          <text x="317" y="153" text-anchor="middle" font-size="8" font-weight="bold" fill="#15803d">SAFE: Memory Recycled</text>
+          <text x="317" y="167" text-anchor="middle" font-size="7" fill="#166534">Heap block returned to OS</text>
+
+          <!-- Branch No: Memory Leak -->
+          <path d="M 139 102 L 95 102 L 95 135" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrow-red-105)"/>
+          <text x="120" y="96" text-anchor="middle" font-size="8" font-weight="bold" fill="#ef4444">NO</text>
+          <rect x="15" y="137" width="165" height="38" rx="3" fill="#fee2e2" stroke="#ef4444"/>
+          <text x="97" y="153" text-anchor="middle" font-size="8" font-weight="bold" fill="#991b1b">FATAL: Memory Leak!</text>
+          <text x="97" y="167" text-anchor="middle" font-size="7" fill="#dc2626">Heap block stranded forever</text>
+        </g>
+
+        <!-- Defs -->
+        <defs>
+          <marker id="arrow-blue-105" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#0284c7"/>
+          </marker>
+          <marker id="arrow-amber-105" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#ca8a04"/>
+          </marker>
+          <marker id="arrow-green-105" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#16a34a"/>
+          </marker>
+          <marker id="arrow-red-105" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
 
     <h4>Code Example: Allocating and Safely Deleting Heap Memory</h4>
     <pre><code class="language-cpp">#include &lt;iostream&gt;
@@ -1205,6 +1529,96 @@ class WifiNetDevice : public NetDevice { /* Adds radio frequency, antennas, MCS 
 
     <h4>How Polymorphism Works: The Virtual Table (vtable)</h4>
     <p>When you call <code>dev-&gt;SendPacket()</code> through a base pointer, how does the CPU know which child function to execute? The compiler inserts an invisible pointer into the object called the <strong>vptr</strong>. This pointer points to a read-only table in memory called the <strong>vtable</strong> containing function pointers to the child's actual implementation.</p>
+
+        <!-- SVG: Figure 10.6 Dynamic Polymorphism &amp; Vtable Lookup Flow -->
+    <div style="margin: 28px 0; text-align: center;">
+      <svg viewBox="0 0 880 250" width="100%" height="250" xmlns="http://www.w3.org/2000/svg" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <rect x="0" y="0" width="880" height="34" fill="#2c3e50" rx="8" ry="8"/>
+        <text x="440" y="22" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">Figure 10.6: Polymorphic Dynamic Dispatch — From Base Pointer to Concrete Subclass Method via VTABLE</text>
+
+        <!-- Step 1: Caller Invocation -->
+        <g transform="translate(15, 48)">
+          <rect x="0" y="0" width="175" height="185" rx="5" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+          <text x="87" y="18" text-anchor="middle" font-size="10" font-weight="bold" fill="#334155">1. Base Pointer Invocation</text>
+
+          <rect x="10" y="32" width="155" height="42" rx="3" fill="#ffffff" stroke="#64748b"/>
+          <text x="87" y="50" text-anchor="middle" font-size="8" font-family="monospace" fill="#0f172a">NetDevice* dev = ...;</text>
+          <text x="87" y="64" text-anchor="middle" font-size="8" font-family="monospace" font-weight="bold" fill="#0284c7">dev-&gt;Transmit("Ping");</text>
+
+          <rect x="10" y="86" width="155" height="85" rx="3" fill="#e0f2fe"/>
+          <text x="87" y="104" text-anchor="middle" font-size="8" font-weight="bold" fill="#0369a1">What the Caller Knows:</text>
+          <text x="87" y="122" text-anchor="middle" font-size="7" fill="#334155">• Caller only knows NetDevice</text>
+          <text x="87" y="136" text-anchor="middle" font-size="7" fill="#334155">• Doesn't know if Wi-Fi or CSMA</text>
+          <text x="87" y="152" text-anchor="middle" font-size="7" font-weight="bold" fill="#0369a1">Dynamic Dispatch begins!</text>
+        </g>
+        <path d="M 192 110 L 222 110" stroke="#0284c7" stroke-width="2" marker-end="url(#arrow-blue-106)"/>
+
+        <!-- Step 2: Concrete Heap Object -->
+        <g transform="translate(225, 48)">
+          <rect x="0" y="0" width="200" height="185" rx="5" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+          <text x="100" y="18" text-anchor="middle" font-size="10" font-weight="bold" fill="#1e40af">2. Concrete Object in Heap</text>
+
+          <!-- Hidden vptr -->
+          <rect x="10" y="32" width="180" height="40" rx="3" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+          <text x="100" y="48" text-anchor="middle" font-size="9" font-family="monospace" font-weight="bold" fill="#1d4ed8">__vptr (Hidden Pointer)</text>
+          <text x="100" y="62" text-anchor="middle" font-size="7" fill="#1e40af">Points to WifiDevice Vtable</text>
+
+          <!-- Member fields -->
+          <rect x="10" y="78" width="180" height="95" rx="3" fill="#ffffff" stroke="#bfdbfe"/>
+          <text x="100" y="96" text-anchor="middle" font-size="8" font-weight="bold" fill="#334155">Subclass Member State:</text>
+          <text x="100" y="114" text-anchor="middle" font-size="8" font-family="monospace" fill="#0f172a">m_interfaceName = "wlan0"</text>
+          <text x="100" y="130" text-anchor="middle" font-size="8" font-family="monospace" fill="#0f172a">m_frequencyGhz = 5.8</text>
+          <text x="100" y="146" text-anchor="middle" font-size="8" font-family="monospace" fill="#0f172a">m_standard = 802.11be</text>
+          <text x="100" y="162" text-anchor="middle" font-size="7" fill="#64748b">Actual Type: WifiDevice</text>
+        </g>
+        <path d="M 427 60 L 457 60" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue-106)"/>
+
+        <!-- Step 3: Vtable in Read-Only Memory -->
+        <g transform="translate(460, 48)">
+          <rect x="0" y="0" width="200" height="185" rx="5" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+          <text x="100" y="18" text-anchor="middle" font-size="10" font-weight="bold" fill="#166534">3. WifiDevice VTABLE</text>
+
+          <rect x="10" y="32" width="180" height="38" rx="3" fill="#ffffff" stroke="#16a34a"/>
+          <text x="100" y="48" text-anchor="middle" font-size="8" font-family="monospace" fill="#166534">Slot 0: &amp;WifiDevice::~WifiDevice</text>
+          <text x="100" y="60" text-anchor="middle" font-size="7" fill="#64748b">Virtual Destructor Function Ptr</text>
+
+          <rect x="10" y="76" width="180" height="38" rx="3" fill="#dcfce7" stroke="#15803d" stroke-width="1.5"/>
+          <text x="100" y="92" text-anchor="middle" font-size="8" font-family="monospace" font-weight="bold" fill="#15803d">Slot 1: &amp;WifiDevice::Transmit</text>
+          <text x="100" y="104" text-anchor="middle" font-size="7" fill="#166534">Concrete Transmit Function Ptr</text>
+
+          <rect x="10" y="122" width="180" height="50" rx="3" fill="#ffffff" stroke="#bbf7d0"/>
+          <text x="100" y="140" text-anchor="middle" font-size="8" fill="#334155">Read-Only Memory Segment</text>
+          <text x="100" y="156" text-anchor="middle" font-size="7" fill="#64748b">Created once by compiler per class</text>
+        </g>
+        <path d="M 662 95 L 692 95" stroke="#15803d" stroke-width="2.5" marker-end="url(#arrow-green-106)"/>
+
+        <!-- Step 4: Execution -->
+        <g transform="translate(695, 48)">
+          <rect x="0" y="0" width="170" height="185" rx="5" fill="#fefce8" stroke="#ca8a04" stroke-width="1.5"/>
+          <text x="85" y="18" text-anchor="middle" font-size="10" font-weight="bold" fill="#854d0e">4. Concrete Execution</text>
+
+          <rect x="10" y="32" width="150" height="50" rx="3" fill="#ffffff" stroke="#ca8a04"/>
+          <text x="85" y="50" text-anchor="middle" font-size="8" font-weight="bold" fill="#854d0e">CPU Jumps to:</text>
+          <text x="85" y="66" text-anchor="middle" font-size="8" font-family="monospace" fill="#0f172a">WifiDevice::Transmit()</text>
+
+          <rect x="10" y="90" width="150" height="80" rx="3" fill="#fef9c3"/>
+          <text x="85" y="108" text-anchor="middle" font-size="8" font-weight="bold" fill="#854d0e">Frame Transmitted!</text>
+          <text x="85" y="124" text-anchor="middle" font-size="7" fill="#713f12">• Emits 5.8 GHz RF signal</text>
+          <text x="85" y="138" text-anchor="middle" font-size="7" fill="#713f12">• Encodes 802.11 preamble</text>
+          <text x="85" y="154" text-anchor="middle" font-size="7" font-weight="bold" fill="#15803d">Zero knowledge required by caller!</text>
+        </g>
+
+        <!-- Defs -->
+        <defs>
+          <marker id="arrow-blue-106" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#0284c7"/>
+          </marker>
+          <marker id="arrow-green-106" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#15803d"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
 
     <h4>Code Example: Polymorphic Network Devices in Action</h4>
     <pre><code class="language-cpp">#include &lt;iostream&gt;
