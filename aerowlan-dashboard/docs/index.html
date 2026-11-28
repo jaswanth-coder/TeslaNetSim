@@ -455,6 +455,7 @@ function collapseAll() {
 <ul class="sectlevel2">
 <li><a href="#_intro_what_is">What is ns-3, Core Philosophy & Official Portals</a></li>
 <li><a href="#_intro_install">Installing Latest ns-3.45 on Linux (Prerequisites & Build)</a></li>
+<li><a href="#_intro_ns3_concepts">Conceptual Foundations: State, Events, Nodes & The Linux Model</a></li>
 <li><a href="#_intro_examples">Anatomy of the examples/ Directory & Running first.cc</a></li>
 <li><a href="#_intro_scratch">The Developer's Workflow: Creating & Running Scripts in scratch/</a></li>
 </ul>
@@ -2571,8 +2572,277 @@ cd ns-allinone-3.45/ns-3.45/</code></pre>
 
     <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 24px 0;">
 
-    <!-- SUBSECTION 3: EXAMPLES FOLDER & RUNNING FIRST.CC -->
-    <h3 id="_intro_examples">3. Anatomy of the <code>examples/</code> Directory & Running <code>first.cc</code></h3>
+    <!-- SUBSECTION 3: SIMON KASSING CONCEPTUAL FOUNDATIONS -->
+    <h3 id="_intro_ns3_concepts">3. Conceptual Foundations: State, Events, Nodes &amp; The Linux Model (The Simon Kassing Guide)</h3>
+    
+    <div class="admonitionblock note" style="margin-bottom: 20px;">
+      <table><tr>
+        <td class="icon"><div class="title" style="color: #186d7a; font-weight: bold;">Essential Reference: Simon Kassing's ns-3 Architecture Guide</div></td>
+        <td class="content">
+          <strong>Source:</strong> <em>ns-3 Basics: State, Events, Nodes &amp; Traffic Control</em>, Simon Kassing.<br>
+          <strong>Repository:</strong> <a href="https://github.com/snkas/ns3-basic-sim-intro/blob/master/chapters/4_ns3_basics.md" target="_blank" rel="noopener noreferrer">https://github.com/snkas/ns3-basic-sim-intro/blob/master/chapters/4_ns3_basics.md</a><br>
+          <em>Before diving into the code of <code>first.cc</code>, it is vital to understand <strong>how</strong> ns-3 actually models physical networks. While ns-3 is written in millions of lines of high-performance C++, its fundamental engine is surprisingly simple and elegant.</em>
+        </td>
+      </tr></table>
+    </div>
+
+    <h4>3.1 The 9 Lines of Pseudo-Code That Power All of ns-3</h4>
+    <p>
+      Beginners often assume that a network simulator calculates physics continuously like a video game (e.g. running 60 frames per second). But in computer networks, wireless radio signals and packets move at the speed of light—a packet takes mere microseconds to traverse a link. If a simulator calculated every microsecond sequentially, a 10-second simulation would take hours to run!
+    </p>
+    <p>
+      Instead, ns-3 is a <strong>Discrete-Event Simulator (DES)</strong>. Nothing happens in the simulator unless an <em>Event</em> occurs (such as a packet arriving, a timer expiring, or a Wi-Fi backoff ending). The simulator maintains an <strong>Event Queue</strong> ordered by time and simply jumps from event to event, skipping empty time periods instantly!
+    </p>
+
+    <div style="background: rgba(15, 23, 42, 0.95); border-radius: 6px; padding: 16px; margin: 16px 0; border: 1px solid #334155;">
+      <div style="font-size: 11px; color: #38bdf8; font-weight: bold; margin-bottom: 8px;">THE DISCRETE-EVENT ENGINE PSEUDO-CODE (Simon Kassing Model):</div>
+      <pre style="margin: 0; background: transparent; padding: 0;"><code style="color: #f8fafc; font-family: monospace; font-size: 12px; line-height: 1.5;">initial state S;
+event_queue Q; // Priority queue of events ordered by timestamp T
+
+insert_first_events(Q);
+current_simulation_time = 0;
+
+while (Q.not_empty()) {
+    next_event = Q.pop();               // Grab the event with the lowest timestamp T
+    current_simulation_time = next_event.T; // Simulation time hops instantly forward!
+    next_event.execute();               // Executes C++ callback, modifies state, schedules future events into Q
+}</code></pre>
+    </div>
+
+    <p>
+      Whenever you call <code>Simulator::Schedule (Seconds (2.0), &amp;MyFunction)</code> in ns-3, you are literally inserting an event into <code>Q</code>. When you call <code>Simulator::Run ()</code>, the engine simply executes that exact <code>while</code> loop!
+    </p>
+
+    <h4>3.2 The Three Notions of Time</h4>
+    <p>Understanding time in ns-3 requires separating three distinct realities:</p>
+    <ul>
+      <li><strong>1. Physical Time:</strong> Time in the real physical universe (e.g., the speed of electromagnetic waves propagating through air at 3.0 &times; 10<sup>8</sup> m/s).</li>
+      <li><strong>2. Simulation Time:</strong> The virtual clock maintained by the simulator (<code>current_simulation_time</code>). When no events are scheduled between <i>t</i> = 2.0s and <i>t</i> = 5.0s, simulation time jumps across those 3 seconds in zero microseconds!</li>
+      <li><strong>3. Wall-clock Time:</strong> The real-world time measured by the watch on your wrist while your laptop's CPU runs the C++ binary. A 10-second wireless simulation might finish in 0.8 seconds of wall-clock time (faster than real time), or take 5 minutes if there are millions of packet collisions!</li>
+    </ul>
+
+    <h4>3.3 What Are We Actually Simulating? The Linux Networking Model</h4>
+    <p>
+      In physical networks, we connect endpoints (servers, laptops, smartphones) through switches and routers. In ns-3, all of these physical machines are abstracted into one single entity: a <strong>Node</strong>.
+    </p>
+    <ul>
+      <li>An <strong>Endpoint</strong> is simply a <code>Node</code> with 1 or 2 network interfaces (e.g. Wi-Fi and Ethernet).</li>
+      <li>A <strong>Switch or Router</strong> is simply a <code>Node</code> with many network interfaces (e.g. 24 or 48 ports) configured to forward packets between them.</li>
+    </ul>
+    <p>
+      Crucially, ns-3's internal networking stack is modeled directly after the <strong>Linux operating system kernel</strong> (specifically how Linux handles sockets, routing tables, queuing disciplines, and network interface drivers).
+    </p>
+
+    <!-- ARCHITECTURAL SVG DIAGRAM -->
+    <div style="margin: 28px 0; text-align: center;">
+<svg viewBox="0 0 880 340" width="100%" height="340" xmlns="http://www.w3.org/2000/svg" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <!-- Header Banner -->
+  <rect x="0" y="0" width="880" height="34" fill="#2c3e50" rx="8" ry="8"/>
+  <text x="440" y="22" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">Figure 2.1: The ns-3 Node Architecture &amp; Linux-Aligned Network Stack (Simon Kassing Model)</text>
+
+  <!-- Outer Node Container -->
+  <g transform="translate(15, 45)">
+    <rect x="0" y="0" width="850" height="280" rx="8" fill="#f8fafc" stroke="#3b82f6" stroke-width="2" stroke-dasharray="6,4"/>
+    <rect x="15" y="-12" width="220" height="24" rx="4" fill="#2563eb"/>
+    <text x="125" y="4" text-anchor="middle" font-size="10" font-weight="bold" fill="#ffffff">ns-3 Node (Core State Container)</text>
+
+    <!-- Column 1: Application Layer -->
+    <g transform="translate(25, 25)">
+      <rect x="0" y="0" width="230" height="60" rx="5" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+      <text x="115" y="20" text-anchor="middle" font-size="10" font-weight="bold" fill="#15803d">1. Application Layer</text>
+      <text x="115" y="36" text-anchor="middle" font-size="8" font-family="monospace" fill="#0f172a">PacketSink / UdpEchoClient</text>
+      <text x="115" y="50" text-anchor="middle" font-size="8" fill="#64748b">Generates Packets (Lazy Payload)</text>
+    </g>
+
+    <!-- Down Arrow 1 -->
+    <path d="M 140 85 L 140 105" stroke="#16a34a" stroke-width="2" marker-end="url(#arrow-green-node)"/>
+
+    <!-- Column 2: Layer 4 Transport -->
+    <g transform="translate(25, 105)">
+      <rect x="0" y="0" width="230" height="60" rx="5" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+      <text x="115" y="20" text-anchor="middle" font-size="10" font-weight="bold" fill="#1e40af">2. Layer 4 Transport Protocols</text>
+      <text x="115" y="36" text-anchor="middle" font-size="8" font-family="monospace" fill="#0f172a">TcpL4Protocol / UdpL4Protocol</text>
+      <text x="115" y="50" text-anchor="middle" font-size="8" fill="#64748b">Socket API &amp; End-to-End State</text>
+    </g>
+
+    <!-- Down Arrow 2 -->
+    <path d="M 140 165 L 140 185" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue-node)"/>
+
+    <!-- Column 3: Layer 3 Internet Routing -->
+    <g transform="translate(25, 185)">
+      <rect x="0" y="0" width="230" height="70" rx="5" fill="#fefce8" stroke="#ca8a04" stroke-width="1.5"/>
+      <text x="115" y="18" text-anchor="middle" font-size="10" font-weight="bold" fill="#854d0e">3. Layer 3 Internet Protocol</text>
+      <text x="115" y="34" text-anchor="middle" font-size="8" font-family="monospace" fill="#0f172a">Ipv4L3Protocol / ArpL3Protocol</text>
+      <text x="115" y="48" text-anchor="middle" font-size="8" fill="#64748b">Routing decisions: Forward or Deliver</text>
+      <text x="115" y="60" text-anchor="middle" font-size="8" fill="#854d0e">Determines outgoing interface</text>
+    </g>
+
+    <!-- Horizontal Arrow from L3 to Traffic Control -->
+    <path d="M 255 220 L 305 220 L 305 60 L 335 60" fill="none" stroke="#ca8a04" stroke-width="2" marker-end="url(#arrow-amber-node)"/>
+
+    <!-- Middle: Traffic Control Layer & Dual-Queue -->
+    <g transform="translate(340, 20)">
+      <rect x="0" y="0" width="280" height="235" rx="6" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+      <rect x="0" y="0" width="280" height="26" rx="6" fill="#ffedd5"/>
+      <text x="140" y="18" text-anchor="middle" font-size="10" font-weight="bold" fill="#c2410c">4. TrafficControlLayer (Dual-Queue Model)</text>
+
+      <!-- Qdisc Box -->
+      <rect x="15" y="36" width="250" height="85" rx="4" fill="#ffffff" stroke="#ea580c" stroke-width="1.5"/>
+      <text x="140" y="54" text-anchor="middle" font-size="9" font-weight="bold" fill="#c2410c">Queueing Discipline (Qdisc)</text>
+      <text x="140" y="68" text-anchor="middle" font-size="8" font-family="monospace" fill="#0f172a">FqCoDel / PFifoFast / RedQueueDisc</text>
+      
+      <rect x="25" y="78" width="230" height="34" rx="3" fill="#fee2e2" stroke="#ef4444"/>
+      <text x="140" y="93" text-anchor="middle" font-size="8" font-weight="bold" fill="#991b1b">⚠️ THE GOLDEN RULE OF DROPS:</text>
+      <text x="140" y="105" text-anchor="middle" font-size="7" fill="#7f1d1d">100% of egress buffer drops occur HERE in Qdisc!</text>
+
+      <!-- Handoff Arrow -->
+      <path d="M 140 121 L 140 145" stroke="#ea580c" stroke-width="2" marker-end="url(#arrow-orange-node)"/>
+      <text x="140" y="136" text-anchor="middle" font-size="7" font-weight="bold" fill="#ea580c">Pushes ONLY if NetDevice has room</text>
+
+      <!-- NetDevice Hardware Queue Box -->
+      <rect x="15" y="145" width="250" height="75" rx="4" fill="#ffffff" stroke="#0284c7" stroke-width="1.5"/>
+      <text x="140" y="163" text-anchor="middle" font-size="9" font-weight="bold" fill="#0369a1">5. NetDevice Internal Hardware Queue</text>
+      <text x="140" y="177" text-anchor="middle" font-size="8" font-family="monospace" fill="#0f172a">PointToPointNetDevice::TxQueue</text>
+      <rect x="25" y="185" width="230" height="26" rx="3" fill="#dcfce7" stroke="#16a34a"/>
+      <text x="140" y="201" text-anchor="middle" font-size="7" font-weight="bold" fill="#15803d">✓ Never drops packets (TrafficControl protects it)</text>
+    </g>
+
+    <!-- Arrow from NetDevice to Channel -->
+    <path d="M 620 185 L 670 185" stroke="#0284c7" stroke-width="2.5" marker-end="url(#arrow-blue-node)"/>
+
+    <!-- Right: NetDevice & Channel -->
+    <g transform="translate(675, 50)">
+      <rect x="0" y="0" width="160" height="95" rx="5" fill="#f0f9ff" stroke="#0284c7" stroke-width="1.5"/>
+      <text x="80" y="20" text-anchor="middle" font-size="10" font-weight="bold" fill="#0369a1">NetDevice (NIC)</text>
+      <text x="80" y="38" text-anchor="middle" font-size="8" fill="#334155">Driver &amp; MAC Layer</text>
+      <text x="80" y="54" text-anchor="middle" font-size="8" font-family="monospace" fill="#0284c7">wlan0 / eth0</text>
+      <text x="80" y="75" text-anchor="middle" font-size="8" fill="#64748b">Attaches to Channel</text>
+    </g>
+
+    <path d="M 755 145 L 755 175" stroke="#16a34a" stroke-width="2.5" marker-end="url(#arrow-green-node)"/>
+
+    <g transform="translate(675, 175)">
+      <rect x="0" y="0" width="160" height="75" rx="5" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+      <text x="80" y="22" text-anchor="middle" font-size="10" font-weight="bold" fill="#15803d">6. Channel Medium</text>
+      <text x="80" y="38" text-anchor="middle" font-size="8" font-family="monospace" fill="#0f172a">PointToPointChannel</text>
+      <text x="80" y="52" text-anchor="middle" font-size="8" font-family="monospace" fill="#0f172a">YansWifiChannel</text>
+      <text x="80" y="66" text-anchor="middle" font-size="7" font-weight="bold" fill="#166534">Transmits to Peer Node</text>
+    </g>
+  </g>
+
+  <!-- Defs -->
+  <defs>
+    <marker id="arrow-green-node" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#16a34a"/>
+    </marker>
+    <marker id="arrow-blue-node" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#0284c7"/>
+    </marker>
+    <marker id="arrow-amber-node" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#ca8a04"/>
+    </marker>
+    <marker id="arrow-orange-node" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#ea580c"/>
+    </marker>
+  </defs>
+</svg>
+      <div style="font-size: 11px; color: #64748b; margin-top: 6px;">Figure 2.1: The ns-3 Node internal architecture showing the complete packet path from Application to Channel via the Linux-aligned Dual-Queue model.</div>
+    </div>
+
+    <h4>3.4 The Node as a Central State Container</h4>
+    <p>
+      In ns-3, a <code>Node</code> is a graph vertex without any hardcoded edges. A <code>Node</code> is an aggregator that holds three things:
+    </p>
+    <ol>
+      <li><strong>A List of <code>Application</code>s:</strong> Programs running on the host that produce or consume packets out of thin air (e.g. <code>UdpEchoClient</code>, <code>PacketSink</code>, <code>OnOffApplication</code>).</li>
+      <li><strong>A List of Protocol Handlers:</strong> When a packet arrives from a network card or an application, the node asks: <em>"What protocol header is on this packet?"</em> If it says "IP", it delegates to <code>Ipv4L3Protocol</code>. If the IP header says "TCP", it forwards to <code>TcpL4Protocol</code>.</li>
+      <li><strong>A List of <code>NetDevice</code>s:</strong> The virtual Network Interface Cards (NICs) installed on the machine (e.g. <code>PointToPointNetDevice</code>, <code>WifiNetDevice</code>, <code>CsmaNetDevice</code>).</li>
+    </ol>
+
+    <h4>3.5 The Dual-Queue Architecture: TrafficControlLayer vs. NetDevice</h4>
+    <div style="background: rgba(234, 88, 12, 0.06); border-left: 4px solid #ea580c; padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 16px 0; font-size: 14px; color: #431407; line-height: 1.6;">
+      <strong>⚠️ The Most Important Architectural Rule in ns-3:</strong><br>
+      In modern ns-3, there are <strong>TWO distinct queues</strong> before a packet is transmitted onto a link or over the air:
+      <ol style="margin-top: 6px; margin-bottom: 6px;">
+        <li><strong>The Queueing Discipline (Qdisc)</strong> inside the <code>TrafficControlLayer</code> (e.g. <code>FqCoDel</code>, <code>PFifoFast</code>, <code>RedQueueDisc</code>).</li>
+        <li>The <code>NetDevice</code>'s own internal hardware transmission queue (<code>TxQueue</code>).</li>
+      </ol>
+      <strong>Why two queues?</strong> Because this exactly mirrors the Linux kernel! The <code>TrafficControlLayer</code> checks if the hardware <code>NetDevice</code> queue has space before pushing a packet down. If there is no space, the packet waits in the Qdisc. Therefore:
+      <br>
+      <strong>100% of buffer overflow packet drops occur in the <code>TrafficControlLayer</code> Qdisc. In standard configurations, the NetDevice hardware queue NEVER drops packets!</strong>
+    </div>
+
+    <h4>3.6 Lazy Packet Payloads: Why ns-3 Scales to Billions of Packets</h4>
+    <p>
+      In a real network, a 1500-byte packet contains 1500 actual raw bytes in RAM. In a simulation running 100,000,000 packets, storing all those raw bytes would consume hundreds of Gigabytes of RAM and crash your computer!
+    </p>
+    <p>
+      ns-3 solves this with <strong>Lazy Memory Allocation</strong>: a <code>Packet</code> stores its size as an integer number (e.g. <code>1500</code>). As long as your simulation only cares about transmission delay, bandwidth, and queue drops, zero byte buffers are allocated in RAM! The transmission time is calculated purely via:
+    </p>
+    <div style="text-align: center; margin: 12px 0; font-family: monospace; font-size: 14px; color: #1e293b; background: #f1f5f9; padding: 8px; border-radius: 4px;">
+      Transmission Delay = (Header Bytes + Payload Size) / Channel Data Rate
+    </div>
+    <p>
+      Only if an application explicitly writes data (e.g. cryptographic payloads) does ns-3 allocate real byte buffers. This genius optimization allows ns-3 to simulate massive enterprise networks on a standard laptop.
+    </p>
+
+    <h4>3.7 The Universal 7-Step Simulation Blueprint</h4>
+    <p>
+      Before you look at <code>first.cc</code> in the next section, memorize this universal 7-step recipe. <strong>Every single ns-3 script ever written follows these exact 7 steps:</strong>
+    </p>
+    <div style="overflow-x: auto; margin: 16px 0;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+        <thead>
+          <tr style="background: #f1f5f9; border-bottom: 2px solid #cbd5e1;">
+            <th style="padding: 8px 12px; width: 80px;">Step</th>
+            <th style="padding: 8px 12px; width: 220px;">ns-3 Helper Class</th>
+            <th style="padding: 8px 12px;">What It Physically Does</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 8px 12px; font-weight: bold; color: #0284c7;">Step 1</td>
+            <td style="padding: 8px 12px; font-family: monospace;">NodeContainer</td>
+            <td style="padding: 8px 12px;">Purchases the computers/chips: creates blank <code>Node</code> instances in RAM.</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+            <td style="padding: 8px 12px; font-weight: bold; color: #0284c7;">Step 2</td>
+            <td style="padding: 8px 12px; font-family: monospace;">PointToPointHelper / WifiHelper</td>
+            <td style="padding: 8px 12px;">Installs Network Cards (<code>NetDevice</code>s) on nodes and plugs in the physical <code>Channel</code> cable/spectrum.</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 8px 12px; font-weight: bold; color: #0284c7;">Step 3</td>
+            <td style="padding: 8px 12px; font-family: monospace;">InternetStackHelper</td>
+            <td style="padding: 8px 12px;">Installs the OS network stack: attaches IPv4/IPv6, ARP, TCP, UDP, and the Traffic Control Layer.</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+            <td style="padding: 8px 12px; font-weight: bold; color: #0284c7;">Step 4</td>
+            <td style="padding: 8px 12px; font-family: monospace;">Ipv4AddressHelper</td>
+            <td style="padding: 8px 12px;">Assigns IP addresses and subnet masks to the <code>NetDevice</code> interfaces (e.g. <code>10.1.1.1</code>).</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 8px 12px; font-weight: bold; color: #0284c7;">Step 5</td>
+            <td style="padding: 8px 12px; font-family: monospace;">ApplicationHelper</td>
+            <td style="padding: 8px 12px;">Installs software applications (e.g. Echo Clients/Servers, OnOff traffic generators) on nodes.</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+            <td style="padding: 8px 12px; font-weight: bold; color: #0284c7;">Step 6</td>
+            <td style="padding: 8px 12px; font-family: monospace;">EnablePcapAll() / AsciiTrace</td>
+            <td style="padding: 8px 12px;">Configures monitoring probes, PCAP packet capture for Wireshark, and animation files.</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 12px; font-weight: bold; color: #16a34a;">Step 7</td>
+            <td style="padding: 8px 12px; font-family: monospace;">Simulator::Run()</td>
+            <td style="padding: 8px 12px;">Starts the discrete-event loop! Pops events from <code>Q</code> until complete, then cleans up with <code>Simulator::Destroy()</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 28px 0;">
+
+        <!-- SUBSECTION 3: EXAMPLES FOLDER & RUNNING FIRST.CC -->
+    <h3 id="_intro_examples">4. Anatomy of the <code>examples/</code> Directory & Running <code>first.cc</code></h3>
     <p>
       When ns-3 is compiled, thousands of pre-written example scripts are ready to inspect and run inside the <code>examples/</code> and <code>src/&lt;module&gt;/examples/</code> folders:
     </p>
@@ -2610,7 +2880,7 @@ NS_LOG="UdpEchoClientApplication=level_info:UdpEchoServerApplication=level_info"
     <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 24px 0;">
 
     <!-- SUBSECTION 4: SCRATCH WORKFLOW -->
-    <h3 id="_intro_scratch">4. The Developer's Workflow: Creating & Running Scripts in <code>scratch/</code></h3>
+    <h3 id="_intro_scratch">5. The Developer's Workflow: Creating & Running Scripts in <code>scratch/</code></h3>
     <p>
       Never edit the files inside <code>examples/</code> directly—they are reference templates. Instead, ns-3 provides a dedicated folder called <strong><code>scratch/</code></strong>:
     </p>
