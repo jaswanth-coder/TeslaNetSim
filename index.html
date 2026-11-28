@@ -446,6 +446,7 @@ function collapseAll() {
 <ul class="sectlevel1">
 <li><a href="#_cpp_foundations"><strong>Optional Foundations: C++ Systems Foundations for ns-3</strong></a>
 <ul class="sectlevel2">
+<li><a href="#_cpp_mod0_scratch_recap">Optional: C++ from Scratch: Syntax, Memory & OOP Systems Recap</a></li>
 <li><a href="#_cpp_mod1_smart_pointers">Optional: Memory Management & Ptr&lt;T&gt; Internals</a></li>
 <li><a href="#_cpp_mod2_callbacks">Optional: Callbacks, Events & Object Aggregation</a></li>
 </ul>
@@ -528,6 +529,667 @@ function collapseAll() {
   <div style="background: rgba(99, 102, 241, 0.05); border-left: 4px solid #6366f1; padding: 14px 18px; border-radius: 0 8px 8px 0; margin-bottom: 24px; font-size: 14px; color: #334155; line-height: 1.6;">
     <strong>💡 Optional Prerequisites:</strong> These foundational modules cover internal memory management (<code>Ptr&lt;T&gt;</code>, intrusive reference counting), Callbacks, and Object Aggregation in ns-3. If you already have strong C++ experience or prefer diving directly into network simulations first, you can skip straight to <strong>Part I</strong> below and return here whenever you need deep C++ reference.
   </div>
+
+<!-- MODULE 0: C++ FROM SCRATCH RECAP -->
+<details class="module-card" open id="_cpp_mod0_scratch_recap">
+  <summary class="module-summary">
+    <div><span class="module-badge" style="background: #475569;">Optional</span> C++ from Scratch: Syntax, Memory & OOP Systems Recap</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
+  </summary>
+  <div class="module-body">
+    <div class="admonitionblock note" style="margin-bottom: 20px;">
+      <table><tr>
+        <td class="icon"><div class="title" style="color: #186d7a; font-weight: bold;">Why C++ for Network Simulators?</div></td>
+        <td class="content">
+          Network simulators like ns-3 must simulate millions of wireless packets, microsecond PHY timings, and multi-node queues without unexpected latency spikes. Unlike interpreted or garbage-collected languages (such as Python or Java) which introduce runtime memory sweeps and high per-object overhead, C++ provides:
+          <ul style="margin-top: 6px; margin-bottom: 0;">
+            <li><strong>Zero-Cost Abstractions:</strong> You only pay in CPU cycles and memory for what you actually use.</li>
+            <li><strong>Deterministic Resource Management:</strong> Memory and hardware sockets are freed the exact nanosecond they go out of scope (RAII).</li>
+            <li><strong>Bit-Level Serialization:</strong> Exact memory alignment for raw Ethernet, Wi-Fi 802.11, and IP byte streams.</li>
+          </ul>
+          This recap covers all C++ core concepts from the ground up, with dedicated code examples for every tricky concept.
+        </td>
+      </tr></table>
+    </div>
+
+    <h3>10.1 Anatomy of a C++ Program & The 4-Stage Compilation Pipeline</h3>
+    <p>Every C++ executable begins at the runtime entry point function: <code>main()</code>. The preprocessor handles directives starting with <code>#</code>, and code is organized inside namespaces to prevent name collisions:</p>
+
+    <pre><code class="language-cpp">#include &lt;iostream&gt;  // Preprocessor: Injects standard I/O declarations
+#include &lt;cstdint&gt;   // Fixed-width integer types (uint32_t, etc.)
+
+// Using explicit standard namespaces avoids namespace pollution
+namespace SimulationConfig {
+    constexpr double DEFAULT_PROPAGATION_SPEED = 3.0e8; // Speed of light in m/s
+}
+
+int main(int argc, char* argv[]) {
+    // std::cout: Standard character output stream
+    // std::endl: Writes newline character AND flushes stdout buffer
+    std::cout &lt;&lt; "ns-3 Engine Bootstrapped. Speed: " 
+              &lt;&lt; SimulationConfig::DEFAULT_PROPAGATION_SPEED 
+              &lt;&lt; " m/s" &lt;&lt; std::endl;
+    
+    return 0; // Return code 0 indicates clean exit to the OS
+}</code></pre>
+
+    <!-- SVG Compilation Pipeline -->
+    <div style="margin: 28px 0; text-align: center;">
+      <svg viewBox="0 0 820 180" width="100%" height="180" xmlns="http://www.w3.org/2000/svg" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <rect x="0" y="0" width="820" height="34" fill="#2c3e50" rx="8" ry="8"/>
+        <text x="410" y="22" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">The 4-Stage C++ Build Toolchain (Source Code to ELF Binary)</text>
+        
+        <!-- Stage 1 -->
+        <g transform="translate(15, 48)">
+          <rect x="0" y="0" width="170" height="110" rx="5" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
+          <rect x="0" y="0" width="170" height="24" rx="5" fill="#e2e8f0"/>
+          <text x="85" y="16" text-anchor="middle" font-size="10" font-weight="bold" fill="#334155">1. Preprocessing (cpp)</text>
+          <text x="85" y="44" text-anchor="middle" font-size="9" fill="#64748b">Expands <code>#include</code></text>
+          <text x="85" y="60" text-anchor="middle" font-size="9" fill="#64748b">Replaces <code>#define</code> macros</text>
+          <text x="85" y="76" text-anchor="middle" font-size="9" fill="#64748b">Strips comments</text>
+          <text x="85" y="96" text-anchor="middle" font-size="9" font-weight="bold" fill="#0369a1">Output: Translation Unit (.i)</text>
+        </g>
+        <path d="M 190 103 L 210 103" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-pipeline)"/>
+
+        <!-- Stage 2 -->
+        <g transform="translate(215, 48)">
+          <rect x="0" y="0" width="175" height="110" rx="5" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
+          <rect x="0" y="0" width="175" height="24" rx="5" fill="#e2e8f0"/>
+          <text x="87" y="16" text-anchor="middle" font-size="10" font-weight="bold" fill="#334155">2. Compilation (g++ / clang++)</text>
+          <text x="87" y="44" text-anchor="middle" font-size="9" fill="#64748b">Syntax & semantic checks</text>
+          <text x="87" y="60" text-anchor="middle" font-size="9" fill="#64748b">AST & Optimization (-O2/-O3)</text>
+          <text x="87" y="76" text-anchor="middle" font-size="9" fill="#64748b">Generates assembly</text>
+          <text x="87" y="96" text-anchor="middle" font-size="9" font-weight="bold" fill="#0369a1">Output: Assembly (.s)</text>
+        </g>
+        <path d="M 395 103 L 415 103" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-pipeline)"/>
+
+        <!-- Stage 3 -->
+        <g transform="translate(420, 48)">
+          <rect x="0" y="0" width="175" height="110" rx="5" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
+          <rect x="0" y="0" width="175" height="24" rx="5" fill="#e2e8f0"/>
+          <text x="87" y="16" text-anchor="middle" font-size="10" font-weight="bold" fill="#334155">3. Assembler (as)</text>
+          <text x="87" y="44" text-anchor="middle" font-size="9" fill="#64748b">Translates instructions</text>
+          <text x="87" y="60" text-anchor="middle" font-size="9" fill="#64748b">to machine code opcodes</text>
+          <text x="87" y="76" text-anchor="middle" font-size="9" fill="#64748b">Creates relocation tables</text>
+          <text x="87" y="96" text-anchor="middle" font-size="9" font-weight="bold" fill="#0369a1">Output: Object File (.o)</text>
+        </g>
+        <path d="M 600 103 L 620 103" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-pipeline)"/>
+
+        <!-- Stage 4 -->
+        <g transform="translate(625, 48)">
+          <rect x="0" y="0" width="180" height="110" rx="5" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+          <rect x="0" y="0" width="180" height="24" rx="5" fill="#dbeafe"/>
+          <text x="90" y="16" text-anchor="middle" font-size="10" font-weight="bold" fill="#1e40af">4. Linker (ld / mold)</text>
+          <text x="90" y="44" text-anchor="middle" font-size="9" fill="#1e3a8a">Resolves external symbols</text>
+          <text x="90" y="60" text-anchor="middle" font-size="9" fill="#1e3a8a">Binds libns3-core, libstdc++</text>
+          <text x="90" y="76" text-anchor="middle" font-size="9" fill="#1e3a8a">Layouts virtual memory</text>
+          <text x="90" y="96" text-anchor="middle" font-size="9" font-weight="bold" fill="#166534">Output: Executable Binary</text>
+        </g>
+
+        <defs>
+          <marker id="arrow-pipeline" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#64748b"/>
+          </marker>
+        </defs>
+      </svg>
+      <div style="font-size: 11px; color: #64748b; margin-top: 6px;">Figure 10.1: Four stages of the modern C++ toolchain from plain text to runnable machine code.</div>
+    </div>
+
+    <p>To compile and run manually via the terminal:</p>
+    <pre><code class="language-bash"># Standard C++17 compilation with recommended safety warnings and O2 optimization
+g++ -std=c++17 -Wall -Wextra -O2 main.cc -o main_executable
+./main_executable</code></pre>
+
+    <h3>10.2 Primitive Data Types, Fixed-Width Integers & Console I/O</h3>
+    <p>C++ is statically typed. In systems and network programming, standard types like <code>int</code> or <code>long</code> have ambiguous bit widths across different CPU architectures (e.g., 32-bit vs. 64-bit systems). Therefore, network engines strictly rely on fixed-width types from <code>&lt;cstdint&gt;</code>:</p>
+
+    <div style="overflow-x: auto; margin: 16px 0;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+        <thead>
+          <tr style="background: #f1f5f9; border-bottom: 2px solid #cbd5e1;">
+            <th style="padding: 8px 12px;">Type</th>
+            <th style="padding: 8px 12px;">Size (Bytes)</th>
+            <th style="padding: 8px 12px;">Value Range</th>
+            <th style="padding: 8px 12px;">Networking Application</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 8px 12px;"><code>uint8_t</code></td>
+            <td style="padding: 8px 12px;">1 (8 bits)</td>
+            <td style="padding: 8px 12px;">0 to 255</td>
+            <td style="padding: 8px 12px;">IP Time-To-Live (TTL), DSCP QoS bits, 802.11 Flags</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+            <td style="padding: 8px 12px;"><code>uint16_t</code></td>
+            <td style="padding: 8px 12px;">2 (16 bits)</td>
+            <td style="padding: 8px 12px;">0 to 65,535</td>
+            <td style="padding: 8px 12px;">TCP/UDP Port numbers, 802.11 Duration/ID, Packet Length</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 8px 12px;"><code>uint32_t</code></td>
+            <td style="padding: 8px 12px;">4 (32 bits)</td>
+            <td style="padding: 8px 12px;">0 to 4,294,967,295</td>
+            <td style="padding: 8px 12px;">IPv4 Address (32 bits), TCP Sequence Numbers, Node IDs</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+            <td style="padding: 8px 12px;"><code>uint64_t</code></td>
+            <td style="padding: 8px 12px;">8 (64 bits)</td>
+            <td style="padding: 8px 12px;">0 to ~1.84 &times; 10<sup>19</sup></td>
+            <td style="padding: 8px 12px;">Simulation nanosecond timestamps, total cumulative byte counts</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 8px 12px;"><code>double</code></td>
+            <td style="padding: 8px 12px;">8 (64 bits IEEE 754)</td>
+            <td style="padding: 8px 12px;">&plusmn;1.7 &times; 10<sup>308</sup></td>
+            <td style="padding: 8px 12px;">Signal-to-Noise Ratio (SNR), path loss in dBm, node (x,y,z) coordinates</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 12px;"><code>bool</code></td>
+            <td style="padding: 8px 12px;">1 (1 byte addressable)</td>
+            <td style="padding: 8px 12px;"><code>true</code> or <code>false</code></td>
+            <td style="padding: 8px 12px;">Carrier sense channel busy state, ACK received status</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>Code Example: Working with Types & Formatted Output</h4>
+    <pre><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;cstdint&gt;
+#include &lt;iomanip&gt;
+
+int main() {
+    uint8_t  ttl = 64;
+    uint16_t port = 8080;
+    uint32_t rawIpv4 = 0xC0A80101; // Hex for 192.168.1.1
+    double   snrDb = 28.452;
+
+    // Note: uint8_t is treated as unsigned char by std::cout; cast to int to print numerically!
+    std::cout &lt;&lt; "Packet TTL: " &lt;&lt; static_cast&lt;int&gt;(ttl) &lt;&lt; "
+";
+    std::cout &lt;&lt; "Destination Port: " &lt;&lt; port &lt;&lt; "
+";
+    std::cout &lt;&lt; "Hex IP: 0x" &lt;&lt; std::hex &lt;&lt; rawIpv4 &lt;&lt; std::dec &lt;&lt; "
+";
+    std::cout &lt;&lt; "Wireless SNR: " &lt;&lt; std::fixed &lt;&lt; std::setprecision(2) &lt;&lt; snrDb &lt;&lt; " dB
+";
+
+    return 0;
+}</code></pre>
+
+    <h3>10.3 Control Flow & Modern Loops</h3>
+    <p>C++ provides classical branching and iterative loops, plus modern range-based iterations for collections:</p>
+
+    <h4>Code Example: Packet Queue Processing & Filtering</h4>
+    <pre><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;vector&gt;
+
+int main() {
+    std::vector&lt;int&gt; packetSizes = {64, 128, 512, 1024, 1500, 256};
+    int totalBytes = 0;
+
+    // Modern C++ Range-Based for loop: iterates directly through elements
+    for (const auto& size : packetSizes) {
+        if (size &gt;= 1500) {
+            std::cout &lt;&lt; "Standard Ethernet MTU reached: " &lt;&lt; size &lt;&lt; " bytes
+";
+        } else if (size &lt;= 64) {
+            std::cout &lt;&lt; "Small ACK / Control frame: " &lt;&lt; size &lt;&lt; " bytes
+";
+        }
+        totalBytes += size;
+    }
+
+    std::cout &lt;&lt; "Total queue payload: " &lt;&lt; totalBytes &lt;&lt; " bytes
+";
+    return 0;
+}</code></pre>
+
+    <h3>10.4 Functions & The Three Parameter-Passing Conventions <span style="font-size: 11px; background: #ba3925; color: white; padding: 2px 8px; border-radius: 12px; margin-left: 8px;">HARD CONCEPT</span></h3>
+    <p>Understanding how data is passed into functions is the single most critical performance concept in C++. There are three conventions:</p>
+    <ul>
+      <li><strong>1. Pass-by-Value (<code>void Func(Packet p)</code>):</strong> Makes a <em>deep byte-by-byte copy</em>. In a simulation processing 10,000,000 packets of 1,500 bytes each, this would waste <strong>15 Gigabytes</strong> of memory bandwidth just duplicating bytes.</li>
+      <li><strong>2. Pass-by-Reference (<code>void Func(Packet& p)</code>):</strong> Passes an <em>alias</em> (memory address under the hood). No data is copied. The function can mutate the caller's original variable in place.</li>
+      <li><strong>3. Pass-by-Const-Reference (<code>void Func(const Packet& p)</code>):</strong> Passes an alias with zero copy overhead, but the compiler <em>strictly enforces read-only access</em>. This is the gold standard throughout ns-3 for inspecting packets, routing tables, and Wi-Fi headers.</li>
+    </ul>
+
+    <!-- SVG Parameter Passing Stack Frames -->
+    <div style="margin: 28px 0; text-align: center;">
+      <svg viewBox="0 0 820 220" width="100%" height="220" xmlns="http://www.w3.org/2000/svg" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <rect x="0" y="0" width="820" height="34" fill="#2c3e50" rx="8" ry="8"/>
+        <text x="410" y="22" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">Memory Hardware Mechanics: Pass-by-Value vs. Pass-by-Const-Reference</text>
+
+        <!-- Left: Pass by Value -->
+        <g transform="translate(20, 48)">
+          <rect x="0" y="0" width="370" height="155" rx="5" fill="#fee2e2" stroke="#ef4444" stroke-width="1.5"/>
+          <text x="185" y="22" text-anchor="middle" font-size="11" font-weight="bold" fill="#991b1b">Pass-by-Value: void Inspect(Packet p)</text>
+          
+          <rect x="20" y="40" width="150" height="50" rx="4" fill="#ffffff" stroke="#ef4444"/>
+          <text x="95" y="60" text-anchor="middle" font-size="10" font-weight="bold" fill="#334155">Caller Stack Frame</text>
+          <text x="95" y="76" text-anchor="middle" font-size="9" fill="#dc2626">Original 1500 bytes</text>
+
+          <rect x="200" y="40" width="150" height="50" rx="4" fill="#ffffff" stroke="#ef4444"/>
+          <text x="275" y="60" text-anchor="middle" font-size="10" font-weight="bold" fill="#334155">Callee Stack Frame</text>
+          <text x="275" y="76" text-anchor="middle" font-size="9" fill="#dc2626">Duplicate 1500 bytes</text>
+
+          <path d="M 172 65 L 198 65" stroke="#ef4444" stroke-width="2" marker-end="url(#arrow-red)"/>
+          <text x="185" y="112" text-anchor="middle" font-size="9" fill="#b91c1c">⚠️ Heavy CPU overhead: Entire struct copied onto stack</text>
+          <text x="185" y="132" text-anchor="middle" font-size="9" fill="#7f1d1d">Destructor called when callee returns</text>
+        </g>
+
+        <!-- Right: Pass by Const Reference -->
+        <g transform="translate(430, 48)">
+          <rect x="0" y="0" width="370" height="155" rx="5" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+          <text x="185" y="22" text-anchor="middle" font-size="11" font-weight="bold" fill="#166534">Pass-by-Const-Ref: void Inspect(const Packet& p)</text>
+          
+          <rect x="20" y="40" width="150" height="50" rx="4" fill="#ffffff" stroke="#16a34a"/>
+          <text x="95" y="60" text-anchor="middle" font-size="10" font-weight="bold" fill="#334155">Caller Stack Frame</text>
+          <text x="95" y="76" text-anchor="middle" font-size="9" fill="#15803d">Original 1500 bytes</text>
+
+          <rect x="200" y="40" width="150" height="50" rx="4" fill="#ffffff" stroke="#16a34a"/>
+          <text x="275" y="60" text-anchor="middle" font-size="10" font-weight="bold" fill="#334155">Callee Stack Frame</text>
+          <text x="275" y="76" text-anchor="middle" font-size="9" fill="#15803d">Reference (8-byte pointer)</text>
+
+          <path d="M 200 65 L 175 65" stroke="#16a34a" stroke-width="2" marker-end="url(#arrow-green)"/>
+          <text x="185" y="112" text-anchor="middle" font-size="9" fill="#166534">✓ 0 bytes copied! Callee reads caller's memory directly</text>
+          <text x="185" y="132" text-anchor="middle" font-size="9" fill="#14532d">Compiler prevents any accidental mutation</text>
+        </g>
+      </svg>
+    </div>
+
+    <h4>Code Example: Direct Comparison of All Three Passing Conventions</h4>
+    <pre><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;string&gt;
+
+// 1. Pass-by-Value: Modifies only a local duplicate
+void ModifyValue(std::string str) {
+    str += " [Copy Changed]";
+}
+
+// 2. Pass-by-Reference: Modifies caller's variable in place
+void ModifyReference(std::string& str) {
+    str += " [Original Changed]";
+}
+
+// 3. Pass-by-Const-Reference: Fast zero-copy, read-only
+void PrintReadOnly(const std::string& str) {
+    // str += " Error!"; &lt;-- COMPILATION ERROR: Cannot modify const reference!
+    std::cout &lt;&lt; "Payload: " &lt;&lt; str &lt;&lt; " (Length: " &lt;&lt; str.size() &lt;&lt; " bytes)
+";
+}
+
+int main() {
+    std::string packetData = "Ethernet Frame #104";
+
+    ModifyValue(packetData);
+    std::cout &lt;&lt; "After ModifyValue:     " &lt;&lt; packetData &lt;&lt; "
+";
+
+    ModifyReference(packetData);
+    std::cout &lt;&lt; "After ModifyReference: " &lt;&lt; packetData &lt;&lt; "
+";
+
+    PrintReadOnly(packetData);
+    return 0;
+}</code></pre>
+
+    <h3>10.5 Hardware Memory Model: Stack vs. Heap & Raw Pointers <span style="font-size: 11px; background: #ba3925; color: white; padding: 2px 8px; border-radius: 12px; margin-left: 8px;">HARD CONCEPT</span></h3>
+    <p>A C++ program's runtime memory is partitioned into two main regions:</p>
+    <ul>
+      <li><strong>The Stack:</strong> Fast memory managed automatically by the CPU stack pointer register (<code>RSP</code>). Variables declared inside functions live on the stack and are instantly reclaimed when the enclosing scope <code>{}</code> ends. Stack memory is limited (typically 8 MB on Linux).</li>
+      <li><strong>The Heap:</strong> A large pool of system RAM for dynamically sized objects allocated at runtime via <code>new</code> (or <code>malloc</code>). The developer (or a smart pointer) is strictly responsible for freeing it via <code>delete</code>. Forgetting causes memory leaks; freeing twice causes segmentation faults.</li>
+    </ul>
+
+    <!-- SVG Stack vs Heap Pointer Diagram -->
+    <div style="margin: 28px 0; text-align: center;">
+      <svg viewBox="0 0 820 200" width="100%" height="200" xmlns="http://www.w3.org/2000/svg" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <rect x="0" y="0" width="820" height="34" fill="#2c3e50" rx="8" ry="8"/>
+        <text x="410" y="22" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">Hardware Memory Model: The Stack Pointer Pointing into the Heap</text>
+
+        <!-- Stack Column -->
+        <g transform="translate(30, 48)">
+          <rect x="0" y="0" width="220" height="135" rx="5" fill="#f0f9ff" stroke="#0284c7" stroke-width="1.5"/>
+          <text x="110" y="20" text-anchor="middle" font-size="11" font-weight="bold" fill="#0369a1">Stack Frame (Fast / Automatic)</text>
+          
+          <rect x="15" y="32" width="190" height="38" rx="4" fill="#ffffff" stroke="#0284c7"/>
+          <text x="110" y="48" text-anchor="middle" font-size="10" font-weight="bold" fill="#1e293b">int packetId = 42;</text>
+          <text x="110" y="62" text-anchor="middle" font-size="9" fill="#64748b">Address: 0x7ffd0001 (4 bytes)</text>
+
+          <rect x="15" y="78" width="190" height="45" rx="4" fill="#e0f2fe" stroke="#0369a1" stroke-width="1.5"/>
+          <text x="110" y="96" text-anchor="middle" font-size="10" font-weight="bold" fill="#0369a1">int* pBuffer</text>
+          <text x="110" y="112" text-anchor="middle" font-size="9" fill="#0284c7">Stores: 0x55aa4000 (8 bytes)</text>
+        </g>
+
+        <!-- Arrow -->
+        <path d="M 252 135 L 435 115" stroke="#0284c7" stroke-width="2.5" marker-end="url(#arrow-blue)"/>
+        <text x="345" y="115" text-anchor="middle" font-size="10" font-weight="bold" fill="#0284c7">Points to Address</text>
+
+        <!-- Heap Column -->
+        <g transform="translate(440, 48)">
+          <rect x="0" y="0" width="350" height="135" rx="5" fill="#fefce8" stroke="#ca8a04" stroke-width="1.5"/>
+          <text x="175" y="20" text-anchor="middle" font-size="11" font-weight="bold" fill="#854d0e">Heap (Dynamic / Manual Lifetime)</text>
+          
+          <rect x="20" y="36" width="310" height="75" rx="4" fill="#ffffff" stroke="#eab308" stroke-width="1.5"/>
+          <text x="175" y="56" text-anchor="middle" font-size="10" font-weight="bold" fill="#1e293b">Dynamically Allocated Array: new int[3]</text>
+          <text x="175" y="74" text-anchor="middle" font-size="9" fill="#854d0e">Start Address: 0x55aa4000</text>
+          <text x="175" y="94" text-anchor="middle" font-size="9" font-family="monospace" fill="#047857">[0]=10 | [1]=20 | [2]=30</text>
+
+          <text x="175" y="125" text-anchor="middle" font-size="9" fill="#dc2626">⚠️ Must be explicitly freed with delete[] pBuffer;</text>
+        </g>
+
+        <defs>
+          <marker id="arrow-blue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#0284c7"/>
+          </marker>
+        </defs>
+      </svg>
+      <div style="font-size: 11px; color: #64748b; margin-top: 6px;">Figure 10.2: Stack memory holding a raw pointer variable referencing a dynamically allocated heap block.</div>
+    </div>
+
+    <h4>Code Example: Pointers, Memory Addresses & Dynamic Allocation</h4>
+    <pre><code class="language-cpp">#include &lt;iostream&gt;
+
+int main() {
+    int packetId = 42;
+    // & = Address-of operator (obtains memory address of variable)
+    int* ptr = &packetId; 
+
+    std::cout &lt;&lt; "Value of packetId:    " &lt;&lt; packetId &lt;&lt; "
+";
+    std::cout &lt;&lt; "Address of packetId:  " &lt;&lt; ptr &lt;&lt; "
+";
+    // * = Dereference operator (accesses data at the memory address)
+    std::cout &lt;&lt; "Dereferenced *ptr:    " &lt;&lt; *ptr &lt;&lt; "
+";
+
+    *ptr = 99; // Mutates packetId directly through the pointer!
+    std::cout &lt;&lt; "Modified packetId:    " &lt;&lt; packetId &lt;&lt; "
+";
+
+    // Dynamic heap allocation
+    int* heapArray = new int[3]{10, 20, 30};
+    std::cout &lt;&lt; "Heap Element [1]:     " &lt;&lt; heapArray[1] &lt;&lt; "
+";
+
+    // Crucial cleanup: Avoid memory leaks!
+    delete[] heapArray;
+    heapArray = nullptr; // In modern C++, always assign nullptr after deletion
+
+    return 0;
+}</code></pre>
+
+    <h3>10.6 Object-Oriented Programming: Structs, Classes & Encapsulation</h3>
+    <p>In C++, a <code>struct</code> and a <code>class</code> are nearly identical, with exactly one difference: members of a <code>struct</code> default to <code>public</code>, whereas members of a <code>class</code> default to <code>private</code>.</p>
+    <ul>
+      <li><strong>Encapsulation:</strong> Hide internal state variables behind <code>private:</code> and expose safe interfaces via <code>public:</code> methods.</li>
+      <li><strong>Member Initializer Lists:</strong> Initialize fields directly before constructor execution starts: <code>ClassName() : m_val(x) {}</code>. This avoids double-initialization.</li>
+      <li><strong>Const Member Methods:</strong> Methods marked <code>const</code> guarantee they do not modify any member variables: <code>uint32_t GetSize() const;</code>.</li>
+    </ul>
+
+    <h4>Code Example: Encapsulated Network Packet Header</h4>
+    <pre><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;cstdint&gt;
+
+class PacketHeader {
+private:
+    uint16_t m_packetType;     // 16-bit EtherType or protocol ID
+    uint32_t m_sequenceNumber; // 32-bit packet sequence number
+
+public:
+    // Constructor with Member Initializer List
+    PacketHeader(uint16_t type, uint32_t seq)
+        : m_packetType(type), m_sequenceNumber(seq) {
+        std::cout &lt;&lt; "[Header Constructed] Type=" &lt;&lt; m_packetType &lt;&lt; "
+";
+    }
+
+    // Destructor
+    ~PacketHeader() {
+        // Automatically invoked when object leaves scope
+    }
+
+    // Const accessor (read-only inspection)
+    uint16_t GetType() const { return m_packetType; }
+    uint32_t GetSeq() const { return m_sequenceNumber; }
+
+    // Mutator
+    void IncrementSeq() { ++m_sequenceNumber; }
+};
+
+int main() {
+    PacketHeader header(0x0800, 1001); // IPv4 EtherType
+    header.IncrementSeq();
+    std::cout &lt;&lt; "Next Sequence: " &lt;&lt; header.GetSeq() &lt;&lt; "
+";
+    return 0;
+}</code></pre>
+
+    <h3>10.7 Inheritance, Polymorphism & Virtual Function Tables (vtables) <span style="font-size: 11px; background: #ba3925; color: white; padding: 2px 8px; border-radius: 12px; margin-left: 8px;">HARD CONCEPT</span></h3>
+    <p>In network simulators, you need to treat diverse hardware devices (e.g. Ethernet cards, Wi-Fi 7 chips, LTE modems) uniformly through a common base interface: <code>NetDevice</code>. This is accomplished via <strong>polymorphism</strong> and <strong>virtual functions</strong>.</p>
+    <ul>
+      <li><strong>Pure Virtual Functions (<code>virtual void Transmit() = 0;</code>):</strong> Defines an interface contract. Classes containing pure virtual methods are <em>Abstract Classes</em> and cannot be instantiated directly.</li>
+      <li><strong>The <code>override</code> Keyword:</strong> Instructs the compiler to verify that the derived class method exactly matches a virtual method in the base class.</li>
+      <li><strong>Virtual Destructors:</strong> When deleting a derived object via a pointer to its base class (e.g., <code>delete basePtr;</code>), the base class destructor <strong>MUST</strong> be declared <code>virtual ~Base() = default;</code>. Without this, only the base destructor runs, leaking all derived resources!</li>
+    </ul>
+
+    <!-- SVG Vtable Diagram -->
+    <div style="margin: 28px 0; text-align: center;">
+      <svg viewBox="0 0 820 220" width="100%" height="220" xmlns="http://www.w3.org/2000/svg" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <rect x="0" y="0" width="820" height="34" fill="#2c3e50" rx="8" ry="8"/>
+        <text x="410" y="22" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">Dynamic Dispatch Mechanics: The Virtual Method Table (vtable)</text>
+
+        <!-- Node Pointer -->
+        <g transform="translate(20, 50)">
+          <rect x="0" y="0" width="190" height="145" rx="5" fill="#f8fafc" stroke="#64748b"/>
+          <text x="95" y="20" text-anchor="middle" font-size="11" font-weight="bold" fill="#334155">Base Pointer</text>
+          
+          <rect x="15" y="35" width="160" height="45" rx="4" fill="#ffffff" stroke="#64748b"/>
+          <text x="95" y="54" text-anchor="middle" font-size="10" font-weight="bold" fill="#1e293b">NetworkInterface* dev</text>
+          <text x="95" y="70" text-anchor="middle" font-size="9" fill="#64748b">Holds 0x8800 (Heap)</text>
+
+          <text x="95" y="105" text-anchor="middle" font-size="9" fill="#0284c7">dev-&gt;Transmit("Frame")</text>
+          <text x="95" y="125" text-anchor="middle" font-size="9" fill="#64748b">Dynamic runtime resolution</text>
+        </g>
+        <path d="M 215 100 L 265 100" stroke="#0284c7" stroke-width="2" marker-end="url(#arrow-blue)"/>
+
+        <!-- Heap Object -->
+        <g transform="translate(270, 50)">
+          <rect x="0" y="0" width="240" height="145" rx="5" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+          <text x="120" y="20" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e40af">Heap Object: WifiInterface</text>
+          
+          <rect x="15" y="32" width="210" height="35" rx="4" fill="#dbeafe" stroke="#2563eb"/>
+          <text x="120" y="48" text-anchor="middle" font-size="10" font-weight="bold" fill="#1e40af">__vptr (vtable pointer)</text>
+          <text x="120" y="60" text-anchor="middle" font-size="8" fill="#1d4ed8">Points to WifiInterface vtable</text>
+
+          <rect x="15" y="75" width="210" height="58" rx="4" fill="#ffffff" stroke="#93c5fd"/>
+          <text x="120" y="93" text-anchor="middle" font-size="9" fill="#334155">m_name = "wlan0"</text>
+          <text x="120" y="107" text-anchor="middle" font-size="9" fill="#334155">m_mtu = 1500</text>
+          <text x="120" y="121" text-anchor="middle" font-size="9" fill="#334155">m_frequencyGhz = 5.8</text>
+        </g>
+        <path d="M 515 70 L 565 70" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+
+        <!-- Vtable -->
+        <g transform="translate(570, 50)">
+          <rect x="0" y="0" width="230" height="145" rx="5" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+          <text x="115" y="20" text-anchor="middle" font-size="11" font-weight="bold" fill="#166534">WifiInterface VTABLE (Read-Only)</text>
+          
+          <rect x="15" y="35" width="200" height="42" rx="4" fill="#ffffff" stroke="#16a34a"/>
+          <text x="115" y="52" text-anchor="middle" font-size="9" font-weight="bold" fill="#166534">&WifiInterface::~WifiInterface()</text>
+          <text x="115" y="68" text-anchor="middle" font-size="8" fill="#64748b">Slot 0: Destructor function ptr</text>
+
+          <rect x="15" y="85" width="200" height="42" rx="4" fill="#dcfce7" stroke="#15803d"/>
+          <text x="115" y="102" text-anchor="middle" font-size="9" font-weight="bold" fill="#15803d">&WifiInterface::Transmit()</text>
+          <text x="115" y="118" text-anchor="middle" font-size="8" fill="#166534">Slot 1: Concrete transmission code</text>
+        </g>
+      </svg>
+      <div style="font-size: 11px; color: #64748b; margin-top: 6px;">Figure 10.3: The vtable dispatch mechanism allowing uniform base class pointers to invoke subclass-specific methods.</div>
+    </div>
+
+    <h4>Code Example: Polymorphic Network Device Hierarchy</h4>
+    <pre><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;memory&gt;
+#include &lt;vector&gt;
+#include &lt;string&gt;
+#include &lt;cstdint&gt;
+
+// Abstract Base Class
+class NetworkInterface {
+protected:
+    std::string m_name;
+    uint32_t    m_mtu;
+
+public:
+    NetworkInterface(std::string name, uint32_t mtu)
+        : m_name(std::move(name)), m_mtu(mtu) {}
+
+    // Pure virtual method: subclasses MUST implement this!
+    virtual void Transmit(const std::string& frame) = 0;
+
+    // Essential: Virtual destructor ensures subclass destructors run properly
+    virtual ~NetworkInterface() = default;
+
+    std::string GetName() const { return m_name; }
+};
+
+// Derived Class: Wi-Fi Interface
+class WifiInterface : public NetworkInterface {
+private:
+    double m_freqGhz;
+
+public:
+    WifiInterface(std::string name, uint32_t mtu, double freq)
+        : NetworkInterface(std::move(name), mtu), m_freqGhz(freq) {}
+
+    void Transmit(const std::string& frame) override {
+        std::cout &lt;&lt; "[Wi-Fi @ " &lt;&lt; m_freqGhz &lt;&lt; " GHz] Device " 
+                  &lt;&lt; m_name &lt;&lt; " transmitting: " &lt;&lt; frame &lt;&lt; "
+";
+    }
+};
+
+int main() {
+    // Polymorphism: Store derived objects in a collection of base pointers
+    std::vector&lt;std::unique_ptr&lt;NetworkInterface&gt;&gt; devices;
+    devices.push_back(std::make_unique&lt;WifiInterface&gt;("wlan0", 1500, 5.8));
+    devices.push_back(std::make_unique&lt;WifiInterface&gt;("wlan1", 1500, 6.2)); // 6 GHz WiFi 6E/7
+
+    for (const auto& dev : devices) {
+        // Dynamic dispatch: calls WifiInterface::Transmit() at runtime!
+        dev-&gt;Transmit("802.11 Probe Request");
+    }
+
+    return 0;
+}</code></pre>
+
+    <h3>10.8 Essential Standard Template Library (STL) Containers</h3>
+    <p>The C++ Standard Library provides robust, high-performance data structures that form the core of simulation queues, routing caches, and state machines:</p>
+    <ul>
+      <li><strong><code>std::vector&lt;T&gt;</code>:</strong> Dynamically sized contiguous array. Fast random access ($O(1)$) and amortized $O(1)$ append (<code>push_back</code>). Peak CPU cache line locality.</li>
+      <li><strong><code>std::unordered_map&lt;Key, Value&gt;</code>:</strong> Hash table offering average $O(1)$ key lookup. Ideal for ARP tables, routing tables (IP $ightarrow$ next-hop interface), and active TCP connection pools.</li>
+      <li><strong><code>std::string</code>:</strong> Dynamic memory-managed string buffer supporting rich manipulation.</li>
+    </ul>
+
+    <h4>Code Example: Building a Quick ARP & Route Cache</h4>
+    <pre><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;vector&gt;
+#include &lt;string&gt;
+#include &lt;unordered_map&gt;
+
+int main() {
+    // 1. std::vector: Queue of pending packets
+    std::vector&lt;std::string&gt; packetQueue;
+    packetQueue.push_back("Packet #1 to Gateway");
+    packetQueue.push_back("Packet #2 to DNS Server");
+
+    // 2. std::unordered_map: IP-to-MAC Address Resolution (ARP Cache)
+    std::unordered_map&lt;std::string, std::string&gt; arpCache;
+    arpCache["192.168.1.1"] = "00:14:22:01:23:45";
+    arpCache["192.168.1.50"] = "F0:99:B6:77:88:99";
+
+    // Lookup IP in hash table
+    std::string targetIp = "192.168.1.1";
+    if (arpCache.find(targetIp) != arpCache.end()) {
+        std::cout &lt;&lt; "ARP HIT: " &lt;&lt; targetIp &lt;&lt; " resolved to " &lt;&lt; arpCache[targetIp] &lt;&lt; "
+";
+    }
+
+    // Modern C++17 Structured Binding iteration
+    std::cout &lt;&lt; "
+Current ARP Table Entries:
+";
+    for (const auto& [ip, mac] : arpCache) {
+        std::cout &lt;&lt; "  IP: " &lt;&lt; ip &lt;&lt; " -&gt; MAC: " &lt;&lt; mac &lt;&lt; "
+";
+    }
+
+    return 0;
+}</code></pre>
+
+    <h3>10.9 Modern C++ Idioms: `auto`, Lambdas & RAII</h3>
+    <p>Modern C++ (C++11 through C++20) introduced three transformative features that make systems code clean, safe, and expressive:</p>
+    <ul>
+      <li><strong>Type Deduction (<code>auto</code>):</strong> The compiler automatically infers the variable type at compile time from its initializer without any runtime penalty.</li>
+      <li><strong>Lambda Expressions (<code>[captures](parameters) { body }</code>):</strong> Anonymous inline callable objects. In ns-3, lambdas and callbacks are used to schedule simulation events at future timestamps.</li>
+      <li><strong>RAII (Resource Acquisition Is Initialization):</strong> Objects acquire resources (memory, file handles, network sockets) in their constructor and <em>guarantee release in their destructor</em> when going out of scope.</li>
+    </ul>
+
+    <h4>Code Example: Lambda Event Handlers & RAII File Logger</h4>
+    <pre><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;string&gt;
+#include &lt;functional&gt;
+
+// RAII Wrapper: Guarantees resource release upon scope exit
+class TraceLogger {
+private:
+    std::string m_sessionName;
+public:
+    TraceLogger(std::string name) : m_sessionName(std::move(name)) {
+        std::cout &lt;&lt; "[RAII ACQUIRE] Opened simulation trace: " &lt;&lt; m_sessionName &lt;&lt; "
+";
+    }
+    ~TraceLogger() {
+        std::cout &lt;&lt; "[RAII RELEASE] Safely flushed & closed trace: " &lt;&lt; m_sessionName &lt;&lt; "
+";
+    }
+};
+
+int main() {
+    {
+        TraceLogger logger("wifi-mlo-experiment-01.pcap");
+
+        // Lambda expression: captures current threshold
+        double rssiThreshold = -75.0; // dBm
+        auto checkSignalQuality = [rssiThreshold](double currentRssi) -&gt; bool {
+            return currentRssi &gt;= rssiThreshold;
+        };
+
+        std::cout &lt;&lt; "Signal -70 dBm acceptable? " 
+                  &lt;&lt; (checkSignalQuality(-70.0) ? "YES" : "NO") &lt;&lt; "
+";
+        std::cout &lt;&lt; "Signal -85 dBm acceptable? " 
+                  &lt;&lt; (checkSignalQuality(-85.0) ? "YES" : "NO") &lt;&lt; "
+";
+    } // TraceLogger destructor automatically fires here!
+
+    std::cout &lt;&lt; "Simulation execution cleanly finished.
+";
+    return 0;
+}</code></pre>
+
+    <h3>10.10 Bridge: How These Concepts Power ns-3</h3>
+    <div style="background: rgba(99, 102, 241, 0.05); border-left: 4px solid #6366f1; padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 16px 0; font-size: 14px; color: #334155; line-height: 1.6;">
+      <strong>💡 Connecting Fundamentals to ns-3 Architecture:</strong>
+      <ul style="margin-top: 8px; margin-bottom: 0;">
+        <li>Instead of raw <code>new</code> and <code>delete</code>, ns-3 uses <code>CreateObject&lt;T&gt;()</code> and intrusive reference counting (<code>Ptr&lt;T&gt;</code>) — detailed in the very next module!</li>
+        <li>Instead of raw function pointers, ns-3 encapsulates lambdas and class member methods inside <code>MakeCallback()</code>.</li>
+        <li>Instead of deep packet copies, ns-3 passes <code>Ptr&lt;Packet&gt;</code> by value or <code>const Ptr&lt;Packet&gt;&</code>, copying only an 8-byte smart pointer.</li>
+        <li>Dynamic protocol extensions (Wi-Fi, 5G-LENA, CSMA) subclass ns-3's polymorphic <code>Object</code> base class using runtime <code>TypeId</code> metadata.</li>
+      </ul>
+    </div>
+  </div>
+</details>
+<!-- END MODULE 0: C++ FROM SCRATCH RECAP -->
 
 <!-- MODULE 10 -->
 <details class="module-card" open id="_cpp_mod1_smart_pointers">
