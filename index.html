@@ -494,6 +494,14 @@ function collapseAll() {
 <li><a href="#_ext_mod5_tests">Module 19: Unit Testing Framework & Build Verification</a></li>
 </ul>
 </li>
+<li><a href="#_learner_evaluation"><strong>Part V: Evaluation of Learner — University Lab Curricula & Hands-On Problem Sets</strong></a>
+<ul class="sectlevel2">
+<li><a href="#_eval_lalith_suresh">Track 1: Lalith Suresh’s Lab Assignments using ns-3 (Official nsnam Wiki)</a></li>
+<li><a href="#_eval_uw_funlab">Track 2: University of Washington EE 595 (Wireless Networks for 4G/5G)</a></li>
+<li><a href="#_eval_gatech_ece6110">Track 3: Georgia Tech ECE 6110 (Advanced Computer Networks Labs 1–4)</a></li>
+<li><a href="#_eval_snkas_basics">Track 4: Architectural Fundamentals & Traffic Control (Simon Kassing Guide)</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </div>
@@ -1086,7 +1094,8 @@ int main() {
     <p>The C++ Standard Library provides robust, high-performance data structures that form the core of simulation queues, routing caches, and state machines:</p>
     <ul>
       <li><strong><code>std::vector&lt;T&gt;</code>:</strong> Dynamically sized contiguous array. Fast random access ($O(1)$) and amortized $O(1)$ append (<code>push_back</code>). Peak CPU cache line locality.</li>
-      <li><strong><code>std::unordered_map&lt;Key, Value&gt;</code>:</strong> Hash table offering average $O(1)$ key lookup. Ideal for ARP tables, routing tables (IP $ightarrow$ next-hop interface), and active TCP connection pools.</li>
+      <li><strong><code>std::unordered_map&lt;Key, Value&gt;</code>:</strong> Hash table offering average $O(1)$ key lookup. Ideal for ARP tables, routing tables (IP $
+ightarrow$ next-hop interface), and active TCP connection pools.</li>
       <li><strong><code>std::string</code>:</strong> Dynamic memory-managed string buffer supporting rich manipulation.</li>
     </ul>
 
@@ -6175,6 +6184,316 @@ static CustomModelTestSuite g_customModelTestSuite;</code></pre>
 ./ns3 run scratch/my-simulation</code></pre>
   </div>
 </details>
+
+<!-- ======================================================== -->
+<div class="sect1">
+<h2 id="_learner_evaluation" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+  <span>Part V: Evaluation of Learner — University Lab Curricula & Hands-On Problem Sets</span>
+  <span style="font-size: 13px; font-weight: 600; background: #e2e8f0; color: #475569; padding: 4px 14px; border-radius: 20px; border: 1px solid #cbd5e1;">Capstone Evaluation</span>
+</h2>
+<div class="sectionbody">
+  <div style="background: rgba(99, 102, 241, 0.05); border-left: 4px solid #6366f1; padding: 14px 18px; border-radius: 0 8px 8px 0; margin-bottom: 24px; font-size: 14px; color: #334155; line-height: 1.6;">
+    <strong>🎯 Learner Self-Evaluation Overview:</strong> Testing your mastery of ns-3 requires solving real, multi-variable engineering challenges. Below are curated, comprehensive lab assignments extracted from leading university courses (<strong>Georgia Tech ECE 6110</strong>, <strong>University of Washington Funlab EE 595</strong>, the official <strong>nsnam wiki by Lalith Suresh</strong>, and <strong>Simon Kassing’s ns-3 architectural guide</strong>). Each lab includes problem statements, topology requirements, step-by-step procedures, and expected evaluation metrics.
+  </div>
+
+<!-- EVALUATION MODULE 1: LALITH SURESH NSNAM WIKI -->
+<details class="module-card" open id="_eval_lalith_suresh">
+  <summary class="module-summary">
+    <div><span class="module-badge" style="background: #0284c7;">Evaluation Track 1</span> Lalith Suresh’s Lab Assignments using ns-3 (Official nsnam Wiki)</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
+  </summary>
+  <div class="module-body">
+    <div class="admonitionblock note" style="margin-bottom: 20px;">
+      <table><tr>
+        <td class="icon"><div class="title" style="color: #186d7a; font-weight: bold;">Official Citation</div></td>
+        <td class="content">
+          <strong>Source:</strong> Lalith Suresh’s Lab Assignments using ns-3 page, nsnam Community Wiki.<br>
+          <strong>URL:</strong> <a href="https://www.nsnam.org/wiki/Lab_Assignments_using_ns-3" target="_blank" rel="noopener noreferrer">https://www.nsnam.org/wiki/Lab_Assignments_using_ns-3</a><br>
+          <em>These foundational labs were designed for university Computer Networks curricula and cover core transport, queueing, mobile ad-hoc routing, and wireless channel access.</em>
+        </td>
+      </tr></table>
+    </div>
+
+    <h3>Lab 1.1: NS-3 Warmup & Simple Client-Server Communication</h3>
+    <ul>
+      <li><strong>Level:</strong> Introductory | <strong>Focus:</strong> Topologies, UDP applications, PCAP packet tracing.</li>
+      <li><strong>Topology:</strong> 2 nodes connected via Point-to-Point link (DataRate: 5 Mbps, Delay: 2 ms).</li>
+      <li><strong>Experiment Steps:</strong>
+        <ol>
+          <li>Configure a PointToPoint link between Node 0 and Node 1 with <code>PointToPointHelper</code>.</li>
+          <li>Install UDP Echo Server on Node 1 (port 9) and UDP Echo Client on Node 0 (packet size: 1024 bytes, interval: 1s, max packets: 5).</li>
+          <li>Enable ASCII and PCAP tracing using <code>pointToPoint.EnablePcapAll ("warmup-p2p")</code>.</li>
+          <li>Execute the simulation and load the resulting <code>.pcap</code> trace file in Wireshark. Verify the 3-way application exchanges, Ethernet framing, IP headers, and UDP checksums.</li>
+        </ol>
+      </li>
+      <li><strong>Expected Outcome:</strong> Understanding ns-3 event scheduling, node creation, address assignment, and Wireshark trace validation.</li>
+    </ul>
+
+    <h3>Lab 1.2: TCP Variants Comparison (Tahoe vs. Reno vs. NewReno)</h3>
+    <ul>
+      <li><strong>Level:</strong> Intermediate | <strong>Focus:</strong> Congestion Window (cwnd), Fast Recovery, Slow Start, UDP cross-traffic.</li>
+      <li><strong>Topology:</strong> Dumbbell topology with two sender nodes (N1, N2) on the left, two receiver nodes (N3, N4) on the right, connected via two intermediate bottleneck bridge routers (N5, N6).</li>
+      <li><strong>Experiment Steps:</strong>
+        <ol>
+          <li>Establish a bottleneck link between N5 and N6 with limited bandwidth (e.g., 10 Mbps) and DropTail queue.</li>
+          <li>Install a TCP application on Node 1 sending continuous bulk data to Node 3, starting at $t = 1.0\text{s}$.</li>
+          <li>At $t = 20.0\text{s}$, start a cross-traffic UDP stream from Node 2 to Node 4 at rate $R_1$ designed to consume 50% of the bottleneck capacity.</li>
+          <li>At $t = 30.0\text{s}$, increase the UDP rate to $R_2$ to congest 100% of the bottleneck link capacity.</li>
+          <li>Hook into the TCP socket's <code>CongestionWindow</code> trace source using <code>MakeCallback</code> to record cwnd values over time.</li>
+          <li>Plot $t$ vs. $\text{cwnd}$ using Matplotlib or Gnuplot. Identify and label Slow Start, Congestion Avoidance, Fast Retransmit, and Fast Recovery phases.</li>
+          <li>Repeat the simulation across TCP variants (Tahoe, Reno, NewReno) using <code>Config::SetDefault ("ns3::TcpL4Protocol::SocketType", TypeIdValue (TcpNewReno::GetTypeId ()))</code>.</li>
+        </ol>
+      </li>
+      <li><strong>Expected Outcome:</strong> Clear graphical distinction showing Tahoe's harsh drop to $1\text{ MSS}$ on loss vs. Reno/NewReno's Fast Recovery halving behavior.</li>
+    </ul>
+
+    <h3>Lab 1.3: TCP and Router Queues (Bufferbloat & Optimal cwnd)</h3>
+    <ul>
+      <li><strong>Level:</strong> Intermediate | <strong>Focus:</strong> Router buffer size, packet drop frequency, link utilization, queuing delay.</li>
+      <li><strong>Topology:</strong> Dumbbell topology (N1, N2 clients; N3, N4 servers; N5, N6 bottleneck routers).</li>
+      <li><strong>Experiment Steps:</strong>
+        <ol>
+          <li>Equip bottleneck routers N5 and N6 with DropTail queues of configurable size (<code>MaxSize</code>).</li>
+          <li>Start flow N1 $\rightarrow$ N3 at $t = 1\text{s}$. Measure how long it takes for the flow to saturate the bottleneck bandwidth.</li>
+          <li>Start flows N2 $\rightarrow$ N3 and N2 $\rightarrow$ N4 at $t = 15\text{s}$ to induce heavy competition.</li>
+          <li>Record throughput/time, cwnd/time, and packet drops/time across various router queue sizes ($Q = 5, 20, 50, 200\text{ packets}$).</li>
+          <li>Plot Throughput vs. cwnd and Packet Loss vs. cwnd. Determine if there is an optimal cwnd ceiling where throughput saturates without inducing excessive queuing delay.</li>
+        </ol>
+      </li>
+      <li><strong>Expected Outcome:</strong> Experiencing the classic "Bufferbloat" phenomenon where large router queues increase RTT latency by 500%+ without throughput gains.</li>
+    </ul>
+
+    <h3>Lab 1.4: Mobile Ad-Hoc Routing (OLSR Protocol)</h3>
+    <ul>
+      <li><strong>Level:</strong> Advanced | <strong>Focus:</strong> MANETs, Optimized Link State Routing (OLSR), multi-hop relaying, node mobility.</li>
+      <li><strong>Topology:</strong> 3 wireless nodes: Node 1 (Sender), Node 2 (Mobile Relay), Node 3 (Receiver). Node 1 and Node 3 are placed out of each other's RF transmission range ($> 250\text{m}$).</li>
+      <li><strong>Experiment Steps:</strong>
+        <ol>
+          <li>Install <code>OlsrHelper</code> on all three nodes to enable link-state multipoint relay (MPR) routing.</li>
+          <li>At $t = 1\text{s}$, schedule Node 1 to transmit UDP packets destined for Node 3. Verify zero packet reception at Node 3 due to lack of connectivity.</li>
+          <li>At $t = 20\text{s}$, use <code>ConstantVelocityMobilityModel</code> or waypoint events to move Node 2 into the intermediate space equidistant between Node 1 and Node 3 for 15 seconds.</li>
+          <li>Observe OLSR topology control (TC) message exchanges as Node 2 becomes an MPR relay, allowing Node 1 packets to reach Node 3.</li>
+          <li>At $t = 35\text{s}$, move Node 2 away into an isolated region. Monitor route breakage and packet drops.</li>
+          <li>Plot Received Bytes vs. Time at Node 3 alongside Node 2's mobility trajectory.</li>
+        </ol>
+      </li>
+    </ul>
+
+    <h3>Lab 1.5: Wi-Fi Hidden Terminal & RTS/CTS Optimization</h3>
+    <ul>
+      <li><strong>Level:</strong> Intermediate | <strong>Focus:</strong> IEEE 802.11 CSMA/CA, hidden terminal collision, RTS/CTS handshake threshold.</li>
+      <li><strong>Topology:</strong> $5 \times 5$ wireless grid topology (based on <code>examples/wireless/wifi-simple-adhoc-grid.cc</code>).</li>
+      <li><strong>Experiment Steps:</strong>
+        <ol>
+          <li>Establish high-rate UDP streams along both diagonals and through the center cross-line.</li>
+          <li>Attach <code>FlowMonitor</code> to collect per-flow delivery ratio, bit throughput, and dropped packet counts.</li>
+          <li>Run simulation with standard CSMA/CA without RTS/CTS (<code>RtsCtsThreshold = 65535</code>). Identify which nodes experience catastrophic collision rates.</li>
+          <li>Enable RTS/CTS globally by setting <code>RtsCtsThreshold = 100</code> bytes (so all data packets trigger RTS/CTS exchange).</li>
+          <li>Compare overall network goodput. Explain why RTS/CTS resolves the hidden terminal problem in congested mesh/ad-hoc grids despite its protocol control overhead.</li>
+        </ol>
+      </li>
+    </ul>
+
+    <h3>Lab 1.6: Wi-Fi Channel Allocation & Co-Channel Interference</h3>
+    <ul>
+      <li><strong>Level:</strong> Intermediate | <strong>Focus:</strong> 802.11 spectrum channels, adjacent-channel interference, spatial reuse.</li>
+      <li><strong>Experiment:</strong> Create two independent Basic Service Sets (BSS1: AP1 + 3 STAs, BSS2: AP2 + 3 STAs) located in close physical proximity ($15\text{m}$ apart). Evaluate aggregated network throughput when both APs operate on the identical 2.4 GHz channel (e.g. Channel 1) versus orthogonal non-overlapping channels (Channel 1 and Channel 6).</li>
+    </ul>
+  </div>
+</details>
+
+<!-- EVALUATION MODULE 2: UW EE 595 WIRELESS & 4G/5G -->
+<details class="module-card" id="_eval_uw_funlab">
+  <summary class="module-summary">
+    <div><span class="module-badge" style="background: #7c3aed;">Evaluation Track 2</span> University of Washington EE 595: Wireless Networks for 4G/5G (Funlab)</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
+  </summary>
+  <div class="module-body">
+    <div class="admonitionblock note" style="margin-bottom: 20px;">
+      <table><tr>
+        <td class="icon"><div class="title" style="color: #7c3aed; font-weight: bold;">Official Citation</div></td>
+        <td class="content">
+          <strong>Source:</strong> Fundamentals of Networking Laboratory (Funlab), University of Washington — EE 595: Wireless Networks for 4G/5G, Prof. Sumit Roy.<br>
+          <strong>URL:</strong> <a href="https://wp.ece.uw.edu/funlab/resources/ee-595-wireless-networks-for-4g5g/" target="_blank" rel="noopener noreferrer">https://wp.ece.uw.edu/funlab/resources/ee-595-wireless-networks-for-4g5g/</a><br>
+          <em>Graduate-level curriculum focusing on physical layer RF propagation, 802.11 distributed coordination function (DCF), and 4G LTE/5G NR cellular simulation using ns-3.</em>
+        </td>
+      </tr></table>
+    </div>
+
+    <h3>Lab 2.1: Wireless RF Propagation & Physical Layer Modeling</h3>
+    <ul>
+      <li><strong>Objective:</strong> Quantify RF signal attenuation, path loss exponents, and fading distributions.</li>
+      <li><strong>Procedure:</strong>
+        <ol>
+          <li>Construct a simulation with one static base node and a mobile wireless node moving from $1\text{m}$ to $500\text{m}$ along a linear path.</li>
+          <li>Configure <code>YansWifiChannelHelper</code> with <code>LogDistancePropagationLossModel</code> and vary the path loss exponent $\alpha \in [2.0, 3.5, 4.0]$ representing Free-Space, Urban Microcell, and Obstructed Indoor environments.</li>
+          <li>Layer a <code>NakagamiPropagationLossModel</code> or Rayleigh fading model on top to simulate multipath scattering.</li>
+          <li>Sample received signal strength (RSSI in dBm) and Signal-to-Noise Ratio (SNR) at $10\text{m}$ intervals.</li>
+          <li>Plot Theoretical Path Loss vs. ns-3 Simulated RSSI and determine the maximum communication range for BPSK ($1/2$) modulation.</li>
+        </ol>
+      </li>
+    </ul>
+
+    <h3>Lab 2.2: IEEE 802.11 DCF Performance Evaluation</h3>
+    <ul>
+      <li><strong>Objective:</strong> Validate Bianchi's analytical model for IEEE 802.11 Distributed Coordination Function (DCF).</li>
+      <li><strong>Procedure:</strong>
+        <ol>
+          <li>Simulate a single-hop wireless star topology with $N$ mobile stations competing for channel access to a centralized Access Point (AP).</li>
+          <li>Vary station count $N \in [2, 5, 10, 20, 40, 60]$ under saturated traffic conditions (continuous OnOffApplication).</li>
+          <li>Measure network saturated throughput, average access delay, and frame collision probability ($p_{\text{coll}}$).</li>
+          <li>Compare the simulated collision curve against Bianchi's theoretical formula: $p = 1 - (1 - \tau)^{N-1}$.</li>
+          <li>Evaluate performance improvements when adjusting the Contention Window parameters ($CW_{\min} = 15, 31, 63$).</li>
+        </ol>
+      </li>
+    </ul>
+
+    <h3>Lab 2.3: 4G LTE / 5G Cellular Networks Simulation</h3>
+    <ul>
+      <li><strong>Objective:</strong> Configure LTE E-UTRAN and Evolved Packet Core (EPC) data planes using ns-3's LTE module.</li>
+      <li><strong>Procedure:</strong>
+        <ol>
+          <li>Initialize <code>LteHelper</code> and <code>PointToPointEpcHelper</code> to bootstrap PGW, SGW, and eNodeB nodes.</li>
+          <li>Deploy multiple User Equipment (UE) nodes in hexagonal cell sectors around eNodeBs.</li>
+          <li>Install the Radio Resource Control (RRC) protocol and attach UEs to the strongest cell tower using <code>lteHelper-&gt;Attach (ueDevs)</code>.</li>
+          <li>Generate downlink TCP and UDP traffic flows through the remote Internet host via the EPC core network.</li>
+          <li>Analyze MAC layer scheduling algorithms: Proportional Fair (PF), Round Robin (RR), and Maximum Throughput (MT).</li>
+          <li>Induce mobile handovers by driving a UE between two eNodeBs; record SINR dips and handover execution latency.</li>
+        </ol>
+      </li>
+    </ul>
+  </div>
+</details>
+
+<!-- EVALUATION MODULE 3: GEORGIA TECH ECE 6110 -->
+<details class="module-card" id="_eval_gatech_ece6110">
+  <summary class="module-summary">
+    <div><span class="module-badge" style="background: #ba3925;">Evaluation Track 3</span> Georgia Tech ECE 6110: Advanced Computer Networks Labs (Prof. Douglas Blough)</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
+  </summary>
+  <div class="module-body">
+    <div class="admonitionblock note" style="margin-bottom: 20px;">
+      <table><tr>
+        <td class="icon"><div class="title" style="color: #ba3925; font-weight: bold;">Official Citation & Direct Lab Links</div></td>
+        <td class="content">
+          <strong>Institution:</strong> Georgia Institute of Technology, School of Electrical & Computer Engineering.<br>
+          <strong>Course:</strong> ECE 6110 Computer Networks, Prof. Douglas Blough.<br>
+          <strong>Course Portal:</strong> <a href="https://blough.ece.gatech.edu/6110/" target="_blank" rel="noopener noreferrer">https://blough.ece.gatech.edu/6110/</a><br>
+          <strong>Lab Direct Documents:</strong>
+          <ul style="margin: 6px 0 0 16px;">
+            <li>📄 <a href="https://blough.ece.gatech.edu/6110/Lab1.pdf" target="_blank" rel="noopener noreferrer"><strong>ECE 6110 Lab 1: Network Topologies & Traffic Generators (PDF)</strong></a></li>
+            <li>📄 <a href="https://blough.ece.gatech.edu/6110/Lab2.pdf" target="_blank" rel="noopener noreferrer"><strong>ECE 6110 Lab 2: Congestion Control — TCP CUBIC vs. NewReno (PDF)</strong></a></li>
+            <li>📄 <a href="https://blough.ece.gatech.edu/6110/Lab3.pdf" target="_blank" rel="noopener noreferrer"><strong>ECE 6110 Lab 3: Mobility Models — Random Walk vs. Random Waypoint (PDF)</strong></a></li>
+            <li>📄 <a href="https://blough.ece.gatech.edu/6110/Lab4.pdf" target="_blank" rel="noopener noreferrer"><strong>ECE 6110 Lab 4: Wireless Propagation & Minstrel Rate Adaptation (PDF)</strong></a></li>
+          </ul>
+        </td>
+      </tr></table>
+    </div>
+
+    <h3>Lab 3.1: Complex Network Topologies & Traffic Flow Sinks</h3>
+    <ul>
+      <li><strong>PDF Document:</strong> <a href="https://blough.ece.gatech.edu/6110/Lab1.pdf" target="_blank">Lab1.pdf</a></li>
+      <li><strong>Core Focus:</strong> Point-to-Point, Bus/CSMA, and hybrid topologies; traffic generation via <code>OnOffApplication</code> and sinks with <code>PacketSink</code>; reproducible random seed management via ns-3 <code>RandomVariableStream</code>.</li>
+      <li><strong>Experiment Brief:</strong> Build a multi-node star and dumbbell architecture. Connect heterogeneous client clusters to high-speed backbone routers. Generate stochastic Poisson traffic streams, evaluate packet loss ratios, and measure end-to-end delay variation across wired subnets.</li>
+    </ul>
+
+    <h3>Lab 3.2: Congestion Control Deep-Dive — TCP CUBIC vs. NewReno</h3>
+    <ul>
+      <li><strong>PDF Document:</strong> <a href="https://blough.ece.gatech.edu/6110/Lab2.pdf" target="_blank">Lab2.pdf</a> | <strong>Reference Paper:</strong> <a href="https://blough.ece.gatech.edu/6110/tcp_cubic_paper.pdf" target="_blank">TCP CUBIC Paper (Sangtae Ha et al.)</a></li>
+      <li><strong>Starting Template:</strong> <code>examples/tcp/tcp-variants-comparison.cc</code></li>
+      <li><strong>Experiment Brief:</strong>
+        <ol>
+          <li>Construct a high-BDP (Bandwidth-Delay Product) dumbbell network with a long-haul bottleneck link (e.g. $100\text{ Mbps}$, $80\text{ ms}$ propagation delay).</li>
+          <li>Remove default large socket buffer overrides to ensure drop dynamics accurately reflect the bottleneck router's finite buffer capacity.</li>
+          <li>Run simultaneous side-by-side flows of <code>ns3::TcpCubic</code> and <code>ns3::TcpNewReno</code>.</li>
+          <li>Trace the cubic window function $W(t) = C(t - K)^3 + W_{\max}$ during recovery compared to NewReno's linear Additive Increase ($W = W + 1/W$).</li>
+          <li>Evaluate friendliness and fairness when CUBIC and NewReno flows share the same bottleneck link.</li>
+        </ol>
+      </li>
+    </ul>
+
+    <h3>Lab 3.3: Node Mobility Models — Steady-State Spatial Distributions</h3>
+    <ul>
+      <li><strong>PDF Document:</strong> <a href="https://blough.ece.gatech.edu/6110/Lab3.pdf" target="_blank">Lab3.pdf</a> | <strong>Reference Paper:</strong> <a href="https://blough.ece.gatech.edu/6110/mobility_steady_state_distributions.pdf" target="_blank">Steady-State Spatial Distributions of Random Walk and Waypoint Models</a></li>
+      <li><strong>Experiment Brief:</strong>
+        <ol>
+          <li>Deploy $N = 50$ wireless nodes in an $80\text{m} \times 80\text{m}$ square area.</li>
+          <li>Run simulations under two distinct mobility dynamics: <code>RandomWalk2dMobilityModel</code> and <code>RandomWaypointMobilityModel</code>.</li>
+          <li>Collect node position coordinates over a $1000\text{s}$ simulation time horizon.</li>
+          <li>Plot the spatial density histograms of both models. Observe the famous "border effect" and why Random Waypoint models induce high node concentration in the center of the topology.</li>
+          <li>Correlate node distance from the central access point with instantaneous wireless UDP throughput.</li>
+        </ol>
+      </li>
+    </ul>
+
+    <h3>Lab 3.4: IEEE 802.11ac Wireless Propagation & Minstrel HT Rate Adaptation</h3>
+    <ul>
+      <li><strong>PDF Document:</strong> <a href="https://blough.ece.gatech.edu/6110/Lab4.pdf" target="_blank">Lab4.pdf</a></li>
+      <li><strong>Experiment Brief:</strong>
+        <ol>
+          <li>Configure an IEEE 802.11ac VHT wireless access point and a moving client station equipped with the <code>MinstrelHtWifiManager</code> rate adaptation algorithm.</li>
+          <li>Move the station away from the AP at constant speed ($1\text{ m/s}$) from $1\text{m}$ up to $150\text{m}$.</li>
+          <li>Trace the active Modulation and Coding Scheme (MCS index 0 through 9) and physical rate chosen by the Minstrel table over time.</li>
+          <li>Compare throughput degradation under <code>LogDistancePropagationLossModel</code> alone versus combined with <code>NakagamiPropagationLossModel</code> fading.</li>
+          <li>Identify the critical distance thresholds where Minstrel drops from 256-QAM (MCS 8/9) down to QPSK and BPSK (MCS 0).</li>
+        </ol>
+      </li>
+    </ul>
+  </div>
+</details>
+
+<!-- EVALUATION MODULE 4: SIMON KASSING ARCHITECTURAL GUIDE -->
+<details class="module-card" id="_eval_snkas_basics">
+  <summary class="module-summary">
+    <div><span class="module-badge" style="background: #0f766e;">Evaluation Track 4</span> Architectural Fundamentals & Traffic Control Layer (Simon Kassing Guide)</div>
+    <span style="font-size: 14px; color: #64748b;">▼</span>
+  </summary>
+  <div class="module-body">
+    <div class="admonitionblock note" style="margin-bottom: 20px;">
+      <table><tr>
+        <td class="icon"><div class="title" style="color: #0f766e; font-weight: bold;">Official Citation</div></td>
+        <td class="content">
+          <strong>Source:</strong> <em>ns-3 Basics: State, Events, Nodes & Traffic Control</em>, Simon Kassing.<br>
+          <strong>Repository:</strong> <a href="https://github.com/snkas/ns3-basic-sim-intro/blob/master/chapters/4_ns3_basics.md" target="_blank" rel="noopener noreferrer">https://github.com/snkas/ns3-basic-sim-intro/blob/master/chapters/4_ns3_basics.md</a><br>
+          <em>A primer breaking down the internals of ns-3 discrete event simulation, the Node state graph, and the dual-queue architecture of the Traffic Control Layer.</em>
+        </td>
+      </tr></table>
+    </div>
+
+    <h3>Core Architectural Concepts to Master</h3>
+    <ul>
+      <li><strong>1. Node as State Graph:</strong> A <code>Node</code> has no pre-defined physical edges. Instead, it aggregates:
+        <ul>
+          <li>A collection of <code>NetDevice</code> objects (analogous to physical NIC ports and driver queues).</li>
+          <li>A list of <code>Application</code> objects (producers and consumers of packet traffic).</li>
+          <li>A list of protocol handlers: <code>Ipv4L3Protocol</code>, <code>ArpL3Protocol</code>, <code>TcpL4Protocol</code>, <code>UdpL4Protocol</code>.</li>
+        </ul>
+      </li>
+      <li><strong>2. The Dual-Queue Architecture (Traffic Control vs. NetDevice):</strong>
+        <p>In modern ns-3, there are <strong>TWO distinct queues</strong> before a packet reaches the wire/air:</p>
+        <ol>
+          <li>The <strong>Queueing Discipline (Qdisc)</strong> inside the <code>TrafficControlLayer</code> (e.g. <code>FqCoDel</code>, <code>PFifoFast</code>, <code>RedQueueDisc</code>).</li>
+          <li>The <code>NetDevice</code>'s own internal hardware queue.</li>
+        </ol>
+        <p><em>The Golden Rule:</em> The <code>TrafficControlLayer</code> checks if the <code>NetDevice</code> queue has space before pushing. Therefore, in standard configurations, <strong>all queuing drops occur at the Traffic Control Layer; the NetDevice queue itself never drops packets!</strong></p>
+      </li>
+      <li><strong>3. Lazy Packet Payload Mechanics:</strong> A <code>Packet</code> in ns-3 allocates memory lazily. As long as applications do not explicitly fill or parse payload bytes, the packet size is represented as an integer tag, drastically speeding up simulation time and conserving RAM.</li>
+    </ul>
+
+    <h3>Hands-On Verification Exercise</h3>
+    <p>Construct a script with two nodes connected by a $1\text{ Mbps}$ Point-to-Point link. Send UDP traffic at $5\text{ Mbps}$ to overload the interface:</p>
+    <pre><code class="language-cpp">// Hook into Drop traces at BOTH the TrafficControlLayer and the NetDevice:
+Config::Connect ("/NodeList/*/DeviceList/*/$ns3::PointToPointNetDevice/TxQueue/Drop",
+                 MakeCallback (&NetDeviceDropTrace));
+Config::Connect ("/NodeList/*/$ns3::TrafficControlLayer/RootQueueDiscList/*/Drop",
+                 MakeCallback (&TrafficControlDropTrace));</code></pre>
+    <p><strong>Verification Question:</strong> Confirm that 100% of dropped packets trigger the <code>TrafficControlDropTrace</code> callback, while <code>NetDeviceDropTrace</code> reports 0 drops. Explain how this decoupled design mirrors the real Linux kernel network stack.</p>
+  </div>
+</details>
+
+</div>
+</div>
+<!-- ======================================================== -->
 
 </div>
 </div>
